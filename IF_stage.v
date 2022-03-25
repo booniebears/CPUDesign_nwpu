@@ -4,39 +4,40 @@ module if_stage(
     input                          clk            ,
     input                          reset          ,
     //allowin
-    input                          ds_allowin     , //ID½×¶ÎÉú³É IF_ID¼Ä´æÆ÷µÄ¿ØÖÆĞÅºÅÖ®Ò»(¹²Á½¸ö)
+    input                          ds_allowin     , //IDé˜¶æ®µç”Ÿæˆ IF_IDå¯„å­˜å™¨çš„æ§åˆ¶ä¿¡å·ä¹‹ä¸€(å…±ä¸¤ä¸ª)
     //brbus
-    input  [`BR_BUS_WD       -1:0] br_bus         , //ID½×¶ÎÉú³É br_bus = {fs_bd,br_stall,br_taken,br_target}
+    input  [`BR_BUS_WD       -1:0] br_bus         , //IDé˜¶æ®µç”Ÿæˆ br_bus = {fs_bd,br_stall,br_taken,br_target}
     //to ds
-    output                         fs_to_ds_valid , //IF_ID¼Ä´æÆ÷µÄ¿ØÖÆĞÅºÅÖ®¶ş(¹²Á½¸ö)
+    output                         fs_to_ds_valid , //IF_IDå¯„å­˜å™¨çš„æ§åˆ¶ä¿¡å·ä¹‹äºŒ(å…±ä¸¤ä¸ª)
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus   ,
     // inst sram interface 
-    output        inst_sram_en   ,//¶ÁÈ¡Ö¸ÁîÊ¹ÄÜ
-    output [ 3:0] inst_sram_wen  ,//Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-    output [31:0] inst_sram_addr ,//ÏÂÒ»ÌõÖ¸ÁîµØÖ·
-    output [31:0] inst_sram_wdata,//Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-    input  [31:0] inst_sram_rdata, //Ö¸Áî
-    //lab8Ìí¼Ó 
-    input flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
-    input [31:0] CP0_EPC, //CP0¼Ä´æÆ÷ÖĞ,EPCµÄÖµ
+    output        inst_sram_en   ,//è¯»å–æŒ‡ä»¤ä½¿èƒ½
+    output [ 3:0] inst_sram_wen  ,//æŒ‡ä»¤å­˜å‚¨å™¨æ²¡ä»€ä¹ˆå¥½å†™çš„
+    output [31:0] inst_sram_addr ,//ä¸‹ä¸€æ¡æŒ‡ä»¤åœ°å€
+    output [31:0] inst_sram_wdata,//æŒ‡ä»¤å­˜å‚¨å™¨æ²¡ä»€ä¹ˆå¥½å†™çš„
+    input  [31:0] inst_sram_rdata, //æŒ‡ä»¤
+    //lab8æ·»åŠ  
+    input flush, //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸
+    input [31:0] CP0_EPC, //CP0å¯„å­˜å™¨ä¸­,EPCçš„å€¼
     input ws_inst_eret  
 );
 
 /*
-    IF½×¶Î
-    1.´ÓIPºËinst_sramÖĞ»ñÈ¡Ö¸Áîinst_sram_rdata, Í¬Ê±¸üĞÂPCµÄÖµËÍµ½inst_sram_addr;
-    2.°Ñ´ò°üÊı¾İfs_to_ds_busËÍµ½ID½×¶Î,²¢¸üĞÂfs_to_ds_valid,ÕâÊÇIF_ID¼Ä´æÆ÷µÄ¿ØÖÆĞÅºÅÖ®¶ş(¹²Á½¸ö)
-    3.¸ù¾İbr_taken±ê×¢µ±Ç°Ö¸ÁîÊÇ·ñÔÚÑÓ³Ù²ÛÖĞ
+    IFé˜¶æ®µ
+    1.ä»IPæ ¸inst_sramä¸­è·å–æŒ‡ä»¤inst_sram_rdata, åŒæ—¶æ›´æ–°PCçš„å€¼é€åˆ°inst_sram_addr;
+    2.æŠŠæ‰“åŒ…æ•°æ®fs_to_ds_busé€åˆ°IDé˜¶æ®µ,å¹¶æ›´æ–°fs_to_ds_valid,è¿™æ˜¯IF_IDå¯„å­˜å™¨çš„æ§åˆ¶ä¿¡å·ä¹‹äºŒ(å…±ä¸¤ä¸ª)
+    3.æ ¹æ®br_takenæ ‡æ³¨å½“å‰æŒ‡ä»¤æ˜¯å¦åœ¨å»¶è¿Ÿæ§½ä¸­
 */
-reg         fs_valid; //µ±fs_allowin=1,fs_valid<=pre_fs_ready_go;
-wire        fs_ready_go; //Êı¾İÁ÷´ÓIFÁ÷ÏòID½×¶ÎµÄ¿ØÖÆĞÅºÅ fs_ready_go=1,IF½×¶ÎÔÊĞíÁ÷³ö
-wire        fs_allowin; //½öÔÚIF½×¶ÎÖĞ×÷ÓÃ fs_allowin=1,IF½×¶ÎÔÊĞíÖ¸ÁîÁ÷Èë ÊÇfs_valid fs_pc inst_sram_enµÄ¿ØÖÆĞÅºÅ
-wire        pre_fs_ready_go; //pre-IF½×¶ÎµÄready goĞÅºÅ
-//lab4Ìí¼Ó
-wire        br_stall;      //ID½×¶Î¼ì²âµ½branchÖ¸Áî,ÓÉÓÚloadÖ¸ÁîÔÚEXE½×¶Î,ÎŞ·¨Ê¹ÓÃforward,±ØĞëÔİÍ£
-//lab8Ìí¼Ó
-wire        fs_bd;  //IF½×¶Î µ±Ç°Ö¸ÁîÈôÔÚÑÓ³Ù²ÛÖĞ,ÔòÖÃÎª1
-wire        ADEL_ex;//´¦ÀíÈ¡Ö¸ÁîµØÖ·´íÀıÍâADEL
+reg         fs_valid; //å½“fs_allowin=1,fs_valid<=to_fs_valid;
+wire        fs_ready_go; //æ•°æ®æµä»IFæµå‘IDé˜¶æ®µçš„æ§åˆ¶ä¿¡å· fs_ready_go=1,IFé˜¶æ®µå…è®¸æµå‡º
+wire        fs_allowin; //ä»…åœ¨IFé˜¶æ®µä¸­ä½œç”¨ fs_allowin=1,IFé˜¶æ®µå…è®¸æŒ‡ä»¤æµå…¥ æ˜¯fs_valid fs_pc inst_sram_ençš„æ§åˆ¶ä¿¡å·
+wire        to_fs_valid; //validä¿¡å·å’Œready goä¿¡å·æ˜¯ä¸€å¯¹çš„
+// lab4æ·»åŠ  
+wire        pre_fs_ready_go; //pre-IFé˜¶æ®µçš„ready goä¿¡å·
+wire        br_stall;      //IDé˜¶æ®µæ£€æµ‹åˆ°branchæŒ‡ä»¤,ç”±äºloadæŒ‡ä»¤åœ¨EXEé˜¶æ®µ,æ— æ³•ä½¿ç”¨forward,å¿…é¡»æš‚åœ
+//lab8æ·»åŠ 
+wire        fs_bd;  //IFé˜¶æ®µ å½“å‰æŒ‡ä»¤è‹¥åœ¨å»¶è¿Ÿæ§½ä¸­,åˆ™ç½®ä¸º1
+wire        ADEL_ex;//å¤„ç†å–æŒ‡ä»¤åœ°å€é”™ä¾‹å¤–ADEL
 wire        fs_ex;
 wire [4:0]  fs_ExcCode;
 
@@ -45,7 +46,7 @@ wire [31:0] nextpc;
 
 wire         br_taken;
 wire [ 31:0] br_target;
-assign {fs_bd,br_stall,br_taken,br_target} = br_bus; //ÕâÀïµÄfs_bd¼´ÎªID½×¶ÎµÄis_branchĞÅºÅ 
+assign {fs_bd,br_stall,br_taken,br_target} = br_bus; //è¿™é‡Œçš„fs_bdå³ä¸ºIDé˜¶æ®µçš„is_branchä¿¡å· 
 
 wire [31:0] fs_inst;
 reg  [31:0] fs_pc;
@@ -58,20 +59,21 @@ assign fs_to_ds_bus = {
                        };
 
 // pre-IF stage
-//lab4ĞŞ¸Ä reset=0,br_stall=0,pre_fs_ready_go=1;
-//lab8ĞŞ¸Ä ´æÔÚµ±WB½×¶Î·¢ÏÖÀıÍâÊ±,ID½×¶Î·¢ÏÖbr_stallµÄÎÊÌâ;ÕâÖÖÇé¿öÏÂÀıÍâ±ØÈ»¾ßÓĞ×î¸ßÓÅÏÈ¼¶
-assign pre_fs_ready_go = flush ? 1'b1 : ~reset & ~br_stall; 
+//lab4ä¿®æ”¹ reset=0,br_stall=0,to_fs_valid=1;
+//lab8ä¿®æ”¹ å­˜åœ¨å½“WBé˜¶æ®µå‘ç°ä¾‹å¤–æ—¶,IDé˜¶æ®µå‘ç°br_stallçš„é—®é¢˜;è¿™ç§æƒ…å†µä¸‹ä¾‹å¤–å¿…ç„¶å…·æœ‰æœ€é«˜ä¼˜å…ˆçº§
+assign pre_fs_ready_go = ~br_stall;
+assign to_fs_valid     = flush ? 1'b1 : ~reset & pre_fs_ready_go;  
 assign seq_pc          = fs_pc + 3'h4;
-assign nextpc          = ws_inst_eret ? CP0_EPC : //eretÌØÈ¨Ö¸Áî Õâ¸ö¾ßÓĞ×î¸ßÓÅÏÈ¼¶,×îÏÈÅĞ¶Ï
-                         flush ? 32'hbfc00380 : //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£.Èç¹ûÊÇeretÖ¸Áî,ÉÏÃæ»áÏÈÅĞ¶Ï,
-                         //È»ºóÌø×ªµ½CP0_EPC; ·ñÔòËµÃ÷·¢ÉúÒì³£,´ËÊ±PCÖµ¸üĞÂÎª0xbfc00380
-                         br_taken ? br_target : seq_pc; //nextpcÔÚbranchÖ¸ÁîÖ¸¶¨µÄpcºÍseq_pcÖĞ²úÉú
+assign nextpc          = ws_inst_eret ? CP0_EPC : //eretç‰¹æƒæŒ‡ä»¤ è¿™ä¸ªå…·æœ‰æœ€é«˜ä¼˜å…ˆçº§,æœ€å…ˆåˆ¤æ–­
+                         flush ? 32'hbfc00380 : //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸.å¦‚æœæ˜¯eretæŒ‡ä»¤,ä¸Šé¢ä¼šå…ˆåˆ¤æ–­,
+                         //ç„¶åè·³è½¬åˆ°CP0_EPC; å¦åˆ™è¯´æ˜å‘ç”Ÿå¼‚å¸¸,æ­¤æ—¶PCå€¼æ›´æ–°ä¸º0xbfc00380
+                         br_taken ? br_target : seq_pc; //nextpcåœ¨branchæŒ‡ä»¤æŒ‡å®šçš„pcå’Œseq_pcä¸­äº§ç”Ÿ
 
 // IF stage
 assign fs_ready_go    = 1'b1;
 /*
-    1.fs_valid=0,¼´¸Õ¸ÕÓĞresetÖ¸Áî,´ËÊ±±ØÈ»Òª¶ÁÈëÏÂÒ»ÌõÖ¸Áî,fs_allowin=!fs_valid=1;
-    2.reset²»×÷ÓÃÊ±,Èôfs_ready_go=1&&ds_allowin=1,¼´IF½×¶ÎÔÊĞíÁ÷³ö,ID½×¶ÎÔÊĞíÁ÷Èë,Ôòfs_allowin=1,ÔÊĞí¶ÁÈëÖ¸ÁîºÍPC¸üĞÂ
+    1.fs_valid=0,å³åˆšåˆšæœ‰resetæŒ‡ä»¤,æ­¤æ—¶å¿…ç„¶è¦è¯»å…¥ä¸‹ä¸€æ¡æŒ‡ä»¤,fs_allowin=!fs_valid=1;
+    2.resetä¸ä½œç”¨æ—¶,è‹¥fs_ready_go=1&&ds_allowin=1,å³IFé˜¶æ®µå…è®¸æµå‡º,IDé˜¶æ®µå…è®¸æµå…¥,åˆ™fs_allowin=1,å…è®¸è¯»å…¥æŒ‡ä»¤å’ŒPCæ›´æ–°
 */
 assign fs_allowin     =  flush ? 1'b1 : !fs_valid || fs_ready_go && ds_allowin; 
 assign fs_to_ds_valid =  fs_valid && fs_ready_go;
@@ -81,26 +83,26 @@ always @(posedge clk) begin //fs_valid,fs_pc
         fs_valid <= 1'b0;
     end
     else if (fs_allowin) begin
-        fs_valid <= pre_fs_ready_go; //Ö»ÒªresetÎŞĞ§,Ôòpre_fs_ready_goÎª1
+        fs_valid <= to_fs_valid; 
     end
 
     if (reset) begin
         fs_pc <= 32'hbfbffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
     end
-    else if (pre_fs_ready_go && fs_allowin) begin
+    else if (to_fs_valid && fs_allowin) begin
         fs_pc <= nextpc;
     end
 end
 
-//Òì³£µÄ±¨³öºÍfs_pcÍ¬ÅÄ,¶øinst_sramµÄÊ¹ÄÜĞÅºÅÔòÒªÓënextpcµÄ¸üĞÂÍ¬ÅÄ,ºóÕß±ÈÇ°Õß¿ìÒ»ÅÄ
+//å¼‚å¸¸çš„æŠ¥å‡ºå’Œfs_pcåŒæ‹,è€Œinst_sramçš„ä½¿èƒ½ä¿¡å·åˆ™è¦ä¸nextpcçš„æ›´æ–°åŒæ‹,åè€…æ¯”å‰è€…å¿«ä¸€æ‹
 assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0; 
 assign fs_ex      = ADEL_ex;
-assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:È«1Ä¿Ç°´ú±íÎŞÒì³£
+assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:å…¨1ç›®å‰ä»£è¡¨æ— å¼‚å¸¸
 
-assign inst_sram_en    = nextpc[1:0] ? 1'b0 : pre_fs_ready_go && fs_allowin; //¶ÁÈ¡Ö¸ÁîÊ¹ÄÜ
-assign inst_sram_wen   = 4'h0; //Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-assign inst_sram_addr  = nextpc; //ÏÂÒ»ÌõÖ¸ÁîµØÖ·
-assign inst_sram_wdata = 32'b0; //Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
+assign inst_sram_en    = nextpc[1:0] ? 1'b0 :  to_fs_valid && fs_allowin; //è¯»å–æŒ‡ä»¤ä½¿èƒ½
+assign inst_sram_wen   = 4'h0; //æŒ‡ä»¤å­˜å‚¨å™¨æ²¡ä»€ä¹ˆå¥½å†™çš„
+assign inst_sram_addr  = nextpc; //ä¸‹ä¸€æ¡æŒ‡ä»¤åœ°å€
+assign inst_sram_wdata = 32'b0; //æŒ‡ä»¤å­˜å‚¨å™¨æ²¡ä»€ä¹ˆå¥½å†™çš„
 
 assign fs_inst         = inst_sram_rdata;
 
