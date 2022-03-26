@@ -99,7 +99,7 @@ assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0;
 assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:全1目前代表无异常
 
-assign inst_sram_en    = nextpc[1:0] ? 1'b0 :  to_fs_valid && fs_allowin; //读取指令使能
+assign inst_sram_en    = nextpc[1:0] ? 1'b0 : (~br_stall | flush) && to_fs_valid && fs_allowin; //读取指令使能
 assign inst_sram_wen   = 4'h0; //指令存储器没什么好写的
 assign inst_sram_addr  = nextpc; //下一条指令地址
 assign inst_sram_wdata = 32'b0; //指令存储器没什么好写的
