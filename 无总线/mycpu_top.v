@@ -1,6 +1,8 @@
 `include "mycpu.h"
 
 module mycpu_top(
+    // 外部中断信号
+    input [5:0] ext_int_i, //6个外部硬件中断输入
     input         clk,
     input         resetn,
     // inst sram interface 调用IP核
@@ -19,9 +21,8 @@ module mycpu_top(
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_wen,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata,
-    // 外部中断信号
-    input [5:0] ext_int_i //6个外部硬件中断输入
+    output [31:0] debug_wb_rf_wdata
+
 );
 reg         reset;
 always @(posedge clk) reset <= ~resetn;
@@ -41,7 +42,6 @@ wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire [`BR_BUS_WD       -1:0] br_bus;
 
-//lab4添加
 wire [4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
 wire [4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
 wire [4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
@@ -50,7 +50,6 @@ wire [31:0] MEM_result; //MEM阶段 ms_final_result
 wire [31:0] WB_result; //WB阶段 ws_final_result
 wire es_load_op; //EXE阶段 判定是否为load指令
 
-//lab8添加 flush=1时表明需要处理异常
 wire flush; 
 wire ms_ex;
 wire ws_ex;
@@ -105,7 +104,6 @@ id_stage id_stage(
     .br_bus         (br_bus         ),
     //to rf: for write back
     .ws_to_rf_bus   (ws_to_rf_bus   ),
-    //lab4添加
     .EXE_dest       (EXE_dest       ),
     .MEM_dest       (MEM_dest       ),
     .WB_dest        (WB_dest        ),
@@ -113,7 +111,6 @@ id_stage id_stage(
     .MEM_result     (MEM_result     ),
     .WB_result      (WB_result      ),
     .es_load_op     (es_load_op     ),
-    //lab8添加
     .flush          (flush          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .ms_inst_mfc0   (ms_inst_mfc0   ),
@@ -141,11 +138,9 @@ exe_stage exe_stage(
     .data_sram_wen  (data_sram_wen  ),
     .data_sram_addr (data_sram_addr ),
     .data_sram_wdata(data_sram_wdata),
-    //lab4添加
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
-    //lab8添加
     .flush          (flush          ),  
     .ms_ex          (ms_ex          ),  
     .ws_ex          (ws_ex          ),
@@ -168,10 +163,8 @@ mem_stage mem_stage(
     .ms_to_ws_bus   (ms_to_ws_bus   ),
     //from data-sram
     .data_sram_rdata(data_sram_rdata),
-    //lab4添加
     .MEM_dest       (MEM_dest       ), 
     .MEM_result     (MEM_result     ),
-    //lab8添加
     .flush          (flush          ), 
     .ms_ex          (ms_ex          ), 
     .ms_inst_mfc0   (ms_inst_mfc0   ), 
@@ -193,10 +186,8 @@ wb_stage wb_stage(
     .debug_wb_rf_wen  (debug_wb_rf_wen  ),
     .debug_wb_rf_wnum (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata(debug_wb_rf_wdata),
-    //lab4添加
     .WB_dest          (WB_dest          ), 
     .WB_result        (WB_result        ),
-    //lab8添加
     .flush            (flush            ), 
     .ws_ex            (ws_ex            ), 
     .CP0_EPC          (CP0_EPC          ), 

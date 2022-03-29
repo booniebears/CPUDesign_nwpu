@@ -14,22 +14,13 @@ module mem_stage(
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
     //from data-sram
     input  [31                 :0] data_sram_rdata,
-    //lab4添加
     output [4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
-    //lab8添加 
     input flush, //flush=1时表明需要处理异常
     output ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
     output ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 );
-
-/*
-    MEM阶段
-    1.包含一个EXE_MEM寄存器来控制时序,接收来自EXE阶段的数据与信号.
-    2.最终得到送RF的的数据
-    3.把打包数据ms_to_ws_bus送到WB阶段,并更新ms_to_ws_valid,这是MEM_WB寄存器的控制信号之二(共两个) 
-*/
 
 reg         ms_valid;
 wire        ms_ready_go;
@@ -169,6 +160,6 @@ assign ms_final_result = ms_res_from_mem ? mem_data
                                          : ms_alu_result;
                                          
 //lab4添加
-assign MEM_dest=ms_dest&{5{ms_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
+assign MEM_dest=ms_dest&{5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign MEM_result=ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 endmodule

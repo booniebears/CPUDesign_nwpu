@@ -16,7 +16,6 @@ module id_stage(
     output [`BR_BUS_WD       -1:0] br_bus        ,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
-    //lab4添加 暂停+前递
     input [4:0] EXE_dest , // EXE阶段写RF地址 通过旁路送到ID阶段
     input [4:0] MEM_dest , // MEM阶段写RF地址 通过旁路送到ID阶段
     input [4:0] WB_dest , // WB阶段写RF地址 通过旁路送到ID阶段
@@ -24,7 +23,6 @@ module id_stage(
     input [31:0] MEM_result , //MEM阶段 ms_final_result 
     input [31:0] WB_result , //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
     input es_load_op , //EXE阶段 判定是否为load指令
-    //lab8添加 
     input flush, //flush=1时表明需要处理异常
     input es_inst_mfc0,
     input ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
@@ -34,14 +32,6 @@ module id_stage(
     input [7:0] CP0_Cause_IP, //待处理中断标识
     input CP0_Cause_TI  //TI为1,触发定时中断;我们将该中断标记在ID阶段
 );
-
-/*
-    ID阶段
-    1.包含一个IF_ID寄存器来控制时序,接收来自IF阶段的数据与信号.
-    2.然后实现了译码的工作,同时生成ID_EXE寄存器的控制信号(信号的产生分为多层)
-    3.调用regfile模块,进行寄存器的读写操作
-    4.把打包数据ds_to_es_bus送到EXE阶段,并更新ds_to_es_valid,这是ID_EXE寄存器的控制信号之二(共两个) 
-*/
 
 reg         ds_valid   ;
 wire        ds_ready_go; //数据流从ID流向EXE阶段的控制信号

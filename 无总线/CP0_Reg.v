@@ -25,7 +25,6 @@ module CP0_Reg (
     output reg CP0_Cause_TI //TI为1,触发定时中断;我们将该中断标记在ID阶段
 );
 
-/* lab8添加 CP0寄存器.注意,这里没有所谓的"寄存器堆",而是拆成一个一个的寄存器处理,这样更加灵活 */
 wire [7:0] CP0_Addr; //写CP0寄存器组的地址
 wire mtc0_we; //写CP0寄存器的写使能信号
 

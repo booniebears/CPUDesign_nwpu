@@ -15,14 +15,14 @@
     //lab9修改为120(加入data_sram_addr)
     `define MS_TO_WS_BUS_WD 120
     `define WS_TO_RF_BUS_WD 38
-    //lab8添加 CP0寄存器对应的地址(8位)
+    //CP0寄存器对应的地址(8位)
     `define BadVAddr_RegAddr 8'h40
     `define Count_RegAddr    8'h48
     `define Compare_RegAddr  8'h58
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
-    //lab8添加 ExcCode编码及其对应例外类型
+    //ExcCode编码及其对应例外类型
     `define Int  5'b00000 //中断
     `define AdEL 5'b00100 //地址错例外(读数据/取指令)
     `define AdES 5'b00101 //地址错例外(写数据)

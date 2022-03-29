@@ -18,11 +18,9 @@ module exe_stage(
     output [ 3:0] data_sram_wen  ,
     output [31:0] data_sram_addr ,
     output [31:0] data_sram_wdata,
-    //lab4添加
     output [4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output es_load_op, //EXE阶段 判定是否为load指令
-    //lab8添加 
     input flush, //flush=1时表明需要处理异常
     input ms_ex, //判定MEM阶段是否有被标记为例外的指令
     input ws_ex, //判定WB阶段是否有被标记为例外的指令
@@ -30,14 +28,6 @@ module exe_stage(
     input ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
     input ws_inst_eret //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 );
-
-/*
-    EXE阶段
-    1.包含一个ID_EXE寄存器来控制时序,接收来自ID阶段的数据与信号.
-    2.调用alu模块,得到运算结果;同时生成EXE_MEM寄存器的控制信号(信号的产生分为多层)
-    3.得到data_sram的相应地址、数据和控制信号
-    4.把打包数据es_to_ms_bus送到MEM阶段,并更新es_to_ms_valid,这是EXE_MEM寄存器的控制信号之二(共两个) 
-*/
 
 reg         es_valid      ;
 wire        es_ready_go   ;
@@ -58,7 +48,7 @@ wire [31:0] es_pc         ;
 wire [11:0] es_mem_inst; //lab7添加 区别不同的存取数指令
 wire [3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
-//lab8添加
+
 wire [2:0] es_sel; 
 wire [4:0] es_mfc0_rd;
 wire es_inst_mtc0; 
@@ -105,10 +95,8 @@ wire [31:0] es_alu_src2   ;
 wire [31:0] temp_alu_result ; //临时接收alu计算得到的结果
 wire [31:0] es_alu_result ; //除了考虑alu运算结果,还考虑mtc0指令携带的rt数据;
 wire        es_res_from_mem;
-//lab6添加
 wire m_axis_dout_tvalid;
 wire m_axis_dout_tvalidu;
-//lab7添加 在EXE阶段处理store指令所需地址数据,在MEM阶段处理load指令所需地址数据
 wire        inst_is_sb;
 wire        inst_is_sh;
 wire        inst_is_swl;
@@ -255,7 +243,6 @@ assign data_sram_wen   = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 4'h0 
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = sram_wdata;
 
-//lab4添加
 assign EXE_dest=es_dest&{5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
 assign EXE_result=es_alu_result;
 

@@ -126,9 +126,7 @@ assign sr64_result = {{32{op_sra & alu_src2[31]}}, alu_src2[31:0]} >> alu_src1[4
 
 assign sr_result   = sr64_result[31:0];
 
-//lab6添加 带符号乘法
 assign mult_result=$signed(alu_src1)*$signed(alu_src2);
-//lab6添加 无符号乘法
 assign multu_result=alu_src1*alu_src2;
 
 //lab添加 HI LO寄存器
@@ -229,7 +227,6 @@ end
 
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
-//lab6添加MTHI,MTLO
 always @(*) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
     if(!es_ex&&!ms_ex&&!ws_ex) begin
         if(op_div) begin
@@ -257,7 +254,6 @@ always @(*) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
     end
 end
 
-//lab6添加MFHI,MFLO
 assign mfhi_result=HI;
 assign mflo_result=LO;
 

@@ -15,10 +15,8 @@ module wb_stage(
     output [ 3:0] debug_wb_rf_wen ,
     output [ 4:0] debug_wb_rf_wnum,
     output [31:0] debug_wb_rf_wdata,
-    //lab4添加
     output [4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
     output [31:0] WB_result, //WB阶段 ws_final_result
-    //lab8添加
     output flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
     output ws_ex, //判定WB阶段是否有被标记为例外的指令
     output [31:0] CP0_EPC, //CP0寄存器中,EPC的值
@@ -31,13 +29,6 @@ module wb_stage(
     input [5:0] ext_int_i //6个外部硬件中断输入
 );
 
-/*
-    MEM阶段
-    1.包含一个MEM_WB寄存器来控制时序,接收来自MEM阶段的数据与信号.
-    2.给debug模块的信号赋值
-    3.把打包数据ws_to_rf_bus送到ID阶段
-*/
-
 reg         ws_valid;
 wire        ws_ready_go;
 
@@ -48,7 +39,6 @@ wire [31:0] ws_result; //即MEM阶段的ms_final_result 未考虑mfc0和mtc0指令
 wire [31:0] ws_final_result; //考虑了mfc0和mtc0的最终结果
 wire [31:0] ws_pc;
 
-//lab8添加
 wire [2:0] ws_sel;
 wire [4:0] ws_mfc0_rd;
 wire ws_inst_mtc0;
@@ -74,7 +64,7 @@ assign {
         ws_result      ,  //63:32
         ws_pc             //31:0
        } = ms_to_ws_bus_r;
-//lab8添加
+
 assign ws_final_result = ws_inst_mfc0 ? CP0_data : ws_result;
 wire        rf_we;
 wire [4 :0] rf_waddr;
@@ -116,11 +106,9 @@ assign debug_wb_rf_wen   = {4{rf_we}};
 assign debug_wb_rf_wnum  = ws_dest;
 assign debug_wb_rf_wdata = ws_final_result;
 
-//lab4添加
 assign WB_dest=ws_dest&{5{ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign WB_result=ws_final_result; //mfc0读出的数据也会前递到ID阶段
 
-/* lab8添加 CP0寄存器.注意,这里没有所谓的"寄存器堆",而是拆成一个一个的寄存器处理,这样更加灵活 */
 CP0_Reg u_CP0_Reg(
     .clk(clk),
     .reset(reset),
@@ -146,8 +134,6 @@ CP0_Reg u_CP0_Reg(
     .CP0_Cause_TI(CP0_Cause_TI)
 );
 
-
-//lab8添加
 assign flush = eret_flush | ws_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 
 endmodule
