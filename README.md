@@ -11,7 +11,13 @@ This CPU design is based on mips instruction set.
 clk,inst_ram,data_ram(这三个是原来的lab资源自带的)
 mydiv,mydiv_unsigned(有符号除法和无符号除法IP,具体调用参考《CPU设计实战》第五章)
 还有其实也算调用的乘法（直接用 * 解决了,实际上就是调用了IP核,只是并不是显式的）......
-这几个运算用到的IP核之后想个办法要去掉，换成自己写的。
 
-2.类SRAM文件夹:
-还没写。
+
+2.AXI总线文件夹
+目前本人的计划是：把AXI和后面的cache部分相结合。AXI需要和Icache,Dcache,Uncache(包括inst和data存储器)进行交互。
+
+3.参考代码资源
+目前已有一份。
+
+4.学习心得与文档
+希望各位能够多多commit,一天的学习我觉得是需要总结的。大家把自己的发现的一些比较难懂的地方写成readme.md文档上传到该文件夹对应的部分，有问题一起解决。我希望到时候这个repository能多多看到各位的贡献。
