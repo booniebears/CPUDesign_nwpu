@@ -1,0 +1,53 @@
+Date : 2021-06-05 17:38:21
+Directory : c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code
+Total : 29 files,  5109 codes, 839 comments, 714 blanks, all 6662 lines
+
+Languages
++---------------+------------+------------+------------+------------+------------+
+| language      | files      | code       | comment    | blank      | total      |
++---------------+------------+------------+------------+------------+------------+
+| SystemVerilog |         29 |      5,109 |        839 |        714 |      6,662 |
++---------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                   | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                      |         29 |      5,109 |        839 |        714 |      6,662 |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------+---------------+------------+------------+------------+------------+
+| filename                                                                               | language      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+---------------+------------+------------+------------+------------+
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\ALU.sv            | SystemVerilog |         43 |         25 |          8 |         76 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\AXI.sv            | SystemVerilog |        690 |         35 |         36 |        761 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\BranchSolve.sv    | SystemVerilog |         69 |          9 |          2 |         80 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\CP0.sv            | SystemVerilog |        219 |         76 |         20 |        315 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\CPU_Defines.svh   | SystemVerilog |        305 |         81 |         19 |        405 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\Cache_Defines.svh | SystemVerilog |         68 |         14 |         18 |        100 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\CommonDefines.svh | SystemVerilog |        223 |         53 |         76 |        352 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\Control.sv        | SystemVerilog |      1,116 |         33 |        129 |      1,278 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\DCache.sv         | SystemVerilog |        509 |         59 |         95 |        663 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\DCacheWen.sv      | SystemVerilog |         56 |         10 |         10 |         76 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\DataHazard.sv     | SystemVerilog |         32 |          0 |          7 |         39 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\EXEMEM_Reg.sv     | SystemVerilog |         35 |         18 |          3 |         56 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\EXT.sv            | SystemVerilog |         24 |          9 |          0 |         33 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\EXT2.sv           | SystemVerilog |         50 |         10 |          5 |         65 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\Exception.sv      | SystemVerilog |         95 |         70 |         20 |        185 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\ForwardUnit.sv    | SystemVerilog |         64 |         13 |         10 |         87 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\HILO.sv           | SystemVerilog |         53 |         19 |          9 |         81 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\ICache.sv         | SystemVerilog |        326 |         81 |         79 |        486 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\IDEX_Reg.sv       | SystemVerilog |         53 |         10 |          3 |         66 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\IFID_Reg.sv       | SystemVerilog |         27 |         10 |          3 |         40 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\MEMWB_Reg.sv      | SystemVerilog |         37 |         10 |          4 |         51 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\MMU.sv            | SystemVerilog |         17 |         10 |          8 |         35 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\MULTDIV.sv        | SystemVerilog |        162 |         23 |         19 |        204 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\MUX.sv            | SystemVerilog |         77 |         13 |          7 |         97 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\PC.sv             | SystemVerilog |         11 |         10 |          4 |         25 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\PCSEL.sv          | SystemVerilog |         40 |         10 |          7 |         57 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\RF.sv             | SystemVerilog |         31 |          7 |         14 |         52 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\WrControl.sv      | SystemVerilog |        143 |         18 |         15 |        176 |
+| c:\Users\yelua\Desktop\Computer_Architecture\develop branch\Src\Code\mycpu_top.sv      | SystemVerilog |        534 |        103 |         84 |        721 |
+| Total                                                                                  |               |      5,109 |        839 |        714 |      6,662 |
++----------------------------------------------------------------------------------------+---------------+------------+------------+------------+------------+
