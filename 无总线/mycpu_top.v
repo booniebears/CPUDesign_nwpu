@@ -1,8 +1,8 @@
-`include "mycpu.h"
+`include "global_defines.vh"
 
 module mycpu_top(
     // 外部中断信号
-    input [5:0] ext_int_i, //6个外部硬件中断输入
+    input [5:0]   ext_int, //6个外部硬件中断输入
     input         clk,
     input         resetn,
     // inst sram interface 调用IP核
@@ -197,7 +197,7 @@ wb_stage wb_stage(
     .CP0_Cause_IP     (CP0_Cause_IP     ),
     .CP0_Cause_TI     (CP0_Cause_TI     ), 
     .ws_inst_eret     (ws_inst_eret     ), 
-    .ext_int_i        (ext_int_i        )
+    .ext_int        (ext_int        )
 );
 
 

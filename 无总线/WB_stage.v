@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "global_defines.vh"
 
 module wb_stage(
     input                           clk           ,
@@ -26,7 +26,7 @@ module wb_stage(
     output [7:0] CP0_Cause_IP, //待处理中断标识
     output CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     output ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
-    input [5:0] ext_int_i //6个外部硬件中断输入
+    input [5:0] ext_int //6个外部硬件中断输入
 );
 
 reg         ws_valid;
@@ -121,7 +121,7 @@ CP0_Reg u_CP0_Reg(
     .ws_bd(ws_bd),
     .ws_ex(ws_ex),
     .ws_data_sram_addr(ws_data_sram_addr),
-    .ext_int_i(ext_int_i),
+    .ext_int(ext_int),
     .ExcCode(ws_ExcCode),
     .ws_pc(ws_pc),
     .CP0_data(CP0_data),

@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "global_defines.vh"
 
 module CP0_Reg (
     input clk,
@@ -12,7 +12,7 @@ module CP0_Reg (
     input ws_bd,
     input ws_ex, //ws阶段 若报出例外,置为1,否则为0
     input [31:0] ws_data_sram_addr, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
-    input [5:0] ext_int_i, //6个外部硬件中断输入
+    input [5:0] ext_int, //6个外部硬件中断输入
     input [4:0] ExcCode, //Cause寄存器中 例外的5位编码
     input [31:0] ws_pc, //WB阶段的PC值
     output [31:0] CP0_data, //mfc0从CP0中读出的数据
@@ -92,13 +92,13 @@ always @(posedge clk) begin //TI域只读 TODO:Count_eq_Compare时TI域置为1
         CP0_Cause_TI<=1'b1;
 end
 
-always @(posedge clk) begin //IP7-IP2只读 TODO: ext_int_i处理
+always @(posedge clk) begin //IP7-IP2只读 TODO: ext_int处理
     if(reset)
         CP0_Cause_IP[7:2]<=6'b0;
     else begin
         CP0_Cause_IP[7]<=CP0_Cause_TI;
-        // CP0_Cause_IP[7]<=ext_int_i[5]|CP0_Cause_TI;
-        // CP0_Cause_IP[6:2]<=ext_int_i[4:0];
+        // CP0_Cause_IP[7]<=ext_int[5]|CP0_Cause_TI;
+        // CP0_Cause_IP[6:2]<=ext_int[4:0];
     end
 end
 

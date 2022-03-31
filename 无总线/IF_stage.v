@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "global_defines.vh"
 
 module if_stage(
     input                          clk            ,
