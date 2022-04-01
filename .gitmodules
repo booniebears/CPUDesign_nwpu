@@ -1,0 +1,3 @@
+[submodule "study_record"]
+	path = study_record
+	url = https://gitee.com/xia-kangxiang/study_record.git
