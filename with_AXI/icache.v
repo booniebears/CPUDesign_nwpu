@@ -19,11 +19,11 @@ module dcache (
     input clk,
     input resetn,
     input valid;
-    input op;
+    input op; //icache 不用
     input [7:0] index;
     input [19:0] tag;//tag 和 v 放在ram里面，d 使用regfile存储
     input [3:0] offset;
-    input [31:0] wdata;
+    input [31:0] wdata; //icache 不用
     output addr_ok;
     output data_ok;
     output [31:0] rdata;
@@ -34,16 +34,16 @@ module dcache (
     input rd_rdy;
     input ret_valid;
     input [127:0] ret_data;
-    output wr_req;
-    output [31:0] wr_addr;
-    output [127:0] wr_data;
-    input wr_rady;
+    // output wr_req;
+    // output [31:0] wr_addr;
+    // output [127:0] wr_data;
+    // input wr_rady;
 )
 
 wire [127:0] way0_block;
 wire [127:0] way1_block;
 
-wire chose_dirty;
+// wire chose_dirty;
 
 
 reg[1:0] count;
@@ -85,16 +85,17 @@ always @(posedge clk, posedge resetn) begin
                     n_state <= MISS;
             end
             MISS: begin
-                if(wr_rady || !chose_dirty)//如果可以写入,代表着AXI那边没有在写，说明可以把脏页写出；或者选择替换的不是脏页
-                    n_state <= REPLACE;
-                else
-                    n_state <= MISS;
-            end
-            REPLACE: begin
+            //     if(wr_rady || !chose_dirty)//如果可以写入,代表着AXI那边没有在写，说明可以把脏页写出；或者选择替换的不是脏页
+            //         n_state <= REPLACE;
+            //     else
+            //         n_state <= MISS;
+            // end
+            // REPLACE: begin
                 if(rd_rdy)//AXI总线可以接受读请求
                     n_state <= REFILL;
                 else
-                    n_state <= REPLACE;
+                    // n_state <= REPLACE;
+                    n_state <= MISS;
             end
             REFILL: begin
                 if(ret_valid)//AXI总线返回读数据 或者 要写
@@ -130,12 +131,12 @@ always @(posedge clk) begin
     if(c_state == IDLE && valid || c_state == LOOKUP && hit && valid) 
     CPU_Cache_buffer <= {
         valid,// 69
-        op, // 68
+        op, // 68 //icache 不用
         tag,// [67:48]
         index,//[47:40]
         offset, // [39:36]
         wstrb, // [35:32]
-        wdata, // [31:0]
+        wdata, // [31:0] //icache 不用
     };
 end
 
@@ -150,23 +151,23 @@ assign hit_way[1] = (way1_tag == tag) && way1_v;
 
 
 
+// always @(posedge clk) begin
+//     if(c_state == MISS)
+//         wr_req <= wr_rdy;
+//     else
+//         wr_req <= 0;
+
+// end
+
+// assign wr_addr = CPU_Cache_buffer[67:36];
+assign rd_addr = CPU_Cache_buffer[67:36];
+// assign wr_data = 128{count[0] && way0_v} && way0_block ||
+//                     128{count[1] && way1_v} && way1_block;
+// assign chose_dirty = count[0] && way0_dirty[ CPU_Cache_buffer[47:40] ] || 
+//                         count[1] && way1_dirty[ CPU_Cache_buffer[47:40] ];
+
 always @(posedge clk) begin
     if(c_state == MISS)
-        wr_req <= wr_rdy;
-    else
-        wr_req <= 0;
-
-end
-
-assign wr_addr = CPU_Cache_buffer[67:36];
-assign rd_addr = CPU_Cache_buffer[67:36];
-assign wr_data = 128{count[0] && way0_v} && way0_block ||
-                    128{count[1] && way1_v} && way1_block;
-assign chose_dirty = count[0] && way0_dirty[ CPU_Cache_buffer[47:40] ] || 
-                        count[1] && way1_dirty[ CPU_Cache_buffer[47:40] ];
-
-always @(posedge clk) begin
-    if(c_state == REPLACE)
         rd_req <= rd_rdy;
     else
         rd_req <= 0;
@@ -177,30 +178,31 @@ end
 
 reg [127:0] ram_write_data;
 always @(posedge clk) begin
-    if(CPU_Cache_buffer[68]) begin
-        ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[31:0] : 0;
-        ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[63:32] : 0;
-        ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[95:64] : 0;
-        ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[127:96] : 0;
-    end else begin
+    // if(CPU_Cache_buffer[68]) begin
+    //     ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? CPU_Cache_buffer[31:0] : 0;
+    //     ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? CPU_Cache_buffer[31:0] : 0;
+    //     ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? CPU_Cache_buffer[31:0] : 0;
+    //     ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? CPU_Cache_buffer[31:0] : 0;
+    // end else begin
         ram_write_data <= ret_valid ? ret_data : 0;
-    end
+    // end
 end
 
 
 reg[3:0] wr0_en;
 reg[3:0] wr1_en;
 always @(posedge clk) begin
-    if(c_state == LOOKUP && hit && CPU_Cache_buffer[68]) begin
-        case (CPU_Cache_buffer[39:38])
-            2'b00: wr0_en <= {count[0],3'b0}, wr1_en <= {count[1],3'b0};
-            2'b01: wr0_en <= {1'b0,count[0],2'b0}, wr1_en <= {1'b0,count[1],2'b0};
-            2'b10: wr0_en <= {2'b0,count[0],1'b0}, wr1_en <= {2'b0,count[1],1'b0};
-            2'b11: wr0_en <= {3'b0,count[0]}, wr1_en <= {3'b0,count[1]};
-            default: wr0_en <= 0, wr1_en <= 0;
-        endcase
-    end
-    else if(c_state == REFILL && ret_valid) begin
+    // if(c_state == LOOKUP && hit && CPU_Cache_buffer[68]) begin
+    //     case (CPU_Cache_buffer[39:38])
+    //         2'b00: wr0_en <= {count[0],3'b0}, wr1_en <= {count[1],3'b0};
+    //         2'b01: wr0_en <= {1'b0,count[0],2'b0}, wr1_en <= {1'b0,count[1],2'b0};
+    //         2'b10: wr0_en <= {2'b0,count[0],1'b0}, wr1_en <= {2'b0,count[1],1'b0};
+    //         2'b11: wr0_en <= {3'b0,count[0]}, wr1_en <= {3'b0,count[1]};
+    //         default: wr0_en <= 0, wr1_en <= 0;
+    //     endcase
+    // end
+    // else 
+    if(c_state == REFILL && ret_valid) begin
         wr0_en = 4{count[0]};
         wr1_en = 4{count[1]};
     end else begin
@@ -210,14 +212,14 @@ always @(posedge clk) begin
         
 end
 
-reg [255:0] way0_dirty;
-reg [255:0] way1_dirty;
-always @(posedge clk) begin
-    if(c_state == REFILL) begin
-        way0_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[0];
-        way1_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[1];
-    end
-end
+// reg [255:0] way0_dirty;
+// reg [255:0] way1_dirty;
+// always @(posedge clk) begin
+//     if(c_state == REFILL) begin
+//         way0_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[0];
+//         way1_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[1];
+//     end
+// end
 //
 
 
