@@ -2,30 +2,54 @@
 
 module mycpu_top(
     // 外部中断信号
-    input [5:0]   ext_int, //6个外部硬件中断输入
-    input         clk,
-    input         resetn,
-    // inst sram interface 调用IP核
-    output        inst_sram_en,
-    output [ 3:0] inst_sram_wen,
-    output [31:0] inst_sram_addr,
-    output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata,
-    // data sram interface 调用IP核
-    output        data_sram_en,
-    output [ 3:0] data_sram_wen,
-    output [31:0] data_sram_addr,
-    output [31:0] data_sram_wdata,
-    input  [31:0] data_sram_rdata,
+    input  [ 5:0]   ext_int, //6个外部硬件中断输入
+    input           aclk,
+    input           aresetn,
+    output [ 3:0]   arid   ,
+    output [31:0]   araddr ,
+    output [ 3:0]   arlen  ,
+    output [ 2:0]   arsize ,
+    output [ 1:0]   arburst,
+    output [ 1:0]   arlock ,
+    output [ 3:0]   arcache,
+    output [ 2:0]   arprot ,
+    output          arvalid,
+    input           arready,
+    input  [ 3:0]   rid    ,
+    input  [31:0]   rdata  ,
+    input  [ 1:0]   rresp  ,
+    input           rlast  ,
+    input           rvalid ,
+    output          rready ,
+    output [ 3:0]   awid   ,
+    output [31:0]   awaddr ,
+    output [ 3:0]   awlen  ,
+    output [ 2:0]   awsize ,
+    output [ 1:0]   awburst,
+    output [ 1:0]   awlock ,
+    output [ 3:0]   awcache,
+    output [ 2:0]   awprot ,
+    output          awvalid,
+    input           awready,
+    output [3 :0]   wid    ,
+    output [31:0]   wdata  ,
+    output [3 :0]   wstrb  ,
+    output          wlast  ,
+    output          wvalid ,
+    input           wready ,
+    input  [ 3:0]   bid    ,
+    input  [ 1:0]   bresp  ,
+    input           bvalid ,
+    output          bready ,
     // trace debug interface
-    output [31:0] debug_wb_pc,
-    output [ 3:0] debug_wb_rf_wen,
-    output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
-
+    output [31:0]   debug_wb_pc,
+    output [ 3:0]   debug_wb_rf_wen,
+    output [ 4:0]   debug_wb_rf_wnum,
+    output [31:0]   debug_wb_rf_wdata
 );
+
 reg         reset;
-always @(posedge clk) reset <= ~resetn;
+always @(posedge aclk) reset <= ~aresetn;
 
 wire         ds_allowin;
 wire         es_allowin;
@@ -42,9 +66,9 @@ wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire [`BR_BUS_WD       -1:0] br_bus;
 
-wire [4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
-wire [4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
-wire [4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
+wire [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
+wire [ 4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
+wire [ 4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
 wire [31:0] EXE_result; //EXE阶段 es_alu_result
 wire [31:0] MEM_result; //MEM阶段 ms_final_result 
 wire [31:0] WB_result; //WB阶段 ws_final_result
@@ -64,10 +88,97 @@ wire ms_inst_mfc0;
 wire ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 wire ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 
+//AXI和Cache的交互信号
+wire         icache_rd_req;
+wire  [31:0] icache_rd_addr;
+wire         icache_rd_rdy;
+wire         icache_ret_valid; //传输完成后ret_valid置1
+wire [127:0] icache_ret_data;
+wire         dcache_rd_req;
+wire  [31:0] dcache_rd_addr; 
+wire         dcache_rd_rdy;
+wire         dcache_ret_valid; //传输完成后ret_valid置1
+wire [127:0] dcache_ret_data; 
+wire         dcache_wr_req;
+wire  [31:0] dcache_wr_addr;     
+wire  [ 3:0] dcache_wr_strb; //TODO:目前没用到,不过Uncache会用到
+wire [127:0] dcache_wr_data; //一次写一个cache line的数据
+wire         dcache_wr_rdy;
+
+//CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
+wire         inst_valid;
+wire         inst_op;
+wire  [ 7:0] inst_index;
+wire  [19:0] inst_tag;
+wire  [ 3:0] inst_offset;
+wire         inst_addr_ok;
+wire         inst_data_ok;
+wire  [31:0] inst_rdata;
+
+//TODO:CPU和DCache的交互信号接线任务
+
+AXI_Interface U_AXI_Interface(
+    .clk     (aclk     ),
+    .resetn  (aresetn  ),
+    //AXI规范定义的信号
+    .arid    (arid     ),
+    .araddr  (araddr   ),
+    .arlen   (arlen    ),
+    .arsize  (arsize   ),
+    .arburst (arburst  ),
+    .arlock  (arlock   ),
+    .arcache (arcache  ),
+    .arprot  (arprot   ),
+    .arvalid (arvalid  ),
+    .arready (arready  ),
+    .rid     (rid      ),
+    .rdata   (rdata    ),
+    .rresp   (rresp    ),
+    .rlast   (rlast    ),
+    .rvalid  (rvalid   ),
+    .rready  (rready   ),
+    .awid    (awid     ),
+    .awaddr  (awaddr   ),
+    .awlen   (awlen    ),
+    .awsize  (awsize   ),
+    .awburst (awburst  ),
+    .awlock  (awlock   ),
+    .awcache (awcache  ),
+    .awprot  (awprot   ),
+    .awvalid (awvalid  ),
+    .awready (awready  ),
+    .wid     (wid      ),
+    .wdata   (wdata    ),
+    .wstrb   (wstrb    ),
+    .wlast   (wlast    ),
+    .wvalid  (wvalid   ),
+    .wready  (wready   ),
+    .bid     (bid      ),
+    .bresp   (bresp    ),
+    .bvalid  (bvalid   ),
+    .bready  (bready   ),
+    //TODO:这里需要Cache的接线,注意信号引用
+    //Attention:发请求在IF和EXE阶段处理
+    .icache_rd_req    (icache_rd_req    ),
+    .icache_rd_addr   (icache_rd_addr   ),
+    .icache_rd_rdy    (icache_rd_rdy    ),
+    .icache_ret_valid (icache_ret_valid ),
+    .icache_ret_data  (icache_ret_data  ),
+    .dcache_rd_req    (dcache_rd_req    ),
+    .dcache_rd_addr   (dcache_rd_addr   ),
+    .dcache_rd_rdy    (dcache_rd_rdy    ),
+    .dcache_ret_valid (dcache_ret_valid ),
+    .dcache_ret_data  (dcache_ret_data  ),
+    .dcache_wr_req    (dcache_wr_req    ),
+    .dcache_wr_addr   (dcache_wr_addr   ),
+    .dcache_wr_strb   (dcache_wr_strb   ),
+    .dcache_wr_data   (dcache_wr_data   ),
+    .dcache_wr_rdy    (dcache_wr_rdy    )
+);
 
 // IF stage
 if_stage if_stage(
-    .clk            (clk            ),
+    .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .ds_allowin     (ds_allowin     ),
@@ -76,20 +187,21 @@ if_stage if_stage(
     //outputs
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
-    // inst sram interface
-    .inst_sram_en   (inst_sram_en   ),
-    .inst_sram_wen  (inst_sram_wen  ),
-    .inst_sram_addr (inst_sram_addr ),
-    .inst_sram_wdata(inst_sram_wdata),
-    .inst_sram_rdata(inst_sram_rdata),
-    //lab8添加
     .flush          (flush          ),
     .CP0_EPC        (CP0_EPC        ), 
-    .ws_inst_eret   (ws_inst_eret   ) 
+    .ws_inst_eret   (ws_inst_eret   ),
+    .inst_valid     (inst_valid     ),
+    .inst_op        (inst_op        ),
+    .inst_index     (inst_index     ),
+    .inst_tag       (inst_tag       ),
+    .inst_offset    (inst_offset    ),
+    .inst_addr_ok   (inst_addr_ok   ),
+    .inst_data_ok   (inst_data_ok   ),
+    .inst_rdata     (inst_rdata     )
 );
 // ID stage
 id_stage id_stage(
-    .clk            (clk            ),
+    .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .es_allowin     (es_allowin     ),
@@ -122,7 +234,7 @@ id_stage id_stage(
 );
 // EXE stage
 exe_stage exe_stage(
-    .clk            (clk            ),
+    .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .ms_allowin     (ms_allowin     ),
@@ -134,10 +246,6 @@ exe_stage exe_stage(
     .es_to_ms_valid (es_to_ms_valid ),
     .es_to_ms_bus   (es_to_ms_bus   ),
     // data sram interface
-    .data_sram_en   (data_sram_en   ),
-    .data_sram_wen  (data_sram_wen  ),
-    .data_sram_addr (data_sram_addr ),
-    .data_sram_wdata(data_sram_wdata),
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
@@ -150,7 +258,7 @@ exe_stage exe_stage(
 );
 // MEM stage
 mem_stage mem_stage(
-    .clk            (clk            ),
+    .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .ws_allowin     (ws_allowin     ),
@@ -161,8 +269,6 @@ mem_stage mem_stage(
     //to ws
     .ms_to_ws_valid (ms_to_ws_valid ),
     .ms_to_ws_bus   (ms_to_ws_bus   ),
-    //from data-sram
-    .data_sram_rdata(data_sram_rdata),
     .MEM_dest       (MEM_dest       ), 
     .MEM_result     (MEM_result     ),
     .flush          (flush          ), 
@@ -172,15 +278,15 @@ mem_stage mem_stage(
 );
 // WB stage
 wb_stage wb_stage(
-    .clk            (clk            ),
-    .reset          (reset          ),
+    .clk              (aclk             ),
+    .reset            (reset            ),
     //allowin
-    .ws_allowin     (ws_allowin     ),
+    .ws_allowin       (ws_allowin       ),
     //from ms
-    .ms_to_ws_valid (ms_to_ws_valid ),
-    .ms_to_ws_bus   (ms_to_ws_bus   ),
+    .ms_to_ws_valid   (ms_to_ws_valid   ),
+    .ms_to_ws_bus     (ms_to_ws_bus     ),
     //to rf: for write back
-    .ws_to_rf_bus   (ws_to_rf_bus   ),
+    .ws_to_rf_bus     (ws_to_rf_bus     ),
     //trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
     .debug_wb_rf_wen  (debug_wb_rf_wen  ),
@@ -197,7 +303,7 @@ wb_stage wb_stage(
     .CP0_Cause_IP     (CP0_Cause_IP     ),
     .CP0_Cause_TI     (CP0_Cause_TI     ), 
     .ws_inst_eret     (ws_inst_eret     ), 
-    .ext_int        (ext_int        )
+    .ext_int          (ext_int          )
 );
 
 

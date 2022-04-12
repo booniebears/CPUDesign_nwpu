@@ -1,24 +1,27 @@
 `include "global_defines.vh"
 
 module if_stage(
-    input                          clk            ,
-    input                          reset          ,
+    input         clk,
+    input         reset,
     //allowin
-    input                          ds_allowin     , 
+    input         ds_allowin, 
     //brbus
-    input  [`BR_BUS_WD       -1:0] br_bus         , 
+    input  [`BR_BUS_WD       -1:0] br_bus, 
     //to ds
-    output reg                     fs_to_ds_valid , 
-    output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus   ,
-    // inst sram interface 
-    output        inst_sram_en   ,//¶ÁÈ¡Ö¸ÁîÊ¹ÄÜ
-    output [ 3:0] inst_sram_wen  ,//Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-    output [31:0] inst_sram_addr ,//ÏÂÒ»ÌõÖ¸ÁîµØÖ·
-    output [31:0] inst_sram_wdata,//Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-    input  [31:0] inst_sram_rdata, //Ö¸Áî
-    input flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
-    input [31:0] CP0_EPC, //CP0¼Ä´æÆ÷ÖĞ,EPCµÄÖµ
-    input ws_inst_eret  
+    output reg                     fs_to_ds_valid, 
+    output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
+    input         flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
+    input  [31:0] CP0_EPC, //CP0¼Ä´æÆ÷ÖĞ,EPCµÄÖµ
+    input         ws_inst_eret,
+    //Attention:CPUºÍICacheµÄ½»»¥ĞÅºÅÈçÏÂ;±¾ÈËÄ¿Ç°Ã»ÓĞÊµÏÖ¡¶CPUÉè¼ÆÊµÕ½¡·ÖĞµÄwstrbºÍwdata
+    output        inst_valid,
+    output        inst_op,
+    output [ 7:0] inst_index,
+    output [19:0] inst_tag,
+    output [ 3:0] inst_offset,
+    input         inst_addr_ok,
+    input         inst_data_ok,
+    input  [31:0] inst_rdata
 );
 
 wire        fs_allowin; //½öÔÚIF½×¶ÎÖĞ×÷ÓÃ fs_allowin=1,IF½×¶ÎÔÊĞíÖ¸ÁîÁ÷Èë ÊÇfs_valid fs_pc inst_sram_enµÄ¿ØÖÆĞÅºÅ
@@ -56,11 +59,18 @@ assign nextpc          = ws_inst_eret ? CP0_EPC : //eretÌØÈ¨Ö¸Áî Õâ¸ö¾ßÓĞ×î¸ßÓÅÏ
 assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
 
 always @(posedge clk) begin
-    if (reset) fs_to_ds_valid <= 1'b0;
-    else fs_to_ds_valid <= 1'b1; 
+    if (reset) 
+        fs_to_ds_valid <= 1'b0;
+    //TODO:inst_addr_okÖ»ÊÇ¶Ôfs_to_ds_valid²Ù×÷ÁËÒ»ÏÂ£¬ÎÒµ£ĞÄ»¹ÊÇ»áÓĞ×éºÏ»·Â·µÄÎÊÌâ,»¹ÓĞÁ÷Ë®ÏßÁ÷²»¶¯µÄÎÊÌâ¡£
+    else if(~inst_addr_ok) 
+        fs_to_ds_valid <= 1'b0; 
+    else
+        fs_to_ds_valid <= 1'b1;
 
-    if (reset) fs_pc <= 32'hbfbffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
-    else if (fs_allowin) fs_pc <= nextpc;
+    if (reset) 
+        fs_pc <= 32'hbfbffffc;
+    else if (fs_allowin) 
+        fs_pc <= nextpc;
 end
 
 //Òì³£µÄ±¨³öºÍfs_pcÍ¬ÅÄ,¶øinst_sramµÄÊ¹ÄÜĞÅºÅÔòÒªÓënextpcµÄ¸üĞÂÍ¬ÅÄ,ºóÕß±ÈÇ°Õß¿ìÒ»ÅÄ
@@ -68,11 +78,13 @@ assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0;
 assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:È«1Ä¿Ç°´ú±íÎŞÒì³£
 
-assign inst_sram_en    = nextpc[1:0] ? 1'b0 : fs_allowin; //¶ÁÈ¡Ö¸ÁîÊ¹ÄÜ
-assign inst_sram_wen   = 4'h0; //Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
-assign inst_sram_addr  = nextpc; //ÏÂÒ»ÌõÖ¸ÁîµØÖ·
-assign inst_sram_wdata = 32'b0; //Ö¸Áî´æ´¢Æ÷Ã»Ê²Ã´ºÃĞ´µÄ
+assign fs_inst         = inst_rdata;
 
-assign fs_inst         = inst_sram_rdata;
+/*******************CPUÓëICacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÏÂ******************/
+//Attention:ÓĞÒì³£flush,Á¢¼´·¢ÇëÇó;Èç¹ûIF_ID¼Ä´æÆ÷Ã»ÓĞ×èÈû,Á¢¼´·¢ÇëÇó
+assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
+assign inst_op    = 1'b0; //¶Á
+assign {inst_tag,inst_index,inst_offset} = nextpc;
 
+/*******************CPUÓëICacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÉÏ******************/
 endmodule

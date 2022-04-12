@@ -1,36 +1,36 @@
 `include "global_defines.vh"
 
 module id_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input        clk,
+    input        reset,
     //allowin
-    input                          es_allowin    ,
-    output                         ds_allowin    ,
+    input        es_allowin,
+    output       ds_allowin,
     //from fs
-    input                          fs_to_ds_valid,
-    input  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus  ,
+    input        fs_to_ds_valid,
+    input  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     //to es
-    output                         ds_to_es_valid,
-    output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus  ,
+    output       ds_to_es_valid,
+    output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to fs
-    output [`BR_BUS_WD       -1:0] br_bus        ,
+    output [`BR_BUS_WD       -1:0] br_bus,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
-    input [4:0] EXE_dest , // EXE阶段写RF地址 通过旁路送到ID阶段
-    input [4:0] MEM_dest , // MEM阶段写RF地址 通过旁路送到ID阶段
-    input [4:0] WB_dest , // WB阶段写RF地址 通过旁路送到ID阶段
-    input [31:0] EXE_result , //EXE阶段 es_alu_result
-    input [31:0] MEM_result , //MEM阶段 ms_final_result 
-    input [31:0] WB_result , //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
-    input es_load_op , //EXE阶段 判定是否为load指令
-    input flush, //flush=1时表明需要处理异常
-    input es_inst_mfc0,
-    input ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
-    input CP0_Status_IE, //IE=1,全局中断使能开启
-    input CP0_Status_EXL, //EXL=0,没有例外正在处理
-    input [7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
-    input [7:0] CP0_Cause_IP, //待处理中断标识
-    input CP0_Cause_TI  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
+    input [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
+    input [ 4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
+    input [31:0] EXE_result, //EXE阶段 es_alu_result
+    input [31:0] MEM_result, //MEM阶段 ms_final_result 
+    input [31:0] WB_result, //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
+    input        es_load_op, //EXE阶段 判定是否为load指令
+    input        flush, //flush=1时表明需要处理异常
+    input        es_inst_mfc0,
+    input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
+    input        CP0_Status_IE, //IE=1,全局中断使能开启
+    input        CP0_Status_EXL, //EXL=0,没有例外正在处理
+    input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
+    input [ 7:0] CP0_Cause_IP, //待处理中断标识
+    input        CP0_Cause_TI  //TI为1,触发定时中断;我们将该中断标记在ID阶段
 );
 
 reg         ds_valid   ;
@@ -482,7 +482,6 @@ assign src1_is_pc   = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
 assign src2_is_imm  = imm_zero_ext ? 2'b01 : 
                       imm_sign_ext ? 2'b10 : 2'b00; 
 assign src2_is_8    = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
-// assign res_from_mem = inst_lw;
 assign dst_is_r31   = inst_jal | inst_bgezal | inst_bltzal;
 assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu
                       | inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu 
@@ -505,7 +504,6 @@ regfile u_regfile(
     .wdata  (rf_wdata )
     );
 
-//lab4修改
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
                              rs == MEM_dest ?  MEM_result : WB_result)
                             : rf_rdata1;
@@ -564,10 +562,7 @@ assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == MEM_dest) & ms_inst_mfc0) ;
 
-//ds_ready_go间接控制ds_to_es_valid信号,最终控制ID_EXE寄存器和流水线
-//如果采取暂停的方法处理所有冒险,则ds_ready_go如下:
-// assign ds_ready_go    = ds_valid & ~rs_wait & ~rt_wait; //若rs_wait或rt_wait为1,则ds_ready_go=0
-//如果采取forward的方法处理冒险,则ds_ready_go如下:
-assign ds_ready_go    = ds_valid & ~load_stall & ~mfc0_stall; 
+//采取forward的方法处理冒险 Attention:删掉ds_valid
+assign ds_ready_go    = ~load_stall & ~mfc0_stall; 
 
 endmodule

@@ -6,8 +6,8 @@ module AXI_Interface (
 /*******************AXI定义信号如下******************/
 //Attention:arlen上《CPU设计实战》的定义有点问题,这里采用四位宽即可;
 //Attention:icache_ret_data/dcache_ret_data位宽这里改为128位(一个Cache line);
-    input clk,
-    input resetn,
+    input         clk,
+    input         resetn,
     //ar读请求通道
     output [ 3:0] arid,
     output [31:0] araddr,
@@ -63,7 +63,7 @@ module AXI_Interface (
     input          dcache_rd_req, 
     input   [31:0] dcache_rd_addr, 
     output         dcache_rd_rdy, 
-    output reg     dcache_ret_valid, //传输完成后ret_valid置1
+    output   reg   dcache_ret_valid, //传输完成后ret_valid置1
     output [127:0] dcache_ret_data, 
     input          dcache_wr_req, 
     input   [31:0] dcache_wr_addr,     
@@ -158,6 +158,8 @@ always @(posedge clk) begin
         icache_ret_valid <= 1'b0;
     else if(I_RD_nextstate == `I_RD_IDLE && I_RD_state == `I_R_SHAKE4)
         icache_ret_valid <= 1'b1;
+    else
+        icache_ret_valid <= 1'b0;
 end
 
 always @(posedge clk) begin
@@ -179,6 +181,8 @@ always @(posedge clk) begin
         dcache_ret_valid <= 1'b0;
     else if(D_RD_nextstate == `D_RD_IDLE && D_RD_state == `D_R_SHAKE4)
         dcache_ret_valid <= 1'b1;
+    else
+        dcache_ret_valid <= 1'b0;
 end
 
 always @(posedge clk) begin
