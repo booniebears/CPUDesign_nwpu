@@ -61,15 +61,16 @@ assign fs_allowin     =  flush ? 1'b1 : ds_allowin;
 always @(posedge clk) begin
     if (reset) 
         fs_to_ds_valid <= 1'b0;
-    //TODO:inst_addr_ok只是对fs_to_ds_valid操作了一下，我担心还是会有组合环路的问题,还有流水线流不动的问题。
-    else if(~inst_addr_ok) 
+    //TODO:inst_data_ok只是对fs_to_ds_valid操作了一下，我担心还是会有组合环路的问题,还有流水线流不动的问题。
+    //目前还不清楚怎么使用addr_ok.
+    else if(~inst_data_ok) 
         fs_to_ds_valid <= 1'b0; 
     else
         fs_to_ds_valid <= 1'b1;
 
     if (reset) 
         fs_pc <= 32'hbfbffffc;
-    else if (fs_allowin) 
+    else if (fs_allowin & inst_data_ok)  //TODO:不确定行不行,inst_data_ok控制fs_pc更新,从而控制nextpc更新
         fs_pc <= nextpc;
 end
 

@@ -51,42 +51,42 @@ module mycpu_top(
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
-wire         ds_allowin;
-wire         es_allowin;
-wire         ms_allowin;
-wire         ws_allowin;
-wire         fs_to_ds_valid;
-wire         ds_to_es_valid;
-wire         es_to_ms_valid;
-wire         ms_to_ws_valid;
-wire [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
-wire [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
-wire [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus;
-wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
-wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
-wire [`BR_BUS_WD       -1:0] br_bus;
+wire          ds_allowin;
+wire          es_allowin;
+wire          ms_allowin;
+wire          ws_allowin;
+wire          fs_to_ds_valid;
+wire          ds_to_es_valid;
+wire          es_to_ms_valid;
+wire          ms_to_ws_valid;
+wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
+wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
+wire  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus;
+wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
+wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
+wire  [`BR_BUS_WD       -1:0] br_bus;
 
-wire [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
-wire [ 4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
-wire [ 4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
-wire [31:0] EXE_result; //EXE阶段 es_alu_result
-wire [31:0] MEM_result; //MEM阶段 ms_final_result 
-wire [31:0] WB_result; //WB阶段 ws_final_result
-wire es_load_op; //EXE阶段 判定是否为load指令
+wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
+wire  [ 4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
+wire  [ 4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
+wire  [31:0] EXE_result; //EXE阶段 es_alu_result
+wire  [31:0] MEM_result; //MEM阶段 ms_final_result 
+wire  [31:0] WB_result; //WB阶段 ws_final_result
+wire         es_load_op; //EXE阶段 判定是否为load指令
 
-wire flush; 
-wire ms_ex;
-wire ws_ex;
-wire [31:0] CP0_EPC;
-wire CP0_Cause_TI;
-wire CP0_Status_IE; //IE=1,全局中断使能开启
-wire CP0_Status_EXL; //EXL=0,没有例外正在处理
-wire [7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
-wire [7:0] CP0_Cause_IP; //待处理中断标识
-wire es_inst_mfc0;
-wire ms_inst_mfc0;
-wire ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-wire ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+wire         flush; 
+wire         ms_ex;
+wire         ws_ex;
+wire  [31:0] CP0_EPC;
+wire         CP0_Cause_TI;
+wire         CP0_Status_IE; //IE=1,全局中断使能开启
+wire         CP0_Status_EXL; //EXL=0,没有例外正在处理
+wire  [ 7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
+wire  [ 7:0] CP0_Cause_IP; //待处理中断标识
+wire         es_inst_mfc0;
+wire         ms_inst_mfc0;
+wire         ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+wire         ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -115,7 +115,17 @@ wire         inst_addr_ok;
 wire         inst_data_ok;
 wire  [31:0] inst_rdata;
 
-//TODO:CPU和DCache的交互信号接线任务
+//Attention:CPU和DCache的交互信号如下;TODO:尚未完成接线
+wire         data_valid;
+wire         data_op;
+wire  [ 7:0] data_index;
+wire  [19:0] data_tag;
+wire  [ 3:0] data_offset;
+wire  [ 3:0] data_wstrb;
+wire  [31:0] data_wdata;
+wire         data_addr_ok;
+wire         data_data_ok;
+wire  [31:0] data_rdata;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
@@ -254,7 +264,14 @@ exe_stage exe_stage(
     .ws_ex          (ws_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .ms_inst_eret   (ms_inst_eret   ),
-    .ws_inst_eret   (ws_inst_eret   )
+    .ws_inst_eret   (ws_inst_eret   ),
+    .data_valid     (data_valid     ),
+    .data_op        (data_op        ),
+    .data_index     (data_index     ),
+    .data_tag       (data_tag       ),
+    .data_offset    (data_offset    ),
+    .data_addr_ok   (data_addr_ok   ),
+    .data_data_ok   (data_data_ok   )
 );
 // MEM stage
 mem_stage mem_stage(
@@ -267,6 +284,7 @@ mem_stage mem_stage(
     .es_to_ms_valid (es_to_ms_valid ),
     .es_to_ms_bus   (es_to_ms_bus   ),
     //to ws
+    .data_rdata     (data_rdata     ),
     .ms_to_ws_valid (ms_to_ws_valid ),
     .ms_to_ws_bus   (ms_to_ws_bus   ),
     .MEM_dest       (MEM_dest       ), 

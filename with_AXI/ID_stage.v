@@ -248,7 +248,7 @@ always @(posedge clk) begin
         fs_to_ds_bus_r <= 0;
     else if (flush) //清除流水线
         fs_to_ds_bus_r <= 0;
-    else if (fs_to_ds_valid && ds_allowin) begin
+    else if (fs_to_ds_valid & ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
     end
 end
@@ -526,14 +526,14 @@ assign br_taken = (   inst_beq  &  rs_eq_rt
                    || inst_bltz & rsltz
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
-                  ) && ds_valid;
+                  ); //Attention:删掉ds_valid
 
 //fs_pc为当前指令的下一条指令的地址,直接从fs_to_ds_bus中取出的没有经过寄存器
 //例外入口地址统一为0xbfc00380
 assign br_target = 
-                   (inst_beq || inst_bne || inst_bgez || inst_bgtz || inst_blez || inst_bltz 
-                   || inst_bgezal || inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
-                   (inst_jr || inst_jalr)              ? rs_value :
+                   (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
+                   | inst_bgezal | inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
+                   (inst_jr | inst_jalr)              ? rs_value :
                    /*inst_jal,inst_j*/              {fs_pc[31:28], jidx[25:0], 2'b0};
 
 assign src1_no_rs = 1'b0;
@@ -555,7 +555,7 @@ assign dest         = dst_is_r31   ? 5'd31 :
 
 assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
                     (rt_wait & (rt == EXE_dest) & es_load_op );  
-assign br_stall=load_stall&&br_taken&&ds_valid;
+assign br_stall   = load_stall & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rs_wait & (rs == MEM_dest) & ms_inst_mfc0) ||
