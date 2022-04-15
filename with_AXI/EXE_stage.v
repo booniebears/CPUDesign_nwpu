@@ -1,32 +1,36 @@
 `include "global_defines.vh"
 
 module exe_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input         clk ,
+    input         reset,
     //allowin
-    input                          ms_allowin    ,
-    output                         es_allowin    ,
+    input         ms_allowin,
+    output        es_allowin,
     //from ds
-    input                          ds_to_es_valid,
-    input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus  ,
+    input         ds_to_es_valid,
+    input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to ms
-    output                         es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
-    // data sram interface
-    // 在EXE阶段得到sram的控制信号 写地址 写数据 之后送入data_sram的IP核
-    output        data_sram_en   ,
-    output [ 3:0] data_sram_wen  ,
-    output [31:0] data_sram_addr ,
-    output [31:0] data_sram_wdata,
-    output [4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
+    output        es_to_ms_valid,
+    output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    output [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
-    output es_load_op, //EXE阶段 判定是否为load指令
-    input flush, //flush=1时表明需要处理异常
-    input ms_ex, //判定MEM阶段是否有被标记为例外的指令
-    input ws_ex, //判定WB阶段是否有被标记为例外的指令
-    output es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
-    input ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-    input ws_inst_eret //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+    output        es_load_op, //EXE阶段 判定是否为load指令
+    input         flush, //flush=1时表明需要处理异常
+    input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
+    input         ws_ex, //判定WB阶段是否有被标记为例外的指令
+    output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
+    input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+    //Attention:CPU和DCache的交互信号如下;
+    output        data_valid,
+    output        data_op,
+    output [ 7:0] data_index,
+    output [19:0] data_tag,
+    output [ 3:0] data_offset,
+    output [ 3:0] data_wstrb,
+    output [31:0] data_wdata,
+    input         data_addr_ok,
+    input         data_data_ok //
 );
 
 reg         es_valid      ;
@@ -118,7 +122,8 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
-                       data_sram_addr ,  //164:133 --读写sram的地址
+                      //TODO:es_alu_result目前暂代data_sram_addr
+                       es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_ExcCode     ,  //126:122 
@@ -137,8 +142,12 @@ assign es_to_ms_bus = {
                       };
 
 //m_axis_dout_tvalid除法完成信号 es_alu_op[12]为div指令 es_alu_op[13]为divu指令
-assign es_ready_go    = (!es_alu_op[12]&&!es_alu_op[13])|(es_alu_op[12]&&m_axis_dout_tvalid)
-                        |(es_alu_op[13]&&m_axis_dout_tvalidu); 
+//TODO:不确定控制逻辑。这里用data_data_ok控制es_ready_go,从而控制es_to_ms_valid寄存器使能信号.
+//此外,目前也不知道addr_ok有什么用
+assign es_ready_go    = data_data_ok ? ((!es_alu_op[12] & ~es_alu_op[13])
+                                        |(es_alu_op[12] & m_axis_dout_tvalid)
+                                        |(es_alu_op[13] & m_axis_dout_tvalidu)) : 1'b0; 
+
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
@@ -167,42 +176,36 @@ assign es_alu_src1 = es_src1_is_sa  ? {27'b0, es_imm[10:6]} :
 //lab6修改 对于es_src2_is_imm,非立即数:2'b00 立即数零扩展:2'b01 立即数有符号扩展:2'b10 
 assign es_alu_src2 = es_src2_is_imm==2'b01 ? {16'b0 , es_imm[15:0]}:
                      es_src2_is_imm==2'b10 ? {{16{es_imm[15]}}, es_imm[15:0]}:
-                     es_src2_is_8   ? 32'd8 :
-                                      es_rt_value;
+                     es_src2_is_8          ? 32'd8 : es_rt_value;
 
 //lab7 处理送入DM存储器的数据 store指令共五类
-assign sram_wdata=inst_is_sb?  {4{es_rt_value[7:0]}}:
-                  inst_is_sh?  {2{es_rt_value[15:0]}}:
-                  inst_is_swl? (es_alu_result[1:0] == 2'b00 ? {24'd0, es_rt_value[31:24]} :
-                                es_alu_result[1:0] == 2'b01 ? {16'd0, es_rt_value[31:16]} :
-                                es_alu_result[1:0] == 2'b10 ? { 8'd0, es_rt_value[31:8]}  :
-                                es_rt_value):
-                  inst_is_swr? (es_alu_result[1:0] == 2'b00 ?  es_rt_value :
-                                es_alu_result[1:0] == 2'b01 ? {es_rt_value[23:0], 8'd0} :
-                                es_alu_result[1:0] == 2'b10 ? {es_rt_value[15:0], 16'd0} :
-                                {es_rt_value[7:0], 24'd0}):
-                                es_rt_value;
-
+assign sram_wdata = inst_is_sb  ? {4{es_rt_value[7:0]}}:
+                    inst_is_sh  ? {2{es_rt_value[15:0]}}:
+                    inst_is_swl ? (es_alu_result[1:0] == 2'b00 ? {24'd0, es_rt_value[31:24]} :
+                                   es_alu_result[1:0] == 2'b01 ? {16'd0, es_rt_value[31:16]} :
+                                   es_alu_result[1:0] == 2'b10 ? { 8'd0, es_rt_value[31:8]}  :
+                                   es_rt_value):
+                    inst_is_swr ? (es_alu_result[1:0] == 2'b00 ?  es_rt_value :
+                                   es_alu_result[1:0] == 2'b01 ? {es_rt_value[23:0], 8'd0}   :
+                                   es_alu_result[1:0] == 2'b10 ? {es_rt_value[15:0], 16'd0}  :
+                                   {es_rt_value[7:0], 24'd0}):
+                                   es_rt_value;
 
 assign sram_wen   = inst_is_sb  ? (es_alu_result[1:0] == 2'b00 ? 4'b0001 :
-                                es_alu_result[1:0] == 2'b01 ? 4'b0010 :
-                                es_alu_result[1:0] == 2'b10 ? 4'b0100 :
-                                                                4'b1000
-                                ) :
+                                   es_alu_result[1:0] == 2'b01 ? 4'b0010 :
+                                   es_alu_result[1:0] == 2'b10 ? 4'b0100 :
+                                                                 4'b1000):
                     inst_is_sh  ? (es_alu_result[1:0] == 2'b00 ? 4'b0011 :
-                                                                4'b1100
-                                ) :
+                                                                 4'b1100):
                     inst_is_swl ? (es_alu_result[1:0] == 2'b00 ? 4'b0001 :
-                                es_alu_result[1:0] == 2'b01 ? 4'b0011 :
-                                es_alu_result[1:0] == 2'b10 ? 4'b0111 :
-                                                                4'b1111
-                                ) :
+                                   es_alu_result[1:0] == 2'b01 ? 4'b0011 :
+                                   es_alu_result[1:0] == 2'b10 ? 4'b0111 :
+                                                                 4'b1111):
                     inst_is_swr ? (es_alu_result[1:0] == 2'b00 ? 4'b1111 :
-                                es_alu_result[1:0] == 2'b01 ? 4'b1110 :
-                                es_alu_result[1:0] == 2'b10 ? 4'b1100 :
-                                                                4'b1000
-                                ) :
-                                4'b1111;
+                                   es_alu_result[1:0] == 2'b01 ? 4'b1110 :
+                                   es_alu_result[1:0] == 2'b10 ? 4'b1100 :
+                                                                 4'b1000):
+                                                                 4'b1111;
 
 alu u_alu(
     .clk        (clk          ),
@@ -224,26 +227,37 @@ alu u_alu(
 assign es_alu_result = es_inst_mtc0 ? es_rt_value : temp_alu_result; 
 
 //lab8添加 处理整型溢出例外 处理地址错例外(写数据)和地址错例外(读数据)
-assign ADES_ex = inst_is_sh && data_sram_addr[0] ? 1'b1 :
-                 inst_is_sw && data_sram_addr[1:0] ? 1'b1 : 1'b0;
+//TODO:es_alu_result目前暂代data_sram_addr
+assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
+                 inst_is_sw && es_alu_result[1:0] ? 1'b1 : 1'b0;
                  
-assign ADEL_ex = (inst_is_lh | inst_is_lhu) && data_sram_addr[0] ? 1'b1 :
-                 inst_is_lw && data_sram_addr[1:0] ? 1'b1 : 1'b0;
+assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
+                 inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
 
-assign es_ex = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
+assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
 assign es_ExcCode = Overflow_ex ? `Ov   : 
                     ADES_ex     ? `AdES : 
                     ADEL_ex     ? `AdEL : temp_ExcCode;
 
-//如果当前指令或者MEM/WB阶段的指令存在例外,或者MEM/WB阶段发现有eret指令,使能信号为0
-assign data_sram_en    = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 1'b0 : 1'b1;
-//数据SRAM的每一个字节都有自己的写使能
-assign data_sram_wen   = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 4'h0 : 
-                         es_mem_we&&es_valid ? sram_wen: 4'h0;
-assign data_sram_addr  = es_alu_result;
-assign data_sram_wdata = sram_wdata;
+// //如果当前指令或者MEM/WB阶段的指令存在例外,或者MEM/WB阶段发现有eret指令,使能信号为0
+// assign data_sram_en    = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 1'b0 : 1'b1;
+// //数据SRAM的每一个字节都有自己的写使能
+// assign data_sram_wen   = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 4'h0 : 
+//                          es_mem_we&&es_valid ? sram_wen: 4'h0;
+// assign data_sram_addr  = es_alu_result;
+// assign data_sram_wdata = sram_wdata;
 
-assign EXE_dest=es_dest&{5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
-assign EXE_result=es_alu_result;
+//Attention:发读/写DM请求给Cache,同时送上wstrb,地址,数据等;
+//TODO:valid信号是否要依赖于es_to_ms_valid和ms_allowin?
+assign data_valid = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 1'b0 : 
+                    es_load_op | es_mem_we ? 1'b1 : 1'b0; //用到DM才发请求
+assign data_op    = es_mem_we ? 1'b1 : 1'b0;
+assign {data_tag,data_index,data_offset} = es_alu_result;
+assign data_wstrb = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 4'b0 :
+                    es_mem_we ? sram_wen : 4'h0; //去掉了es_valid
+assign data_wdata = sram_wdata;
+
+assign EXE_dest   = es_dest & {5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
+assign EXE_result = es_alu_result;
 
 endmodule

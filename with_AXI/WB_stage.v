@@ -1,32 +1,32 @@
 `include "global_defines.vh"
 
 module wb_stage(
-    input                           clk           ,
-    input                           reset         ,
+    input         clk,
+    input         reset,
     //allowin
-    output                          ws_allowin    ,
+    output        ws_allowin,
     //from ms
-    input                           ms_to_ws_valid,
-    input  [`MS_TO_WS_BUS_WD -1:0]  ms_to_ws_bus  ,
+    input         ms_to_ws_valid,
+    input  [`MS_TO_WS_BUS_WD -1:0]  ms_to_ws_bus,
     //to rf: for write back
-    output [`WS_TO_RF_BUS_WD -1:0]  ws_to_rf_bus  ,
+    output [`WS_TO_RF_BUS_WD -1:0]  ws_to_rf_bus,
     //trace debug interface
-    output [31:0] debug_wb_pc     ,
-    output [ 3:0] debug_wb_rf_wen ,
+    output [31:0] debug_wb_pc,
+    output [ 3:0] debug_wb_rf_wen,
     output [ 4:0] debug_wb_rf_wnum,
     output [31:0] debug_wb_rf_wdata,
-    output [4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
+    output [ 4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
     output [31:0] WB_result, //WB阶段 ws_final_result
-    output flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
-    output ws_ex, //判定WB阶段是否有被标记为例外的指令
+    output        flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
+    output        ws_ex, //判定WB阶段是否有被标记为例外的指令
     output [31:0] CP0_EPC, //CP0寄存器中,EPC的值
-    output CP0_Status_IE, //IE=1,全局中断使能开启
-    output CP0_Status_EXL, //EXL=0,没有例外正在处理
-    output [7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
-    output [7:0] CP0_Cause_IP, //待处理中断标识
-    output CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
-    output ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
-    input [5:0] ext_int //6个外部硬件中断输入
+    output        CP0_Status_IE, //IE=1,全局中断使能开启
+    output        CP0_Status_EXL, //EXL=0,没有例外正在处理
+    output [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
+    output [ 7:0] CP0_Cause_IP, //待处理中断标识
+    output        CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output        ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+    input  [ 5:0] ext_int //6个外部硬件中断输入
 );
 
 reg         ws_valid;

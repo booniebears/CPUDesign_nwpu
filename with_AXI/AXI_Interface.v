@@ -6,8 +6,8 @@ module AXI_Interface (
 /*******************AXI定义信号如下******************/
 //Attention:arlen上《CPU设计实战》的定义有点问题,这里采用四位宽即可;
 //Attention:icache_ret_data/dcache_ret_data位宽这里改为128位(一个Cache line);
-    input clk,
-    input resetn,
+    input         clk,
+    input         resetn,
     //ar读请求通道
     output [ 3:0] arid,
     output [31:0] araddr,
@@ -51,26 +51,26 @@ module AXI_Interface (
     input         bready,
 /*******************AXI定义信号如上******************/
 
-/*******************AXI与Cache的交互信号如下******************/
-//Attention:本人没有实现《CPU设计实战》中的rd_type,ret_last和wr_type;
+/*******************AXI与Cache的交互信号定义如下******************/
+//Attention:本人目前没有实现《CPU设计实战》中的rd_type,ret_last和wr_type,不过Uncache可能会实现;
     //和ICache交互
     input          icache_rd_req, 
     input  [31:0]  icache_rd_addr, 
     output         icache_rd_rdy, 
-    output         icache_ret_valid, //传输完成后ret_valid置1
+    output reg     icache_ret_valid, //传输完成后ret_valid置1
     output [127:0] icache_ret_data,
     //和DCache交互
     input          dcache_rd_req, 
     input   [31:0] dcache_rd_addr, 
     output         dcache_rd_rdy, 
-    output         dcache_ret_valid, //传输完成后ret_valid置1
+    output   reg   dcache_ret_valid, //传输完成后ret_valid置1
     output [127:0] dcache_ret_data, 
     input          dcache_wr_req, 
     input   [31:0] dcache_wr_addr,     
     input   [ 3:0] dcache_wr_strb, //TODO:目前没用到,不过Uncache会用到
     input  [127:0] dcache_wr_data, //一次写一个cache line的数据
     output         dcache_wr_rdy
-/*******************AXI与Cache的交互信号如上******************/
+/*******************AXI与Cache的交互信号定义如上******************/
 );
 
 //Function:AXI控制模块 实现AXI接口和远端axi_ram交互;和Cache与Uncache交互;
@@ -148,6 +148,65 @@ reg  [31:0] ff_inst_araddr;
 reg  [31:0] ff_data_araddr;
 reg  [31:0] ff_data_awaddr;
 reg [127:0] ff_dcache_wr_data;
+reg [127:0] ff_icache_ret_data;
+reg [127:0] ff_dcache_ret_data;
+
+/*******************AXI与Cache的交互信号定义如下******************/
+//Attention:把ret_valid设置成reg类型,是为了保证ret_valid高电平和返回的数据在同一个时钟上升沿返回
+always @(posedge clk) begin
+    if(~resetn) 
+        icache_ret_valid <= 1'b0;
+    else if(I_RD_nextstate == `I_RD_IDLE && I_RD_state == `I_R_SHAKE4)
+        icache_ret_valid <= 1'b1;
+    else
+        icache_ret_valid <= 1'b0;
+end
+
+always @(posedge clk) begin
+    if(~resetn) 
+        ff_icache_ret_data <= 128'b0;
+    else if(I_RD_nextstate == `I_R_SHAKE2 && I_RD_state == `I_R_SHAKE1)
+        ff_icache_ret_data[31:0] <= inst_rdata;
+    else if(I_RD_nextstate == `I_R_SHAKE3 && I_RD_state == `I_R_SHAKE2)
+        ff_icache_ret_data[63:32] <= inst_rdata;
+    else if(I_RD_nextstate == `I_R_SHAKE4 && I_RD_state == `I_R_SHAKE3)
+        ff_icache_ret_data[95:64] <= inst_rdata;        
+    else if(I_RD_nextstate == `I_RD_IDLE && I_RD_state == `I_R_SHAKE4)
+        ff_icache_ret_data[127:96] <= inst_rdata;
+end
+assign icache_ret_data  = ff_icache_ret_data;
+
+always @(posedge clk) begin
+    if(~resetn) 
+        dcache_ret_valid <= 1'b0;
+    else if(D_RD_nextstate == `D_RD_IDLE && D_RD_state == `D_R_SHAKE4)
+        dcache_ret_valid <= 1'b1;
+    else
+        dcache_ret_valid <= 1'b0;
+end
+
+always @(posedge clk) begin
+    if(~resetn) 
+        ff_dcache_ret_data <= 128'b0;
+    else if(D_RD_nextstate == `D_R_SHAKE2 && D_RD_state == `D_R_SHAKE1)
+        ff_dcache_ret_data[31:0] <= data_rdata;
+    else if(D_RD_nextstate == `D_R_SHAKE3 && D_RD_state == `D_R_SHAKE2)
+        ff_dcache_ret_data[63:32] <= data_rdata;
+    else if(D_RD_nextstate == `D_R_SHAKE4 && D_RD_state == `D_R_SHAKE3)
+        ff_dcache_ret_data[95:64] <= data_rdata;        
+    else if(D_RD_nextstate == `D_RD_IDLE && D_RD_state == `D_R_SHAKE4)
+        ff_dcache_ret_data[127:96] <= data_rdata;
+end
+assign dcache_ret_data  = ff_dcache_ret_data;
+
+//TODO:这里的信号赋值本人有不确定之处，和学长代码差距较大，星期五讨论
+//书上是要求wr_rdy先于wr_req置1;那rd_rdy大概同理?? 个人认为rd_rdy信号对于Cache设计影响较小
+assign icache_rd_rdy    = (I_RD_state == `I_RD_IDLE) ? 1'b1 : 1'b0;
+assign dcache_rd_rdy    = (D_RD_state == `D_RD_IDLE) ? 1'b1 : 1'b0;
+assign dcache_wr_rdy    = (D_WR_state == `D_WR_IDLE) ? 1'b1 : 1'b0;
+
+/*******************AXI与Cache的交互信号定义如上******************/
+
 /*******************ICache对应的AXI端口信号赋值如下******************/
 //Attention:AXI总线要求,master端一旦发起某一地址或者数据传输的请求(req),在握手成功之前,不得更改传输的地址/数据
 //因此,对于此处的读请求对应的地址,我们需要锁存操作,在req发出后,先把addr保存起来不变;DCache的数据和地址同理。
@@ -159,6 +218,7 @@ always @(posedge clk) begin //inst_araddr
 end
 assign inst_araddr  = ff_inst_araddr;
 
+//TODO:下面Cache生成的AXI信号,可能会存在时序上延迟较多的问题，后期需要解决
 assign inst_arid    = 4'b0000;
 assign inst_arlen   = 4'b0011; //四次传输
 assign inst_arsize  = 3'b010; //一次4 bytes
@@ -240,6 +300,7 @@ assign data_wvalid  = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 ||
 assign data_bready  = 1'b1; //可以始终置为1
 /*******************DCache对应的AXI端口信号赋值如上******************/
 
+//TODO:状态机的转移条件或许可以简化，后期处理
 //状态机:ICache Read
 always @(posedge clk) begin
     if(~resetn) 
