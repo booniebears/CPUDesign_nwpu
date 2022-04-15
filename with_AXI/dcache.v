@@ -34,10 +34,11 @@ module dcache (
     input rd_rdy;
     input ret_valid;
     input [127:0] ret_data;
+    //
     output wr_req;
     output [31:0] wr_addr;
     output [127:0] wr_data;
-    input wr_rady;
+    input wr_rdy;
 )
 
 wire [127:0] way0_block;
@@ -57,6 +58,7 @@ always @(posedge clk)begin
     end
 end
 
+///
 always @(posedge clk, posedge resetn) begin
     if(resetn) begin
         c_state <= IDLE;
@@ -65,7 +67,7 @@ always @(posedge clk, posedge resetn) begin
     end    
 end
 
-always @(posedge clk, posedge resetn) begin
+always @(*) begin
     if(resetn) begin
         n_state <= IDLE;
     end else begin
@@ -85,7 +87,7 @@ always @(posedge clk, posedge resetn) begin
                     n_state <= MISS;
             end
             MISS: begin
-                if(wr_rady || !chose_dirty)//如果可以写入,代表着AXI那边没有在写，说明可以把脏页写出；或者选择替换的不是脏页
+                if(wr_rdy || !chose_dirty)//如果可以写入,代表着AXI那边没有在写，说明可以把脏页写出；或者选择替换的不是脏页
                     n_state <= REPLACE;
                 else
                     n_state <= MISS;
@@ -145,10 +147,11 @@ wire [19:0] way1_tag;
 wire way0_v;
 wire way1_v;
 
-assign hit_way[0] = (way0_tag == tag) && way0_v;
-assign hit_way[1] = (way1_tag == tag) && way1_v;
+assign hit_way[0] = (way0_tag == CPU_Cache_buffer[67:48]) && way0_v;
+assign hit_way[1] = (way1_tag == CPU_Cache_buffer[67:48]) && way1_v;
 
-
+wire hit;
+assign hit = hit_way[0] || hit_way[1];
 
 always @(posedge clk) begin
     if(c_state == MISS)
