@@ -328,7 +328,7 @@ always @(*) begin //ICache Read
             else I_RD_nextstate <= `I_R_SHAKE3;
         `I_R_SHAKE4:
         //Attention:因为规定了Cache line是四个字,所以到了I_R_SHAKE4如果有握手必然传输结束,不必考虑rlast
-            if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_RD_IDLE;
+            if(inst_rvalid & inst_rready & inst_rlast) I_RD_nextstate <= `I_RD_IDLE;
             else I_RD_nextstate <= `I_R_SHAKE4;  
         default: I_RD_nextstate <= `I_RD_IDLE;
     endcase
@@ -361,7 +361,7 @@ always @(*) begin //DCache Read
             else D_RD_nextstate <= `D_R_SHAKE3;
         `D_R_SHAKE4:
         //Attention:因为规定了Cache line是四个字,所以到了D_R_SHAKE4如果有握手必然传输结束,不必考虑rlast
-            if(data_rvalid & data_rready) D_RD_nextstate <= `D_RD_IDLE;
+            if(data_rvalid & data_rready & data_rlast) D_RD_nextstate <= `D_RD_IDLE;
             else D_RD_nextstate <= `D_R_SHAKE4;
         default: D_RD_nextstate <= `D_RD_IDLE;
     endcase
