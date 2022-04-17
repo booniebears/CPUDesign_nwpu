@@ -30,4 +30,5 @@
     `define Bp   5'b01001 //break断点例外
     `define RI   5'b01010 //保留指令(未定义指令)例外
     `define Ov   5'b01100 //算术溢出例外
+
 `endif

@@ -65,6 +65,7 @@ wire ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 wire ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 
 
+
 // IF stage
 if_stage if_stage(
     .clk            (clk            ),
