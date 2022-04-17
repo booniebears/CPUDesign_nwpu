@@ -1,5 +1,4 @@
 `include "global_defines.vh"
-
 module CP0_Reg (
     input clk,
     input reset,
@@ -25,9 +24,9 @@ module CP0_Reg (
     output reg CP0_Cause_TI //TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
 );
 
+
 wire [7:0] CP0_Addr; //Ğ´CP0¼Ä´æÆ÷×éµÄµØÖ·
 wire mtc0_we; //Ğ´CP0¼Ä´æÆ÷µÄĞ´Ê¹ÄÜĞÅºÅ
-
 //1.Status¼Ä´æÆ÷:·ÖÎªBevÓò,IM7-IM0,EXLÓò,IEÓò ÆäÖĞIM,EXL,IEÔÚ¶Ë¿ÚÖĞ¶¨ÒåÁË
 wire CP0_Status_Bev; 
 
@@ -35,10 +34,6 @@ assign CP0_Addr={ws_mfc0_rd,ws_sel}; //°´ÕÕÖ¸ÁîÒªÇó,CP0µÄ8Î»¶ÁĞ´µØÖ·ÓÉrd¶Î(ÕâÀï¾
 assign mtc0_we=ws_valid&&ws_inst_mtc0&&!ws_ex; //Ö¸ÁîÎªmtc0,ÇÒWB½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòĞ´Ê¹ÄÜÉúĞ§
 
 assign eret_flush=ws_valid&&ws_inst_eret&&!ws_ex; //Ö¸ÁîÎªeret,ÇÒWB½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòÇå¿ÕÁ÷Ë®ÏßÊ¹ÄÜÓĞĞ§
-// always @(posedge clk) begin //assign¸Ä³Éalways
-//     if(reset) eret_flush<=1'b0;
-//     else eret_flush<=ws_valid&&ws_inst_eret&&!ws_ex;
-// end
 
 assign CP0_Status_Bev=1'b1; //BevÓòºãÎª1,Ö»¶Á
 

@@ -125,8 +125,6 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_sram_rdata[31
                                                              {ms_rt_value[31: 8], data_sram_rdata[31:24]} ;
 
 
-
-
 assign ms_ready_go    = 1'b1;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -158,8 +156,7 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
 
 assign ms_final_result = ms_res_from_mem ? mem_data
                                          : ms_alu_result;
-                                         
-//lab4添加
+                 
 assign MEM_dest=ms_dest&{5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign MEM_result=ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 endmodule
