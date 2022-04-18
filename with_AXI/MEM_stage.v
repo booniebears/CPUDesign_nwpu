@@ -1,25 +1,25 @@
 `include "global_defines.vh"
 
 module mem_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input         clk,
+    input         reset,
     //allowin
-    input                          ws_allowin    ,
-    output                         ms_allowin    ,
+    input         ws_allowin,
+    output        ms_allowin,
     //from es
-    input                          es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
+    input         es_to_ms_valid,
+    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
     //to ws
-    output                         ms_to_ws_valid,
-    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
+    output        ms_to_ws_valid,
+    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
     //from data-sram
-    input  [31                 :0] data_sram_rdata,
-    output [4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
+    input  [                 31:0] data_rdata,//TODO:data_rdata换成从DCache读回来的数据rdata
+    output [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
-    input flush, //flush=1时表明需要处理异常
-    output ms_ex, //判定MEM阶段是否有被标记为例外的指令
-    output ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
-    output ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    input         flush, //flush=1时表明需要处理异常
+    output        ms_ex, //判定MEM阶段是否有被标记为例外的指令
+    output        ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
+    output        ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 );
 
 reg         ms_valid;
@@ -46,8 +46,6 @@ wire [31:0] mem_result_lwr;
 wire [2:0] ms_sel;
 wire [4:0] ms_mfc0_rd; 
 wire ms_inst_mtc0;
-// wire ms_inst_mfc0; //该信号在模块端口定义
-// wire ms_inst_eret; //该信号在模块端口定义
 wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
@@ -91,38 +89,40 @@ assign ms_to_ws_bus = {
                       };
 
 //lab7添加
-//lb/lbu
-assign load_sign_lb         = (ms_alu_result[1:0] == 2'd0) ? data_sram_rdata[ 7] :
-                              (ms_alu_result[1:0] == 2'd1) ? data_sram_rdata[15] :
-                              (ms_alu_result[1:0] == 2'd2) ? data_sram_rdata[23] :
-                                                             data_sram_rdata[31];                                                  
-assign mem_result_lb[ 7:0]  = (ms_alu_result[1:0] == 2'd0) ? data_sram_rdata[ 7:0 ] :
-                              (ms_alu_result[1:0] == 2'd1) ? data_sram_rdata[15:8 ] :
-                              (ms_alu_result[1:0] == 2'd2) ? data_sram_rdata[23:16] :
-                                                             data_sram_rdata[31:24];
+//TODO:data_rdata换成从DCache读回来的数据rdata
+assign load_sign_lb         = (ms_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
+                              (ms_alu_result[1:0] == 2'd1) ? data_rdata[15] :
+                              (ms_alu_result[1:0] == 2'd2) ? data_rdata[23] :
+                                                             data_rdata[31];                                                  
+assign mem_result_lb[ 7:0]  = (ms_alu_result[1:0] == 2'd0) ? data_rdata[ 7:0 ] :
+                              (ms_alu_result[1:0] == 2'd1) ? data_rdata[15:8 ] :
+                              (ms_alu_result[1:0] == 2'd2) ? data_rdata[23:16] :
+                                                             data_rdata[31:24];
 assign mem_result_lb[31:8]  = {24{load_sign_lb}};
 assign mem_result_lbu       = {24'd0, mem_result_lb[7:0]};
 
 
 //lh/lhu
-assign load_sign_lh         = (ms_alu_result[1:0] == 2'b00) ? data_sram_rdata[15]   :
-                              (ms_alu_result[1:0] == 2'b10) ? data_sram_rdata[31]   : 1'b0;                                                   
-assign mem_result_lh[15:0]  = (ms_alu_result[1:0] == 2'b00) ? data_sram_rdata[15:0] : 
-                              (ms_alu_result[1:0] == 2'b10) ? data_sram_rdata[31:16]: 16'd0;
+assign load_sign_lh         = (ms_alu_result[1:0] == 2'b00) ? data_rdata[15]   :
+                              (ms_alu_result[1:0] == 2'b10) ? data_rdata[31]   : 1'b0;                                                   
+assign mem_result_lh[15:0]  = (ms_alu_result[1:0] == 2'b00) ? data_rdata[15:0] : 
+                              (ms_alu_result[1:0] == 2'b10) ? data_rdata[31:16]: 16'd0;
 assign mem_result_lh[31:16] = {16{load_sign_lh}};
 assign mem_result_lhu       = {16'd0, mem_result_lh[15:0]};
 
 //lwl
-assign mem_result_lwl       = (ms_alu_result[1:0] == 2'd0) ? {data_sram_rdata[ 7:0], ms_rt_value[23:0]} :
-                              (ms_alu_result[1:0] == 2'd1) ? {data_sram_rdata[15:0], ms_rt_value[15:0]} :
-                              (ms_alu_result[1:0] == 2'd2) ? {data_sram_rdata[23:0], ms_rt_value[7 :0]} :
-                                                              data_sram_rdata[31:0];
+assign mem_result_lwl       = (ms_alu_result[1:0] == 2'd0) ? {data_rdata[ 7:0], ms_rt_value[23:0]} :
+                              (ms_alu_result[1:0] == 2'd1) ? {data_rdata[15:0], ms_rt_value[15:0]} :
+                              (ms_alu_result[1:0] == 2'd2) ? {data_rdata[23:0], ms_rt_value[7 :0]} :
+                                                              data_rdata[31:0];
 
 //lwr
-assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_sram_rdata[31:0]                       :
-                              (ms_alu_result[1:0] == 2'd1) ? {ms_rt_value[31:24], data_sram_rdata[31: 8]} :
-                              (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_sram_rdata[31:16]} :
-                                                             {ms_rt_value[31: 8], data_sram_rdata[31:24]} ;
+assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]                       :
+                              (ms_alu_result[1:0] == 2'd1) ? {ms_rt_value[31:24], data_rdata[31: 8]} :
+                              (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
+                                                             {ms_rt_value[31: 8], data_rdata[31:24]} ;
+
+
 
 
 assign ms_ready_go    = 1'b1;
@@ -152,11 +152,12 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[4]) ? mem_result_lh  :
                   (ms_mem_inst[5]) ? mem_result_lhu : 
                   (ms_mem_inst[6]) ? mem_result_lwl :
-                  (ms_mem_inst[7]) ? mem_result_lwr : data_sram_rdata; //lw对应data_sram_rdata
+                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
 assign ms_final_result = ms_res_from_mem ? mem_data
                                          : ms_alu_result;
-                 
-assign MEM_dest=ms_dest&{5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
-assign MEM_result=ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
+                                         
+//lab4添加
+assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
+assign MEM_result = ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 endmodule
