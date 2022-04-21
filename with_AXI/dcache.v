@@ -53,8 +53,10 @@ always @(posedge clk)begin
         count[0] = 1;
         count[1] = 0;
     end else begin
-        count[0] = 0;
-        count[1] = 1;
+        // count[0] = 0;
+        // count[1] = 1;
+        count[0] = 1;
+        count[1] = 0;
     end
 end
 
@@ -111,12 +113,13 @@ always @(*) begin
 end
 
 //cache是否能够接收地址
-always @(posedge clk) begin
-    if(c_state == IDLE)
-        addr_ok <= valid;
-    else
-        addr_ok <= 0;
-end
+// always @(posedge clk) begin
+//     if(c_state == IDLE || c_state == LOOKUP && hit)
+//         addr_ok <= 1;
+//     else
+//         addr_ok <= 0;
+// end
+assign addr_ok = c_state == IDLE || c_state == LOOKUP && hit;
 
 always @(posedge clk) begin
     if(c_state == LOOKUP && hit)
