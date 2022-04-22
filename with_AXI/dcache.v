@@ -1,8 +1,4 @@
-parameter   IDLE = 3'd0,
-            LOOKUP = 3'd1;,
-            MISS = 3'd2,
-            REPLACE = 3'd3,
-            REFILL = 3'd4;
+
 
 // parameter   W_IDLE = 0,
 //             W_WRITE = 1;
@@ -18,34 +14,41 @@ module dcache (
     //与CPU流水线的交互接口
     input clk,
     input resetn,
-    input valid;
-    input op;
-    input [7:0] index;
-    input [19:0] tag;//tag 和 v 放在ram里面，d 使用regfile存储
-    input [3:0] offset;
-    input [31:0] wdata;
-    output addr_ok;
-    output data_ok;
-    output [31:0] rdata;
+    input valid,
+    input op,
+    input [7:0] index,
+    input [19:0] tag,//tag 和 v 放在ram里面，d 使用regfile存储
+    input [3:0] offset,
+    input [31:0] wdata,
+    output addr_ok,
+    output  reg data_ok,
+    output reg [31:0] rdata,
 
     //与AXI总线接口的交互接口
-    output rd_req;
-    output [31:0] rd_addr;
-    input rd_rdy;
-    input ret_valid;
-    input [127:0] ret_data;
+    output reg rd_req,
+    output [31:0] rd_addr,
+    input rd_rdy,
+    input ret_valid,
+    input [127:0] ret_data,
     //
-    output wr_req;
-    output [31:0] wr_addr;
-    output [127:0] wr_data;
-    input wr_rdy;
-)
+    output reg wr_req,
+    input wr_rdy,
+    output [31:0] wr_addr,
+    output [127:0] wr_data
+);
+parameter   IDLE = 3'd0,
+            LOOKUP = 3'd1,
+            MISS = 3'd2,
+            REPLACE = 3'd3,
+            REFILL = 3'd4;
+
 
 wire [127:0] way0_block;
 wire [127:0] way1_block;
 
 wire chose_dirty;
-
+wire [1:0] hit_way;
+wire hit;
 
 reg[1:0] count;
 always @(posedge clk)begin
@@ -60,9 +63,12 @@ always @(posedge clk)begin
     end
 end
 
-///
-always @(posedge clk, posedge resetn) begin
-    if(resetn) begin
+
+reg [2:0] c_state;
+reg [2:0] n_state;
+
+always @(posedge clk) begin
+    if(!resetn) begin
         c_state <= IDLE;
     end else begin
         c_state <= n_state;
@@ -110,6 +116,7 @@ always @(*) begin
                 n_state <= IDLE;
         endcase
     
+    end
 end
 
 //cache是否能够接收地址
@@ -122,15 +129,16 @@ end
 assign addr_ok = c_state == IDLE || c_state == LOOKUP && hit;
 
 always @(posedge clk) begin
-    if(c_state == LOOKUP && hit)
+    if(c_state == LOOKUP && hit)begin
         data_ok <= 1;
-    else if(c_state == REFILL)
+    end else if(c_state == REFILL)begin
         data_ok <= 1;
-    else
+    end else begin
         data_ok <= 0;
+    end
 end
 
-
+reg [69:0] CPU_Cache_buffer;
 always @(posedge clk) begin
     if(c_state == IDLE && valid || c_state == LOOKUP && hit && valid) 
     CPU_Cache_buffer <= {
@@ -139,8 +147,9 @@ always @(posedge clk) begin
         tag,// [67:48]
         index,//[47:40]
         offset, // [39:36]
-        wstrb, // [35:32]
-        wdata, // [31:0]
+        // wstrb, // [35:32]
+        4'b0,//TODO
+        wdata // [31:0]
     };
 end
 
@@ -153,7 +162,7 @@ wire way1_v;
 assign hit_way[0] = (way0_tag == CPU_Cache_buffer[67:48]) && way0_v;
 assign hit_way[1] = (way1_tag == CPU_Cache_buffer[67:48]) && way1_v;
 
-wire hit;
+
 assign hit = hit_way[0] || hit_way[1];
 
 always @(posedge clk) begin
@@ -164,10 +173,13 @@ always @(posedge clk) begin
 
 end
 
+reg [255:0] way0_dirty;
+reg [255:0] way1_dirty;
+
 assign wr_addr = CPU_Cache_buffer[67:36];
 assign rd_addr = CPU_Cache_buffer[67:36];
-assign wr_data = 128{count[0] && way0_v} && way0_block ||
-                    128{count[1] && way1_v} && way1_block;
+assign wr_data = { 128{count[0] && way0_v} } && way0_block ||
+                    { 128{count[1] && way1_v} } && way1_block;
 assign chose_dirty = count[0] && way0_dirty[ CPU_Cache_buffer[47:40] ] || 
                         count[1] && way1_dirty[ CPU_Cache_buffer[47:40] ];
 
@@ -199,16 +211,30 @@ reg[3:0] wr1_en;
 always @(posedge clk) begin
     if(c_state == LOOKUP && hit && CPU_Cache_buffer[68]) begin
         case (CPU_Cache_buffer[39:38])
-            2'b00: wr0_en <= {count[0],3'b0}, wr1_en <= {count[1],3'b0};
-            2'b01: wr0_en <= {1'b0,count[0],2'b0}, wr1_en <= {1'b0,count[1],2'b0};
-            2'b10: wr0_en <= {2'b0,count[0],1'b0}, wr1_en <= {2'b0,count[1],1'b0};
-            2'b11: wr0_en <= {3'b0,count[0]}, wr1_en <= {3'b0,count[1]};
-            default: wr0_en <= 0, wr1_en <= 0;
+            2'b00:begin
+                wr0_en <= {count[0],3'b0};
+                wr1_en <= {count[1],3'b0};
+            end
+            2'b01:begin
+                wr0_en <= {1'b0,count[0],2'b0};
+                wr1_en <= {1'b0,count[1],2'b0};
+            end
+            2'b10:begin
+                wr0_en <= {2'b0,count[0],1'b0};
+                wr1_en <= {2'b0,count[1],1'b0};
+            end
+            2'b11:begin
+                wr0_en <= {3'b0,count[0]};
+                wr1_en <= {3'b0,count[1]};
+            end
+            default:begin
+                wr0_en <= 0;
+                wr1_en <= 0;
+            end
         endcase
-    end
-    else if(c_state == REFILL && ret_valid) begin
-        wr0_en = 4{count[0]};
-        wr1_en = 4{count[1]};
+    end else if(c_state == REFILL && ret_valid) begin
+        wr0_en = { 4{count[0]} };
+        wr1_en = { 4{count[1]} };
     end else begin
         wr0_en = 0;
         wr1_en = 0;
@@ -216,8 +242,7 @@ always @(posedge clk) begin
         
 end
 
-reg [255:0] way0_dirty;
-reg [255:0] way1_dirty;
+
 always @(posedge clk) begin
     if(c_state == REFILL) begin
         way0_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[0];
@@ -230,10 +255,10 @@ end
 always @(posedge clk) begin
     if(hit) begin
         case (offset)
-            2'd0: rdata = (32{hit_way[0]} && way0_block[31:0]) || (32{hit_way[1]} && way1_block[31:0]);
-            2'd1: rdata = (32{hit_way[0]} && way0_block[63:32]) || (32{hit_way[1]} && way1_block[63:32]);
-            2'd2: rdata = (32{hit_way[0]} && way0_block[95:64]) || (32{hit_way[1]} && way1_block[95:64]);
-            2'd3: rdata = (32{hit_way[0]} && way0_block[127:96]) || (32{hit_way[1]} && way1_block[127:96]);
+            2'd0: rdata = ({ 32{hit_way[0]} } && way0_block[31:0]) || ({ 32{hit_way[1]} } && way1_block[31:0]);
+            2'd1: rdata = ({ 32{hit_way[0]} } && way0_block[63:32]) || ({ 32{hit_way[1]} } && way1_block[63:32]);
+            2'd2: rdata = ({ 32{hit_way[0]} } && way0_block[95:64]) || ({ 32{hit_way[1]} } && way1_block[95:64]);
+            2'd3: rdata = ({ 32{hit_way[0]} } && way0_block[127:96]) ||  ({ 32{hit_way[1]} } && way1_block[127:96]);
             default: rdata = 0;
         endcase
     end else if (ret_valid)begin
@@ -251,10 +276,10 @@ end
 
 always @(offset,hit_way,way0_block,way1_block) begin
     case (offset)
-        2'd0: rdata = (32{hit_way[0]} && way0_block[31:0]) || (32{hit_way[1]} && way1_block[31:0]);
-        2'd1: rdata = (32{hit_way[0]} && way0_block[63:32]) || (32{hit_way[1]} && way1_block[63:32]);
-        2'd2: rdata = (32{hit_way[0]} && way0_block[95:64]) || (32{hit_way[1]} && way1_block[95:64]);
-        2'd3: rdata = (32{hit_way[0]} && way0_block[127:96]) || (32{hit_way[1]} && way1_block[127:96]);
+        2'd0: rdata = ({ 32{hit_way[0]} } && way0_block[31:0]) || ({ 32{hit_way[1]} } && way1_block[31:0]);
+        2'd1: rdata = ({ 32{hit_way[0]} } && way0_block[63:32]) || ({ 32{hit_way[1]} } && way1_block[63:32]);
+        2'd2: rdata = ({ 32{hit_way[0]} } && way0_block[95:64]) || ({ 32{hit_way[1]} } && way1_block[95:64]);
+        2'd3: rdata = ({ 32{hit_way[0]} } && way0_block[127:96]) || ({ 32{hit_way[1]} } && way1_block[127:96]);
         default: rdata = 0;
     endcase
 end
@@ -262,80 +287,80 @@ end
 
 wire [7:0] ram_addr;
 assign ram_tag_addr =CPU_Cache_buffer[47:40];
-ram_tag way0_tagv{
+ram_tag way0_tagv(
     .clk(clk),
     .ram_wen(wr0_en[0] || wr0_en[1] || wr0_en[2] || wr0_en[3]),
     .ram_addr(ram_tag_addr),
     .ram_wdata({CPU_Cache_buffer[67:48],1'b1 }),
-    ,ram_rdata({way0_tag,way0_v})
-};
+    .ram_rdata({way0_tag,way0_v})
+);
 
-ram_tag way1_tagv{
+ram_tag way1_tagv(
     .clk(clk),
     .ram_wen(wr1_en[0] || wr1_en[1] || wr1_en[2] || wr1_en[3]),
     .ram_addr(ram_tag_addr),
     .ram_wdata({CPU_Cache_buffer[67:48],1'b1 }),
-    ,ram_rdata({way1_tag,way1_v})
-};
+    .ram_rdata({way1_tag,way1_v})
+);
 
 
-ram_bank way0_bank0{
+ram_bank way0_bank0(
     .clk(clk),
     .ram_wen(wr0_en[0]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[31:0]),
     .ram_rdata(way0_block[31:0])
-}
-ram_bank way0_bank1{
+);
+ram_bank way0_bank1(
     .clk(clk),
     .ram_wen(wr0_en[1]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[63:32]),
     .ram_rdata(way0_block[63:32])
-}
-ram_bank way0_bank2{
+);
+ram_bank way0_bank2(
     .clk(clk),
     .ram_wen(wr0_en[2]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[95:64]),
     .ram_rdata(way0_block[95:64])
-}
-ram_bank way0_bank3{
+);
+ram_bank way0_bank3(
     .clk(clk),
     .ram_wen(wr0_en[3]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[127:96]),
     .ram_rdata(way0_block[127:96])
-}
+);
 
-ram_bank way1_bank0{
+ram_bank way1_bank0(
     .clk(clk),
     .ram_wen(wr1_en[0]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[31:0]),
     .ram_rdata(way1_block[31:0])
-}
-ram_bank way1_bank1{
+);
+ram_bank way1_bank1(
     .clk(clk),
     .ram_wen(wr1_en[1]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[63:32]),
     .ram_rdata(way1_block[63:32])
-}
-ram_bank way1_bank2{
+);
+ram_bank way1_bank2(
     .clk(clk),
     .ram_wen(wr1_en[2]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[95:64]),
     .ram_rdata(way1_block[95:64])
-}
-ram_bank way1_bank3{
+);
+ram_bank way1_bank3(
     .clk(clk),
     .ram_wen(wr1_en[3]),
     .ram_addr(CPU_Cache_buffer[47:40]),
     .ram_wdata(ram_write_data[127:96]),
     .ram_rdata(way1_block[127:96])
-}
+);
 
 
 endmodule
