@@ -7,7 +7,7 @@ module AXI_Interface (
 //Attention:arlen上《CPU设计实战》的定义有点问题,这里采用四位宽即可;
 //Attention:icache_ret_data/dcache_ret_data位宽这里改为128位(一个Cache line);
     input         clk,
-    input         resetn,
+    input         reset,
     //ar读请求通道
     output [ 3:0] arid,
     output [31:0] araddr,
@@ -213,7 +213,7 @@ reg [127:0] ff_dcache_ret_data;
 /*******************AXI与ICache/DCache/Uncache的交互信号定义如下******************/
 //Attention:把ret_valid设置成reg类型,是为了保证ret_valid高电平和返回的数据在同一个时钟上升沿返回
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         icache_ret_valid <= 1'b0;
     else if(I_RD_nextstate == `I_RD_IDLE && I_RD_state == `I_R_SHAKE4)
         icache_ret_valid <= 1'b1;
@@ -222,7 +222,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         ff_icache_ret_data <= 128'b0;
     else if(I_RD_nextstate == `I_R_SHAKE2 && I_RD_state == `I_R_SHAKE1)
         ff_icache_ret_data[31:0] <= inst_rdata;
@@ -236,7 +236,7 @@ end
 assign icache_ret_data  = ff_icache_ret_data;
 
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         dcache_ret_valid <= 1'b0;
     else if(D_RD_nextstate == `D_RD_IDLE && D_RD_state == `D_R_SHAKE4)
         dcache_ret_valid <= 1'b1;
@@ -245,7 +245,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         ff_dcache_ret_data <= 128'b0;
     else if(D_RD_nextstate == `D_R_SHAKE2 && D_RD_state == `D_R_SHAKE1)
         ff_dcache_ret_data[31:0] <= data_rdata;
@@ -259,7 +259,7 @@ end
 assign dcache_ret_data  = ff_dcache_ret_data;
 
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         udcache_ret_valid <= 1'b0;
     else if(UD_RD_nextstate == `UD_RD_IDLE && UD_RD_state == `UD_R_SHAKE)
         udcache_ret_valid <= 1'b1;
@@ -268,7 +268,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         udcache_ret_data <= 32'b0;
     else if(UD_RD_nextstate == `UD_RD_IDLE && UD_RD_state == `UD_R_SHAKE)
         udcache_ret_data <= udata_rdata;
@@ -287,7 +287,7 @@ assign udcache_wr_rdy  = (UD_WR_state == `UD_WR_IDLE) ? 1'b1 : 1'b0;
 //Attention:AXI总线要求,master端一旦发起某一地址或者数据传输的请求(req),在握手成功之前,不得更改传输的地址/数据
 //因此,对于此处的读请求对应的地址,我们需要锁存操作,在req发出后,先把addr保存起来不变;DCache的数据和地址同理。
 always @(posedge clk) begin //inst_araddr
-    if(~resetn) 
+    if(reset) 
         ff_inst_araddr <= 32'b0;
     else if(I_RD_state == `I_RD_IDLE && icache_rd_req) //此时已经发起传输;之后就锁存,保持inst_araddr不变
         ff_inst_araddr <= icache_rd_addr;
@@ -310,7 +310,7 @@ assign inst_rready  = (I_RD_state == `I_R_SHAKE1 || I_RD_state == `I_R_SHAKE2 ||
 
 /*******************DCache对应的AXI端口信号赋值如下******************/
 always @(posedge clk) begin //data_araddr
-    if(~resetn) 
+    if(reset) 
         ff_data_araddr <= 32'b0;
     else if(D_RD_state == `D_RD_IDLE && dcache_rd_req) //此时已经发起传输;之后就锁存,保持data_araddr不变
         ff_data_araddr <= dcache_rd_addr;
@@ -318,7 +318,7 @@ end
 assign data_araddr  = ff_data_araddr;
 
 always @(posedge clk) begin //data_awaddr
-    if(~resetn) 
+    if(reset) 
         ff_data_awaddr <= 32'b0;
     else if(D_WR_state == `D_WR_IDLE && dcache_wr_req) //此时已经发起传输;之后就锁存,保持data_awaddr不变
         ff_data_awaddr <= dcache_wr_addr;
@@ -326,14 +326,14 @@ end
 assign data_awaddr  = ff_data_awaddr;
 
 always @(posedge clk) begin //ff_dcache_wr_data
-    if(~resetn) 
+    if(reset) 
         ff_dcache_wr_data <= 128'b0;
     else if(D_WR_state == `D_WR_IDLE && dcache_wr_req)
         ff_dcache_wr_data <= dcache_wr_data;
 end
 
 always @(posedge clk) begin //data_wdata 从一个Cache line中依次获取
-    if(~resetn)
+    if(reset)
         data_wdata <= 32'b0;
     else if(D_WR_nextstate == `D_W_SHAKE1) //这个可以看nextstate
         data_wdata <= ff_dcache_wr_data[31:0];
@@ -378,7 +378,7 @@ assign data_bready  = 1'b1; //可以始终置为1
 
 /*******************Uncache(对应DCache)对应的AXI端口信号赋值如下******************/
 always @(posedge clk) begin //udata_araddr
-    if(~resetn) 
+    if(reset) 
         ff_udata_araddr <= 32'b0;
     else if(UD_RD_state == `UD_RD_IDLE && udcache_rd_req) //此时已经发起传输;之后就锁存,保持udata_araddr不变
         ff_udata_araddr <= udcache_rd_addr;
@@ -386,7 +386,7 @@ end
 assign udata_araddr  = ff_udata_araddr;
 
 always @(posedge clk) begin //udata_awaddr
-    if(~resetn) 
+    if(reset) 
         ff_udata_awaddr <= 32'b0;
     else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //此时已经发起传输;之后就锁存,保持udata_awaddr不变
         ff_udata_awaddr <= udcache_wr_addr;
@@ -394,7 +394,7 @@ end
 assign udata_awaddr  = ff_udata_awaddr;
 
 always @(posedge clk) begin //udata_wdata 直接写一个字到远端axi_ram 配合下面的udata_wstrb
-    if(~resetn)
+    if(reset)
         udata_wdata <= 32'b0;
     else if(UD_WR_nextstate == `UD_W_SHAKE) //这个可以看nextstate
         udata_wdata <= udcache_wr_data;
@@ -434,7 +434,7 @@ assign udata_bready  = 1'b1; //可以始终置为1
 //TODO:状态机的转移条件或许可以简化，后期处理
 //ICache Read
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         I_RD_state <= `I_RD_IDLE;
     else
         I_RD_state <= I_RD_nextstate;        
@@ -467,7 +467,7 @@ end
 
 //DCache Read
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         D_RD_state <= `D_RD_IDLE;
     else
         D_RD_state <= D_RD_nextstate;        
@@ -500,7 +500,7 @@ end
 
 //DCache Write
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         D_WR_state <= `D_WR_IDLE;
     else
         D_WR_state <= D_WR_nextstate;        
@@ -536,7 +536,7 @@ end
 
 //Uncache(DCache) Read
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         UD_RD_state <= `UD_RD_IDLE;
     else
         UD_RD_state <= UD_RD_nextstate;        
@@ -559,7 +559,7 @@ end
 
 //Uncache(DCache) Write
 always @(posedge clk) begin
-    if(~resetn) 
+    if(reset) 
         UD_WR_state <= `UD_WR_IDLE;
     else
         UD_WR_state <= UD_WR_nextstate;        
@@ -589,7 +589,7 @@ end
 //Attention:优先级为DCache>ICache
 axi_crossbar U_axi_crossbar(
     .aclk(clk),
-    .aresetn(resetn),
+    .aresetn(~reset),
 
     .s_axi_awid    ({4'b0         ,data_awid    ,udata_awid   }),
     .s_axi_awaddr  ({32'b0        ,data_awaddr  ,udata_awaddr }),

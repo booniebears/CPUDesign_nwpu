@@ -173,6 +173,11 @@ wire        inst_mfc0;
 wire        inst_eret;
 wire        inst_syscall;
 wire        inst_break;
+//TLB
+wire        inst_tlbp;
+wire        inst_tlbr;
+wire        inst_tlbwi;
+wire        inst_tlbwr;
 
 wire        dst_is_r31;  
 wire        dst_is_rt;   
@@ -338,6 +343,12 @@ assign inst_mfc0   = op_d[6'h10] & rs_d[5'h00];
 assign inst_eret   = op_d[6'h10] & func_d[6'h18];
 assign inst_syscall= op_d[6'h00] & func_d[6'h0c];
 assign inst_break  = op_d[6'h00] & func_d[6'h0d];
+//TLB
+assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
+assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
+assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
+assign inst_tlbwr  = op_d[6'h10] & func_d[6'h06];
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -346,7 +357,7 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break;
+| inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr;
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
