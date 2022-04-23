@@ -13,13 +13,14 @@ module dcache (
     
     //与CPU流水线的交互接口
     input clk,
-    input resetn,
+    input reset,
     input valid,
     input op,
     input [7:0] index,
     input [19:0] tag,//tag 和 v 放在ram里面，d 使用regfile存储
     input [3:0] offset,
     input [31:0] wdata,
+    input [3:0] wstrb,
     output addr_ok,
     output  reg data_ok,
     output reg [31:0] rdata,
@@ -30,7 +31,7 @@ module dcache (
     input rd_rdy,
     input ret_valid,
     input [127:0] ret_data,
-    //
+    output wr_wstrb,
     output reg wr_req,
     input wr_rdy,
     output [31:0] wr_addr,
@@ -68,7 +69,7 @@ reg [2:0] c_state;
 reg [2:0] n_state;
 
 always @(posedge clk) begin
-    if(!resetn) begin
+    if(reset) begin
         c_state <= IDLE;
     end else begin
         c_state <= n_state;
@@ -76,7 +77,7 @@ always @(posedge clk) begin
 end
 
 always @(*) begin
-    if(resetn) begin
+    if(reset) begin
         n_state <= IDLE;
     end else begin
         case (c_state)
@@ -147,8 +148,7 @@ always @(posedge clk) begin
         tag,// [67:48]
         index,//[47:40]
         offset, // [39:36]
-        // wstrb, // [35:32]
-        4'b0,//TODO
+        wstrb, // [35:32]
         wdata // [31:0]
     };
 end
@@ -196,10 +196,39 @@ end
 reg [127:0] ram_write_data;
 always @(posedge clk) begin
     if(CPU_Cache_buffer[68]) begin
-        ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[31:0] : 0;
-        ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[63:32] : 0;
-        ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[95:64] : 0;
-        ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[127:96] : 0;
+        case (CPU_Cache_buffer[35:32])
+            4'b1111: begin
+                ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[31:0] : 0;
+                ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[63:32] : 0;
+                ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[95:64] : 0;
+                ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[127:96] : 0;
+            end
+            4'b0111: begin
+                ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? {rdata[31:24],CPU_Cache_buffer[23:0] } : ret_valid ? ret_data[31:0] : 0;
+                ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? {rdata[31:24], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[63:32] : 0;
+                ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? {rdata[31:24], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[95:64] : 0;
+                ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ?{rdata[31:24], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[127:96] : 0;
+            end
+            4'b0011:begin
+                ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? {rdata[31:16],CPU_Cache_buffer[15:0] } : ret_valid ? ret_data[31:0] : 0;
+                ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? {rdata[31:16], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[63:32] : 0;
+                ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? {rdata[31:16], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[95:64] : 0;
+                ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? {rdata[31:16], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[127:96] : 0;
+            end
+            4'b0001:begin
+                ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? {rdata[31:8],CPU_Cache_buffer[7:0] } : ret_valid ? ret_data[31:0] : 0;
+                ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? {rdata[31:8], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[63:32] : 0;
+                ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? {rdata[31:8], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[95:64] : 0;
+                ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? {rdata[31:8], CPU_Cache_buffer[31:0] } : ret_valid ? ret_data[127:96] : 0;
+            end
+            default:begin
+                 ram_write_data[31:0] <= CPU_Cache_buffer[39:38] == 2'b00 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[31:0] : 0;
+                ram_write_data[63:32] <= CPU_Cache_buffer[39:38] == 2'b01 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[63:32] : 0;
+                ram_write_data[95:64] <= CPU_Cache_buffer[39:38] == 2'b10 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[95:64] : 0;
+                ram_write_data[127:96] <= CPU_Cache_buffer[39:38] == 2'b11 ? CPU_Cache_buffer[31:0] : ret_valid ? ret_data[127:96] : 0;
+            end
+        endcase
+        
     end else begin
         ram_write_data <= ret_valid ? ret_data : 0;
     end
@@ -249,7 +278,7 @@ always @(posedge clk) begin
         way1_dirty[CPU_Cache_buffer[47:40]] <= CPU_Cache_buffer[68] && count[1];
     end
 end
-//
+
 
 
 always @(posedge clk) begin

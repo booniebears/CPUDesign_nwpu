@@ -12,7 +12,7 @@
 module icache (
     //与CPU流水线的交互接口
     input clk,
-    input resetn,
+    input reset,
     input valid,
     input op, //icache 不用
     input [7:0] index,
@@ -66,8 +66,8 @@ always @(posedge clk)begin
     end
 end
 
-always @(posedge clk, posedge resetn) begin
-    if(resetn) begin
+always @(posedge clk) begin
+    if(reset) begin
         c_state <= IDLE;
     end else begin
         c_state <= n_state;
@@ -75,7 +75,7 @@ always @(posedge clk, posedge resetn) begin
 end
 
 always @(*) begin
-    if(resetn) begin
+    if(reset) begin
         n_state <= IDLE;
     end else begin
             case (c_state)
