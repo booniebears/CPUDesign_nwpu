@@ -31,7 +31,7 @@ module dcache (
     input rd_rdy,
     input ret_valid,
     input [127:0] ret_data,
-    output wr_wstrb,
+    output wr_strb,
     output reg wr_req,
     input wr_rdy,
     output [31:0] wr_addr,
@@ -316,79 +316,79 @@ end
 
 wire [7:0] ram_addr;
 assign ram_tag_addr =CPU_Cache_buffer[47:40];
-ram_tag way0_tagv(
-    .clk(clk),
-    .ram_wen(wr0_en[0] || wr0_en[1] || wr0_en[2] || wr0_en[3]),
-    .ram_addr(ram_tag_addr),
-    .ram_wdata({CPU_Cache_buffer[67:48],1'b1 }),
-    .ram_rdata({way0_tag,way0_v})
+ram_tag dcache_way0_tagv(
+    .clka(clk),
+    .ena(wr0_en[0] || wr0_en[1] || wr0_en[2] || wr0_en[3]),
+    .addra(ram_tag_addr),
+    .dina({CPU_Cache_buffer[67:48],1'b1 }),
+    .douta({way0_tag,way0_v})
 );
 
-ram_tag way1_tagv(
-    .clk(clk),
-    .ram_wen(wr1_en[0] || wr1_en[1] || wr1_en[2] || wr1_en[3]),
-    .ram_addr(ram_tag_addr),
-    .ram_wdata({CPU_Cache_buffer[67:48],1'b1 }),
-    .ram_rdata({way1_tag,way1_v})
+ram_tag dcache_way1_tagv(
+    .clka(clk),
+    .ena(wr1_en[0] || wr1_en[1] || wr1_en[2] || wr1_en[3]),
+    .addra(ram_tag_addr),
+    .dina({CPU_Cache_buffer[67:48],1'b1 }),
+    .douta({way1_tag,way1_v})
 );
 
 
-ram_bank way0_bank0(
-    .clk(clk),
-    .ram_wen(wr0_en[0]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[31:0]),
-    .ram_rdata(way0_block[31:0])
+ram_bank dcache_way0_bank0(
+    .clka(clk),
+    .ena(wr0_en[0]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[31:0]),
+    .douta(way0_block[31:0])
 );
-ram_bank way0_bank1(
-    .clk(clk),
-    .ram_wen(wr0_en[1]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[63:32]),
-    .ram_rdata(way0_block[63:32])
+ram_bank dcache_way0_bank1(
+    .clka(clk),
+    .ena(wr0_en[1]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[63:32]),
+    .douta(way0_block[63:32])
 );
-ram_bank way0_bank2(
-    .clk(clk),
-    .ram_wen(wr0_en[2]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[95:64]),
-    .ram_rdata(way0_block[95:64])
+ram_bank dcache_way0_bank2(
+    .clka(clk),
+    .ena(wr0_en[2]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[95:64]),
+    .douta(way0_block[95:64])
 );
-ram_bank way0_bank3(
-    .clk(clk),
-    .ram_wen(wr0_en[3]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[127:96]),
-    .ram_rdata(way0_block[127:96])
+ram_bank dcache_way0_bank3(
+    .clka(clk),
+    .ena(wr0_en[3]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[127:96]),
+    .douta(way0_block[127:96])
 );
 
-ram_bank way1_bank0(
-    .clk(clk),
-    .ram_wen(wr1_en[0]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[31:0]),
-    .ram_rdata(way1_block[31:0])
+ram_bank dcache_way1_bank0(
+    .clka(clk),
+    .ena(wr1_en[0]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[31:0]),
+    .douta(way1_block[31:0])
 );
-ram_bank way1_bank1(
-    .clk(clk),
-    .ram_wen(wr1_en[1]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[63:32]),
-    .ram_rdata(way1_block[63:32])
+ram_bank dcache_way1_bank1(
+    .clka(clk),
+    .ena(wr1_en[1]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[63:32]),
+    .douta(way1_block[63:32])
 );
-ram_bank way1_bank2(
-    .clk(clk),
-    .ram_wen(wr1_en[2]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[95:64]),
-    .ram_rdata(way1_block[95:64])
+ram_bank dcache_way1_bank2(
+    .clka(clk),
+    .ena(wr1_en[2]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[95:64]),
+    .douta(way1_block[95:64])
 );
-ram_bank way1_bank3(
-    .clk(clk),
-    .ram_wen(wr1_en[3]),
-    .ram_addr(CPU_Cache_buffer[47:40]),
-    .ram_wdata(ram_write_data[127:96]),
-    .ram_rdata(way1_block[127:96])
+ram_bank dcache_way1_bank3(
+    .clka(clk),
+    .ena(wr1_en[3]),
+    .addra(CPU_Cache_buffer[47:40]),
+    .dina(ram_write_data[127:96]),
+    .douta(way1_block[127:96])
 );
 
 
