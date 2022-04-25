@@ -19,7 +19,7 @@ module icache (
     input [19:0] tag,//tag 和 v 放在ram里面，d 使用regfile存储
     input [3:0] offset,
     input [31:0] wdata, //icache 不用
-    output reg addr_ok,
+    output addr_ok,
     output reg data_ok,
     output reg [31:0] rdata,
 
@@ -61,8 +61,8 @@ always @(posedge clk)begin
         count[0] = 1;
         count[1] = 0;
     end else begin
-        count[0] = 0;
-        count[1] = 1;
+        count[0] = 1;
+        count[1] = 0;
     end
 end
 
@@ -119,18 +119,21 @@ always @(*) begin
     end
 end
 
-//cache是否能够接收地址
-always @(posedge clk) begin
-    if(c_state == IDLE)
-        addr_ok <= valid;
-    else
-        addr_ok <= 0;
-end
+///CHANGE
+// //cache是否能够接收地址
+// always @(posedge clk) begin
+//     if(c_state == IDLE)
+//         addr_ok <= valid;
+//     else
+//         addr_ok <= 0;
+// end
 
-always @(posedge clk) begin
+assign addr_ok = c_state == IDLE || c_state == LOOKUP && hit;
+
+always @(*) begin
     if(c_state == LOOKUP && hit)begin
         data_ok <= 1;
-    end else if(c_state == REFILL) begin
+    end else if(c_state == REFILL && ret_valid) begin///CHANGE
         data_ok <= 1;
     end else begin
         data_ok <= 0;
@@ -147,7 +150,7 @@ always @(posedge clk) begin
                                 offset, // [39:36]
                                 //wstrb, // [35:32]
                                 //wdata // [31:0] //icache 不用
-                                35'b0
+                                36'b0
                             };
     end
 end
@@ -160,8 +163,8 @@ wire way1_v;
 
 
 
-assign hit_way[0] = (way0_tag == tag) && way0_v;
-assign hit_way[1] = (way1_tag == tag) && way1_v;
+assign hit_way[0] = (way0_tag == CPU_Cache_buffer[67:48]) && way0_v;
+assign hit_way[1] = (way1_tag == CPU_Cache_buffer[67:48]) && way1_v;
 
 
 assign hit = hit_way[0] || hit_way[1];
@@ -237,54 +240,61 @@ end
 // end
 //
 
-
-always @(posedge clk) begin
-    if(hit) begin
-        case (offset)
-            2'd0: rdata = ({ 32{hit_way[0]} } && way0_block[31:0]) | ({ 32{hit_way[1]} } && way1_block[31:0]);
-            2'd1: rdata = ({ 32{hit_way[0]} } && way0_block[63:32]) | ({ 32{hit_way[1]} } && way1_block[63:32]);
-            2'd2: rdata = ({ 32{hit_way[0]} } && way0_block[95:64]) | ({ 32{hit_way[1]} } && way1_block[95:64]);
-            2'd3: rdata = ({ 32{hit_way[0]} } && way0_block[127:96]) | ({ 32{hit_way[1]} } && way1_block[127:96]);
-            default: rdata = 0;
+///CHANGE
+always @(*) begin
+    if(~hit)begin
+        if (ret_valid) begin
+        case (CPU_Cache_buffer[39:38])
+            2'd0: rdata <= ret_data[31:0];
+            2'd1: rdata <= ret_data[63:32];
+            2'd2: rdata <= ret_data[95:64];
+            2'd3: rdata <= ret_data[127:96];
+            default: rdata <= 0;
         endcase
-    end else if (ret_valid)begin
-        case (offset)
-            2'd0: rdata = ret_data[31:0];
-            2'd1: rdata = ret_data[63:32];
-            2'd2: rdata = ret_data[95:64];
-            2'd3: rdata = ret_data[127:96];
-            default: rdata = 0;
-        endcase
+        end
+        else 
+            rdata <= 0;
+    end
+    else begin //hit
+        case (CPU_Cache_buffer[39:38])//offest[3:2]
+            2'd0: rdata <= ({ 32{hit_way[0]} } & way0_block[31:0]) | ({ 32{hit_way[1]} } & way1_block[31:0]);
+            2'd1: rdata <= ({ 32{hit_way[0]} } & way0_block[63:32]) | ({ 32{hit_way[1]} } & way1_block[63:32]);
+            2'd2: rdata <= ({ 32{hit_way[0]} } & way0_block[95:64]) | ({ 32{hit_way[1]} } & way1_block[95:64]);
+            2'd3: rdata <= ({ 32{hit_way[0]} } & way0_block[127:96]) | ({ 32{hit_way[1]} } & way1_block[127:96]);
+            default: rdata <= 0;
+    endcase
     end
 
 end
 
+///CHANGE
+// always @(offset,hit_way,way0_block,way1_block) begin
+//     case (offset)
+//         2'd0: rdata = ({ 32{hit_way[0]} } && way0_block[31:0]) || ({ 32{hit_way[1]} } && way1_block[31:0]);
+//         2'd1: rdata = ({ 32{hit_way[0]} } && way0_block[63:32]) || ({ 32{hit_way[1]} } && way1_block[63:32]);
+//         2'd2: rdata = ({ 32{hit_way[0]} } && way0_block[95:64]) || ({ 32{hit_way[1]} } && way1_block[95:64]);
+//         2'd3: rdata = ({ 32{hit_way[0]} } && way0_block[127:96]) || ( {32{hit_way[1]} } && way1_block[127:96]);
+//         default: rdata = 0;
+//     endcase
+// end
 
-always @(offset,hit_way,way0_block,way1_block) begin
-    case (offset)
-        2'd0: rdata = ({ 32{hit_way[0]} } && way0_block[31:0]) || ({ 32{hit_way[1]} } && way1_block[31:0]);
-        2'd1: rdata = ({ 32{hit_way[0]} } && way0_block[63:32]) || ({ 32{hit_way[1]} } && way1_block[63:32]);
-        2'd2: rdata = ({ 32{hit_way[0]} } && way0_block[95:64]) || ({ 32{hit_way[1]} } && way1_block[95:64]);
-        2'd3: rdata = ({ 32{hit_way[0]} } && way0_block[127:96]) || ( {32{hit_way[1]} } && way1_block[127:96]);
-        default: rdata = 0;
-    endcase
-end
 
-
-wire [7:0] addra;
+wire [7:0] ram_tag_addr;///CHANGE
 assign ram_tag_addr =CPU_Cache_buffer[47:40];
 ram_tag icache_way0_tagv(
     .clka(clk),
-    .ena(wr0_en[0] || wr0_en[1] || wr0_en[2] || wr0_en[3]),
-    .addra(ram_tag_addr),
+    .ena(1'b1),///CHANGE problem?
+    .wea(wr0_en[0] || wr0_en[1] || wr0_en[2] || wr0_en[3]),
+    .addra(index),
     .dina({CPU_Cache_buffer[67:48],1'b1 }),
     .douta({way0_tag,way0_v})
 );
 
 ram_tag icache_way1_tagv(
     .clka(clk),
-    .ena(wr1_en[0] || wr1_en[1] || wr1_en[2] || wr1_en[3]),
-    .addra(ram_tag_addr),
+    .ena(1'b1),
+    .wea(wr1_en[0] || wr1_en[1] || wr1_en[2] || wr1_en[3]),
+    .addra(index),
     .dina({CPU_Cache_buffer[67:48],1'b1 }),
     .douta({way1_tag,way1_v})
 );
@@ -292,28 +302,32 @@ ram_tag icache_way1_tagv(
 
 ram_bank icache_way0_bank0(
     .clka(clk),
-    .ena(wr0_en[0]),
+    .ena(1'b1),
+    .wea(wr0_en[0]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[31:0]),
     .douta(way0_block[31:0])
 );
 ram_bank icache_way0_bank1(
     .clka(clk),
-    .ena(wr0_en[1]),
+    .ena(1'b1),
+    .wea(wr0_en[1]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[63:32]),
     .douta(way0_block[63:32])
 );
 ram_bank icache_way0_bank2(
     .clka(clk),
-    .ena(wr0_en[2]),
+    .ena(1'b1),
+    .wea(wr0_en[2]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[95:64]),
     .douta(way0_block[95:64])
 );
 ram_bank icache_way0_bank3(
     .clka(clk),
-    .ena(wr0_en[3]),
+    .ena(1'b1),
+    .wea(wr0_en[3]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[127:96]),
     .douta(way0_block[127:96])
@@ -321,28 +335,32 @@ ram_bank icache_way0_bank3(
 
 ram_bank icache_way1_bank0(
     .clka(clk),
-    .ena(wr1_en[0]),
+    .ena(1'b1),
+    .wea(wr1_en[0]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[31:0]),
     .douta(way1_block[31:0])
 );
 ram_bank icache_way1_bank1(
     .clka(clk),
-    .ena(wr1_en[1]),
+    .ena(1'b1),
+    .wea(wr1_en[1]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[63:32]),
     .douta(way1_block[63:32])
 );
 ram_bank icache_way1_bank2(
     .clka(clk),
-    .ena(wr1_en[2]),
+    .ena(1'b1),
+    .wea(wr1_en[2]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[95:64]),
     .douta(way1_block[95:64])
 );
 ram_bank icache_way1_bank3(
     .clka(clk),
-    .ena(wr1_en[3]),
+    .ena(1'b1),
+    .wea(wr1_en[3]),
     .addra(CPU_Cache_buffer[47:40]),
     .dina(ram_write_data[127:96]),
     .douta(way1_block[127:96])
