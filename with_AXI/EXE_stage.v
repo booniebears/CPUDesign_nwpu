@@ -22,7 +22,7 @@ module exe_stage(
     input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
     input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
     //Attention:CPU和DCache的交互信号如下;
-    output        data_valid,
+    output reg    data_valid,
     output        data_op,
     output [ 7:0] data_index,
     output [19:0] data_tag,
@@ -249,8 +249,18 @@ assign es_ExcCode = Overflow_ex ? `Ov   :
 
 //Attention:发读/写DM请求给Cache,同时送上wstrb,地址,数据等;
 //TODO:valid信号是否要依赖于es_to_ms_valid和ms_allowin?
-assign data_valid = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 1'b0 : 
-                    es_load_op | es_mem_we ? 1'b1 : 1'b0; //用到DM才发请求
+// assign data_valid = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 1'b0 : 
+//                     es_load_op | es_mem_we ? 1'b1 : 1'b0; //用到DM才发请求
+
+always @(*) begin
+    if(es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret)
+        data_valid <= 1'b0;
+    else if((es_load_op | es_mem_we) & data_addr_ok)
+        data_valid <= 1'b1;
+    else
+        data_valid <= 1'b0;
+end
+
 assign data_op    = es_mem_we ? 1'b1 : 1'b0;
 assign {data_tag,data_index,data_offset} = es_alu_result;
 assign data_wstrb = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 4'b0 :

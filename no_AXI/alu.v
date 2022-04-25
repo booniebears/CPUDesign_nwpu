@@ -58,7 +58,6 @@ assign op_mflo = alu_op[17];
 assign op_mthi = alu_op[18];
 assign op_mtlo = alu_op[19];
 
-
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result; 
 wire [31:0] sltu_result;
@@ -70,7 +69,7 @@ wire [31:0] lui_result;
 wire [31:0] sll_result; 
 wire [63:0] sr64_result; 
 wire [31:0] sr_result; 
-//lab6增加
+
 wire [63:0] mult_result   ; 
 wire [63:0] multu_result  ; 
 wire [63:0] div_result    ; 
@@ -227,8 +226,12 @@ end
 
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
-always @(*) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
-    if(!es_ex&&!ms_ex&&!ws_ex) begin
+always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
+    if(reset) begin
+        HI<=32'h0;
+        LO<=32'h0;
+    end
+    else if(!es_ex&&!ms_ex&&!ws_ex) begin
         if(op_div) begin
             HI<=div_result[31:0];//商写LO,余数写HI
             LO<=div_result[63:32];

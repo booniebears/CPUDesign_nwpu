@@ -227,29 +227,33 @@ end
 
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
-always @(*) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
-    if(!es_ex&&!ms_ex&&!ws_ex) begin
+always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
+    if(reset) begin
+        HI <= 32'b0;
+        LO <= 32'b0;
+    end
+    else if(!es_ex&&!ms_ex&&!ws_ex) begin
         if(op_div) begin
-            HI<=div_result[31:0];//商写LO,余数写HI
-            LO<=div_result[63:32];
+            HI <= div_result[31:0];//商写LO,余数写HI
+            LO <= div_result[63:32];
         end
         else if(op_divu) begin
-            HI<=divu_result[31:0];
-            LO<=divu_result[63:32];
+            HI <= divu_result[31:0];
+            LO <= divu_result[63:32];
         end
         else if(op_mult) begin
-            HI<=mult_result[63:32];
-            LO<=mult_result[31:0];
+            HI <= mult_result[63:32];
+            LO <= mult_result[31:0];
         end
         else if(op_multu) begin
-            HI<=multu_result[63:32];
-            LO<=multu_result[31:0];
+            HI <= multu_result[63:32];
+            LO <= multu_result[31:0];
         end
         else if(op_mthi) begin
-            HI<=alu_src1;
+            HI <= alu_src1;
         end
         else if(op_mtlo) begin
-            LO<=alu_src1;
+            LO <= alu_src1;
         end
     end
 end

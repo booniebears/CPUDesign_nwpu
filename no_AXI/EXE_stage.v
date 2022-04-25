@@ -118,7 +118,7 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
-                       data_sram_addr ,  //164:133 --读写sram的地址
+                       es_alu_result  ,  //164:133 --es_alu_result是读写sram的虚地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_ExcCode     ,  //126:122 
@@ -236,11 +236,15 @@ assign es_ExcCode = Overflow_ex ? `Ov   :
                     ADEL_ex     ? `AdEL : temp_ExcCode;
 
 //如果当前指令或者MEM/WB阶段的指令存在例外,或者MEM/WB阶段发现有eret指令,使能信号为0
-assign data_sram_en    = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 1'b0 : 1'b1;
+assign data_sram_en    = es_ex|ms_ex|ws_ex|ms_inst_eret|ws_inst_eret ? 1'b0 : 1'b1;
 //数据SRAM的每一个字节都有自己的写使能
-assign data_sram_wen   = es_ex||ms_ex||ws_ex||ms_inst_eret||ws_inst_eret ? 4'h0 : 
-                         es_mem_we&&es_valid ? sram_wen: 4'h0;
-assign data_sram_addr  = es_alu_result;
+assign data_sram_wen   = es_ex|ms_ex|ws_ex|ms_inst_eret|ws_inst_eret ? 4'h0 : 
+                         es_mem_we ? sram_wen: 4'h0;
+assign data_sram_addr  = (es_alu_result > 32'h9FFF_FFFF && es_alu_result < 32'hC000_0000) ?
+                          es_alu_result - 32'hA000_0000 :
+                         (es_alu_result > 32'h7FFF_FFFF && es_alu_result < 32'hA000_0000) ?
+                          es_alu_result - 32'h8000_0000 :es_alu_result;
+
 assign data_sram_wdata = sram_wdata;
 
 assign EXE_dest=es_dest&{5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性

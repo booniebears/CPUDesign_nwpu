@@ -528,7 +528,7 @@ assign br_taken = (   inst_beq  &  rs_eq_rt
                    || inst_bltz & rsltz
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
-                  ) && ds_valid;
+                  );
 
 //fs_pc为当前指令的下一条指令的地址,直接从fs_to_ds_bus中取出的没有经过寄存器
 //例外入口地址统一为0xbfc00380
@@ -557,7 +557,7 @@ assign dest         = dst_is_r31   ? 5'd31 :
 
 assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
                     (rt_wait & (rt == EXE_dest) & es_load_op );  
-assign br_stall=load_stall&&br_taken&&ds_valid;
+assign br_stall=load_stall&&br_taken;
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rs_wait & (rs == MEM_dest) & ms_inst_mfc0) ||
@@ -568,6 +568,6 @@ assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
 //如果采取暂停的方法处理所有冒险,则ds_ready_go如下:
 // assign ds_ready_go    = ds_valid & ~rs_wait & ~rt_wait; //若rs_wait或rt_wait为1,则ds_ready_go=0
 //如果采取forward的方法处理冒险,则ds_ready_go如下:
-assign ds_ready_go    = ds_valid & ~load_stall & ~mfc0_stall; 
+assign ds_ready_go    = ~load_stall & ~mfc0_stall; 
 
 endmodule

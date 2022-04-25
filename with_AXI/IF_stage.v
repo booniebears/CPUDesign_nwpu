@@ -14,7 +14,7 @@ module if_stage(
     input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     input         ws_inst_eret,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
-    output        inst_valid,
+    output reg    inst_valid,
     output        inst_op,
     output [ 7:0] inst_index,
     output [19:0] inst_tag,
@@ -83,7 +83,16 @@ assign fs_inst         = inst_rdata;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
-assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
+// assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
+always @(*) begin
+    if(flush | reset)
+        inst_valid <= 1'b1;
+    else if(inst_addr_ok & ~inst_data_ok) 
+        inst_valid <= 1'b0;
+    else if(inst_data_ok)
+        inst_valid <= 1'b1;
+end
+
 assign inst_op    = 1'b0; //读
 assign {inst_tag,inst_index,inst_offset} = nextpc;
 

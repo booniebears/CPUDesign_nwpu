@@ -115,7 +115,7 @@ wire         inst_addr_ok;
 wire         inst_data_ok;
 wire  [31:0] inst_rdata;
 
-//Attention:CPU和DCache的交互信号如下;TODO:尚未完成接线
+//Attention:CPU和DCache的交互信号如下;
 wire         data_valid;
 wire         data_op;
 wire  [ 7:0] data_index;
@@ -123,7 +123,7 @@ wire  [19:0] data_tag;
 wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
-wire         data_addr_ok;
+wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状态机)
 wire         data_data_ok;
 wire  [31:0] data_rdata;
 
