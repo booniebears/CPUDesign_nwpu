@@ -174,6 +174,7 @@ AXI_Interface U_AXI_Interface(
     .icache_rd_rdy    (icache_rd_rdy    ),
     .icache_ret_valid (icache_ret_valid ),
     .icache_ret_data  (icache_ret_data  ),
+
     .dcache_rd_req    (dcache_rd_req    ),
     .dcache_rd_addr   (dcache_rd_addr   ),
     .dcache_rd_rdy    (dcache_rd_rdy    ),
@@ -184,6 +185,53 @@ AXI_Interface U_AXI_Interface(
     .dcache_wr_strb   (dcache_wr_strb   ),
     .dcache_wr_data   (dcache_wr_data   ),
     .dcache_wr_rdy    (dcache_wr_rdy    )
+);
+
+icache icache(
+    .clk            (aclk     ),
+    .reset          (reset    ),
+    .valid          (inst_valid),
+    .op             (inst_op   ),
+    .index          (inst_index),
+    .tag            (inst_tag  ),
+    .offset         (inst_offset),
+    .addr_ok        (inst_addr_ok),
+    .data_ok        (inst_data_ok),
+    .rdata          (inst_rdata),
+
+    .rd_req         (icache_rd_req    ),
+    .rd_addr        (icache_rd_addr   ),
+    .rd_rdy         (icache_rd_rdy    ),
+    .ret_valid      (icache_ret_valid ),
+    .ret_data       (icache_ret_data  )
+);
+
+dcache decache(
+    .clk            (aclk     ),
+    .reset          (reset    ),
+    .valid          (data_valid),
+    .op             (data_op   ),
+    .index          (data_index),
+    .tag            (data_tag  ),
+    .offset         (data_offset),
+    .wstrb          (data_wstrb),
+    .wdata          (data_wdata),
+    .addr_ok        (data_addr_ok),
+    .data_ok        (data_data_ok),
+    .rdata          (data_rdata),
+
+    .rd_req         (dcache_rd_req    ),
+    .rd_addr        (dcache_rd_addr   ),
+    .rd_rdy         (dcache_rd_rdy    ),
+    .ret_valid      (dcache_ret_valid ),
+    .ret_data       (dcache_ret_data  ),
+    .wr_req         (dcache_wr_req    ),
+    .wr_addr        (dcache_wr_addr   ),
+    .wr_strb        (dcache_wr_strb   ),
+    .wr_data        (dcache_wr_data   ),
+    .wr_rdy         (dcache_wr_rdy    )
+    
+
 );
 
 // IF stage

@@ -1,11 +1,11 @@
 `include "global_defines.vh"
 `include "AXICache_defines.vh"
-//Attention:AXIºÍCACHEÏà¹Ø¶¨Òå¿ÉÒÔÐ´µ½AXICache_defines.vhÎÄ¼þÖÐ
+//Attention:AXIå’ŒCACHEç›¸å…³å®šä¹‰å¯ä»¥å†™åˆ°AXICache_defines.vhæ–‡ä»¶ä¸?
 
 module AXI_Interface (
-/*******************AXI¶¨ÒåÐÅºÅÈçÏÂ******************/
-//Attention:arlenÉÏ¡¶CPUÉè¼ÆÊµÕ½¡·µÄ¶¨ÒåÓÐµãÎÊÌâ,ÕâÀï²ÉÓÃËÄÎ»¿í¼´¿É;
-//Attention:icache_ret_data/dcache_ret_dataÎ»¿íÕâÀï¸ÄÎª128Î»(Ò»¸öCache line);
+/*******************AXIå®šä¹‰ä¿¡å·å¦‚ä¸‹******************/
+//Attention:arlenä¸Šã€ŠCPUè®¾è®¡å®žæˆ˜ã€‹çš„å®šä¹‰æœ‰ç‚¹é—®é¢˜,è¿™é‡Œé‡‡ç”¨å››ä½å®½å³å?;
+//Attention:icache_ret_data/dcache_ret_dataä½å®½è¿™é‡Œæ”¹ä¸º128ä½?(ä¸€ä¸ªCache line);
     input         clk,
     input         reset,
     //ar¶ÁÇëÇóÍ¨µÀ
@@ -19,14 +19,14 @@ module AXI_Interface (
     output [ 2:0] arprot,
     output        arvalid,
     input         arready,
-    //r¶ÁÏìÓ¦Í¨µÀ
+    //rè¯»å“åº”é€šé“
     input  [ 3:0] rid,
     input  [31:0] rdata,
     input  [ 1:0] rresp,
     input         rlast,
     input         rvalid,
     output        rready,
-    //awÐ´ÇëÇóÍ¨µÀ
+    //awå†™è¯·æ±‚é€šé“
     output [ 3:0] awid,
     output [31:0] awaddr,
     output [ 3:0] awlen,
@@ -37,33 +37,33 @@ module AXI_Interface (
     output [ 2:0] awprot,
     output        awvalid,
     input         awready,
-    //wÐ´Êý¾ÝÍ¨µÀ
+    //wå†™æ•°æ®é€šé“
     output [ 3:0] wid,
     output [31:0] wdata,
     output [ 3:0] wstrb,
     output        wlast,
     output        wvalid,
     input         wready,
-    //bÐ´ÏìÓ¦Í¨µÀ
+    //bå†™å“åº”é€šé“
     input  [ 3:0] bid,
     input  [ 1:0] bresp,
     input         bvalid,
     input         bready,
-/*******************AXI¶¨ÒåÐÅºÅÈçÉÏ******************/
+/*******************AXIå®šä¹‰ä¿¡å·å¦‚ä¸Š******************/
 
-/*******************AXIÓëCacheµÄ½»»¥ÐÅºÅ¶¨ÒåÈçÏÂ******************/
-//Attention:±¾ÈËÄ¿Ç°Ã»ÓÐÊµÏÖ¡¶CPUÉè¼ÆÊµÕ½¡·ÖÐµÄrd_type,ret_lastºÍwr_type,²»¹ýUncache¿ÉÄÜ»áÊµÏÖ;
-    //ºÍICache½»»¥
+/*******************AXIä¸ŽCacheçš„äº¤äº’ä¿¡å·å®šä¹‰å¦‚ä¸?******************/
+//Attention:æœ¬äººç›®å‰æ²¡æœ‰å®žçŽ°ã€ŠCPUè®¾è®¡å®žæˆ˜ã€‹ä¸­çš„rd_type,ret_lastå’Œwr_type,ä¸è¿‡Uncacheå¯èƒ½ä¼šå®žçŽ?;
+    //å’ŒICacheäº¤äº’
     input          icache_rd_req, 
     input  [31:0]  icache_rd_addr, 
     output         icache_rd_rdy, 
-    output reg     icache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
+    output reg     icache_ret_valid, //ä¼ è¾“å®ŒæˆåŽret_validç½?1
     output [127:0] icache_ret_data,
-    //ºÍDCache½»»¥
+    //å’ŒDCacheäº¤äº’
     input          dcache_rd_req, 
     input   [31:0] dcache_rd_addr, 
     output         dcache_rd_rdy, 
-    output   reg   dcache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
+    output   reg   dcache_ret_valid, //ä¼ è¾“å®ŒæˆåŽret_validç½?1
     output [127:0] dcache_ret_data, 
     input          dcache_wr_req, 
     input   [31:0] dcache_wr_addr,     
@@ -84,7 +84,7 @@ module AXI_Interface (
 /*******************AXIÓëCacheµÄ½»»¥ÐÅºÅ¶¨ÒåÈçÉÏ******************/
 );
 
-//Function:AXI¿ØÖÆÄ£¿é ÊµÏÖAXI½Ó¿ÚºÍÔ¶¶Ëaxi_ram½»»¥;ºÍCacheÓëUncache½»»¥;
+//Function:AXIæŽ§åˆ¶æ¨¡å— å®žçŽ°AXIæŽ¥å£å’Œè¿œç«¯axi_ramäº¤äº’;å’ŒCacheä¸ŽUncacheäº¤äº’;
 
 /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¶¨ÒåÈçÏÂ******************/
 //Attention: ·ÃÎÊÖ¸Áî´æ´¢Æ÷,Ì¸²»ÉÏÐ´ÇëÇó/Ð´Êý¾Ý/Ð´ÏìÓ¦,ËùÒÔÕâÀïÃ»ÓÐ¶¨Òå
@@ -99,7 +99,7 @@ wire [ 3:0] inst_arcache;
 wire [ 2:0] inst_arprot;
 wire        inst_arvalid;
 wire        inst_arready;
-//r¶ÁÏìÓ¦Í¨µÀ
+//rè¯»å“åº”é€šé“
 wire [ 3:0] inst_rid;
 wire [31:0] inst_rdata;
 wire [ 1:0] inst_rresp;
@@ -126,14 +126,14 @@ wire [ 3:0] data_arcache;
 wire [ 2:0] data_arprot;
 wire        data_arvalid;
 wire        data_arready;
-//r¶ÁÏìÓ¦Í¨µÀ
+//rè¯»å“åº”é€šé“
 wire [ 3:0] data_rid;
 wire [31:0] data_rdata;
 wire [ 1:0] data_rresp;
 wire        data_rlast;
 wire        data_rvalid;
 wire        data_rready;
-//awÐ´ÇëÇóÍ¨µÀ
+//awå†™è¯·æ±‚é€šé“
 wire [ 3:0] data_awid;
 wire [31:0] data_awaddr;
 wire [ 3:0] data_awlen;
@@ -144,19 +144,19 @@ wire [ 3:0] data_awcache;
 wire [ 2:0] data_awprot;
 wire        data_awvalid;
 wire        data_awready;
-//wÐ´Êý¾ÝÍ¨µÀ
+//wå†™æ•°æ®é€šé“
 wire [ 3:0] data_wid;
 reg  [31:0] data_wdata;
 wire [ 3:0] data_wstrb;
 wire        data_wlast;
 wire        data_wvalid;
 wire        data_wready;
-//bÐ´ÏìÓ¦Í¨µÀ
+//bå†™å“åº”é€šé“
 wire [ 3:0] data_bid;
 wire [ 1:0] data_bresp;
 wire        data_bvalid;
 wire        data_bready;
-/*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¶¨ÒåÈçÉÏ******************/
+/*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 
 /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¶¨ÒåÈçÏÂ******************/
 wire [ 3:0] udata_arid;
@@ -291,36 +291,36 @@ assign udcache_wr_rdy  = (UD_WR_state == `UD_WR_IDLE) ? 1'b1 : 1'b0;
 
 /*******************AXIÓëICache/DCache/UncacheµÄ½»»¥ÐÅºÅ¶¨ÒåÈçÉÏ******************/
 
-/*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¸³ÖµÈçÏÂ******************/
-//Attention:AXI×ÜÏßÒªÇó,master¶ËÒ»µ©·¢ÆðÄ³Ò»µØÖ·»òÕßÊý¾Ý´«ÊäµÄÇëÇó(req),ÔÚÎÕÊÖ³É¹¦Ö®Ç°,²»µÃ¸ü¸Ä´«ÊäµÄµØÖ·/Êý¾Ý
-//Òò´Ë,¶ÔÓÚ´Ë´¦µÄ¶ÁÇëÇó¶ÔÓ¦µÄµØÖ·,ÎÒÃÇÐèÒªËø´æ²Ù×÷,ÔÚreq·¢³öºó,ÏÈ°Ñaddr±£´æÆðÀ´²»±ä;DCacheµÄÊý¾ÝºÍµØÖ·Í¬Àí¡£
+/*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸?******************/
+//Attention:AXIæ€»çº¿è¦æ±‚,masterç«¯ä¸€æ—¦å‘èµ·æŸä¸€åœ°å€æˆ–è€…æ•°æ®ä¼ è¾“çš„è¯·æ±‚(req),åœ¨æ¡æ‰‹æˆåŠŸä¹‹å‰?,ä¸å¾—æ›´æ”¹ä¼ è¾“çš„åœ°å€/æ•°æ®
+//å› æ­¤,å¯¹äºŽæ­¤å¤„çš„è¯»è¯·æ±‚å¯¹åº”çš„åœ°å€,æˆ‘ä»¬éœ€è¦é”å­˜æ“ä½?,åœ¨reqå‘å‡ºå?,å…ˆæŠŠaddrä¿å­˜èµ·æ¥ä¸å˜;DCacheçš„æ•°æ®å’Œåœ°å€åŒç†ã€?
 always @(posedge clk) begin //inst_araddr
     if(reset) 
         ff_inst_araddr <= 32'b0;
-    else if(I_RD_state == `I_RD_IDLE && icache_rd_req) //´ËÊ±ÒÑ¾­·¢Æð´«Êä;Ö®ºó¾ÍËø´æ,±£³Öinst_araddr²»±ä
+    else if(I_RD_state == `I_RD_IDLE && icache_rd_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åŽå°±é”å­?,ä¿æŒinst_araddrä¸å˜
         ff_inst_araddr <= icache_rd_addr;
 end
 assign inst_araddr  = ff_inst_araddr;
 
-//TODO:ÏÂÃæCacheÉú³ÉµÄAXIÐÅºÅ,¿ÉÄÜ»á´æÔÚÊ±ÐòÉÏÑÓ³Ù½Ï¶àµÄÎÊÌâ£¬ºóÆÚÐèÒª½â¾ö
+//TODO:ä¸‹é¢Cacheç”Ÿæˆçš„AXIä¿¡å·,å¯èƒ½ä¼šå­˜åœ¨æ—¶åºä¸Šå»¶è¿Ÿè¾ƒå¤šçš„é—®é¢˜ï¼ŒåŽæœŸéœ€è¦è§£å†?
 assign inst_arid    = 4'b0000;
-assign inst_arlen   = 4'b0011; //ËÄ´Î´«Êä
-assign inst_arsize  = 3'b010; //Ò»´Î4 bytes
+assign inst_arlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+assign inst_arsize  = 3'b010; //ä¸€æ¬?4 bytes
 assign inst_arburst = 2'b01;
 assign inst_arlock  = 2'b00;
 assign inst_arcache = 4'b0000;
 assign inst_arprot  = 3'b000;
-assign inst_arvalid = (I_RD_state == `I_AR_SHAKE) ? 1'b1 : 1'b0; //inst_arvalid±Èicache_rd_reqÍíÒ»ÖÜÆÚ
+assign inst_arvalid = (I_RD_state == `I_AR_SHAKE) ? 1'b1 : 1'b0; //inst_arvalidæ¯”icache_rd_reqæ™šä¸€å‘¨æœŸ
 
 assign inst_rready  = (I_RD_state == `I_R_SHAKE1 || I_RD_state == `I_R_SHAKE2 ||
                        I_RD_state == `I_R_SHAKE3 || I_RD_state == `I_R_SHAKE4) ? 1'b1 : 1'b0;
-/*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¸³ÖµÈçÉÏ******************/
+/*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸?******************/
 
-/*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¸³ÖµÈçÏÂ******************/
+/*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸?******************/
 always @(posedge clk) begin //data_araddr
     if(reset) 
         ff_data_araddr <= 32'b0;
-    else if(D_RD_state == `D_RD_IDLE && dcache_rd_req) //´ËÊ±ÒÑ¾­·¢Æð´«Êä;Ö®ºó¾ÍËø´æ,±£³Ödata_araddr²»±ä
+    else if(D_RD_state == `D_RD_IDLE && dcache_rd_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åŽå°±é”å­?,ä¿æŒdata_araddrä¸å˜
         ff_data_araddr <= dcache_rd_addr;
 end
 assign data_araddr  = ff_data_araddr;
@@ -343,7 +343,7 @@ end
 always @(posedge clk) begin //data_wdata ´ÓÒ»¸öCache lineÖÐÒÀ´Î»ñÈ¡
     if(reset)
         data_wdata <= 32'b0;
-    else if(D_WR_nextstate == `D_W_SHAKE1) //Õâ¸ö¿ÉÒÔ¿´nextstate
+    else if(D_WR_nextstate == `D_W_SHAKE1) //è¿™ä¸ªå¯ä»¥çœ‹nextstate
         data_wdata <= ff_dcache_wr_data[31:0];
     else if(D_WR_nextstate == `D_W_SHAKE2)
         data_wdata <= ff_dcache_wr_data[63:32];
@@ -354,35 +354,35 @@ always @(posedge clk) begin //data_wdata ´ÓÒ»¸öCache lineÖÐÒÀ´Î»ñÈ¡
 end
 
 assign data_arid    = 4'b0001;
-assign data_arlen   = 4'b0011; //ËÄ´Î´«Êä
-assign data_arsize  = 3'b010; //Ò»´Î4 bytes
+assign data_arlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+assign data_arsize  = 3'b010; //ä¸€æ¬?4 bytes
 assign data_arburst = 2'b01;
 assign data_arlock  = 2'b00;
 assign data_arcache = 4'b0000;
 assign data_arprot  = 3'b000;
-assign data_arvalid = (D_RD_state == `D_AR_SHAKE) ? 1'b1 : 1'b0; //data_arvalid±Èdcache_rd_reqÍíÒ»ÖÜÆÚ
+assign data_arvalid = (D_RD_state == `D_AR_SHAKE) ? 1'b1 : 1'b0; //data_arvalidæ¯”dcache_rd_reqæ™šä¸€å‘¨æœŸ
 
 assign data_rready  = (D_RD_state == `D_R_SHAKE1 || D_RD_state == `D_R_SHAKE2 ||
                        D_RD_state == `D_R_SHAKE3 || D_RD_state == `D_R_SHAKE4) ? 1'b1 : 1'b0;
 
 assign data_awid    = 4'b0001;
-assign data_awlen   = 4'b0011; //ËÄ´Î´«Êä
-assign data_awsize  = 3'b010; //Ò»´Î4 bytes
+assign data_awlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+assign data_awsize  = 3'b010; //ä¸€æ¬?4 bytes
 assign data_awburst = 2'b01;
 assign data_awlock  = 2'b00; 
 assign data_awcache = 4'b0000;
 assign data_awprot  = 3'b000;
-assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalid±Èdcache_wr_reqÍíÒ»ÖÜÆÚ
+assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalidæ¯”dcache_wr_reqæ™šä¸€å‘¨æœŸ
 
 assign data_wid     = 4'b0001;
-assign data_wstrb   = 4'b1111; //Attention:¶ÔÓÚÔ¶³ÌµÄaxi_ram,wstrb±ØÈ»ÊÇÈ«²¿ÓÐÐ§µÄ;Ð´DCache¾ÍÊÇÁíÒ»»ØÊÂÁË
-//Attention:¿ÉÒÔÖ¤Ã÷,´ËÊ±´«Êä×îºóÒ»¸ö×Ö,Í¬Ê±Í¨¹ý¿ØÖÆdata_wvalid¿ÉÒÔ±£Ö¤wlastÖ»ÔÚÒ»¸öÊ±ÖÓÉÏÉýÑØ×÷ÓÃ
+assign data_wstrb   = 4'b1111; //Attention:å¯¹äºŽè¿œç¨‹çš„axi_ram,wstrbå¿…ç„¶æ˜¯å…¨éƒ¨æœ‰æ•ˆçš„;å†™DCacheå°±æ˜¯å¦ä¸€å›žäº‹äº?
+//Attention:å¯ä»¥è¯æ˜Ž,æ­¤æ—¶ä¼ è¾“æœ€åŽä¸€ä¸ªå­—,åŒæ—¶é€šè¿‡æŽ§åˆ¶data_wvalidå¯ä»¥ä¿è¯wlaståªåœ¨ä¸€ä¸ªæ—¶é’Ÿä¸Šå‡æ²¿ä½œç”¨
 assign data_wlast   = (D_WR_nextstate == `D_B_SHAKE && data_wvalid && data_wready) ? 1'b1 : 1'b0;
 assign data_wvalid  = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 ||
                        D_WR_state == `D_W_SHAKE3 || D_WR_state == `D_W_SHAKE4) ? 1'b1 : 1'b0;
 
-assign data_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
-/*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¸³ÖµÈçÉÏ******************/
+assign data_bready  = 1'b1; //å¯ä»¥å§‹ç»ˆç½®ä¸º1
+/*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸?******************/
 
 /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚÐÅºÅ¸³ÖµÈçÏÂ******************/
 always @(posedge clk) begin //udata_araddr
@@ -466,7 +466,7 @@ always @(*) begin //ICache Read
             if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_R_SHAKE4;
             else I_RD_nextstate <= `I_R_SHAKE3;
         `I_R_SHAKE4:
-        //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËI_R_SHAKE4Èç¹ûÓÐÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+        //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†I_R_SHAKE4å¦‚æžœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æ?,ä¸å¿…è€ƒè™‘rlast
             if(inst_rvalid & inst_rready & inst_rlast) I_RD_nextstate <= `I_RD_IDLE;
             else I_RD_nextstate <= `I_R_SHAKE4;  
         default: I_RD_nextstate <= `I_RD_IDLE;
@@ -499,7 +499,7 @@ always @(*) begin //DCache Read
             if(data_rvalid & data_rready) D_RD_nextstate <= `D_R_SHAKE4;
             else D_RD_nextstate <= `D_R_SHAKE3;
         `D_R_SHAKE4:
-        //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_R_SHAKE4Èç¹ûÓÐÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+        //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†D_R_SHAKE4å¦‚æžœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æ?,ä¸å¿…è€ƒè™‘rlast
             if(data_rvalid & data_rready & data_rlast) D_RD_nextstate <= `D_RD_IDLE;
             else D_RD_nextstate <= `D_R_SHAKE4;
         default: D_RD_nextstate <= `D_RD_IDLE;
@@ -532,7 +532,7 @@ always @(*) begin //DCache Write
             if(data_wvalid & data_wready) D_WR_nextstate <= `D_W_SHAKE4;
             else D_WR_nextstate <= `D_W_SHAKE3;
         `D_W_SHAKE4: 
-        //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_W_SHAKE4Èç¹ûÓÐÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇwlast
+        //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†D_W_SHAKE4å¦‚æžœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æ?,ä¸å¿…è€ƒè™‘wlast
             if(data_wvalid & data_wready) D_WR_nextstate <= `D_B_SHAKE;
             else D_WR_nextstate <= `D_W_SHAKE4;
         `D_B_SHAKE:
@@ -650,7 +650,7 @@ axi_crossbar U_axi_crossbar(
     .m_axi_awlock  (awlock ),
     .m_axi_awcache (awcache),
     .m_axi_awprot  (awprot ),
-    .m_axi_awqos   (       ), //Ö±½ÓÖÃ¿Õ
+    .m_axi_awqos   (       ), //ç›´æŽ¥ç½®ç©º
     .m_axi_awvalid (awvalid),
     .m_axi_awready (awready),
     .m_axi_wid     (wid    ),
@@ -671,7 +671,7 @@ axi_crossbar U_axi_crossbar(
     .m_axi_arlock  (arlock ),
     .m_axi_arcache (arcache),
     .m_axi_arprot  (arprot ),
-    .m_axi_arqos   (       ), //Ö±½ÓÖÃ¿Õ
+    .m_axi_arqos   (       ), //ç›´æŽ¥ç½®ç©º
     .m_axi_arvalid (arvalid),
     .m_axi_arready (arready),
     .m_axi_rid     (rid    ),

@@ -144,9 +144,12 @@ assign es_to_ms_bus = {
 //m_axis_dout_tvalid除法完成信号 es_alu_op[12]为div指令 es_alu_op[13]为divu指令
 //TODO:不确定控制逻辑。这里用data_data_ok控制es_ready_go,从而控制es_to_ms_valid寄存器使能信号.
 //此外,目前也不知道addr_ok有什么用
-assign es_ready_go    = data_data_ok ? ((!es_alu_op[12] & ~es_alu_op[13])
+// assign es_ready_go    = data_data_ok ? ((!es_alu_op[12] & ~es_alu_op[13])
+//                                         |(es_alu_op[12] & m_axis_dout_tvalid)
+//                                         |(es_alu_op[13] & m_axis_dout_tvalidu)) : 1'b0; 
+assign es_ready_go    = ((!es_alu_op[12] & ~es_alu_op[13])
                                         |(es_alu_op[12] & m_axis_dout_tvalid)
-                                        |(es_alu_op[13] & m_axis_dout_tvalidu)) : 1'b0; 
+                                        |(es_alu_op[13] & m_axis_dout_tvalidu));
 
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;

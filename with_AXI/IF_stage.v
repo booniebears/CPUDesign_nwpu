@@ -38,7 +38,7 @@ wire         br_taken;
 wire [ 31:0] br_target;
 assign {fs_bd,br_stall,br_taken,br_target} = br_bus; //ÕâÀïµÄfs_bd¼´ÎªID½×¶ÎµÄis_branchĞÅºÅ 
 
-wire [31:0] fs_inst;
+reg  [31:0] fs_inst;
 reg  [31:0] fs_pc;
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -57,6 +57,8 @@ assign nextpc          = ws_inst_eret ? CP0_EPC : //eretÌØÈ¨Ö¸Áî Õâ¸ö¾ßÓĞ×î¸ßÓÅÏ
                          br_taken ? br_target : seq_pc; //nextpcÔÚbranchÖ¸ÁîÖ¸¶¨µÄpcºÍseq_pcÖĞ²úÉú
 
 assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
+
+// assign fs_to_ds_valid = inst_data_ok;
 
 always @(posedge clk) begin
     if (reset) 
@@ -79,18 +81,22 @@ assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0;
 assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:È«1Ä¿Ç°´ú±íÎŞÒì³£
 
-assign fs_inst         = inst_rdata;
+
+// assign fs_inst         = inst_data_ok ? inst_rdata : 32'b0 ;
+always @(*) begin
+    if(inst_data_ok) fs_inst<=inst_rdata;
+end
 
 /*******************CPUÓëICacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÏÂ******************/
 //Attention:ÓĞÒì³£flush,Á¢¼´·¢ÇëÇó;Èç¹ûIF_ID¼Ä´æÆ÷Ã»ÓĞ×èÈû,Á¢¼´·¢ÇëÇó
 // assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
-always @(*) begin
+always @(flush ,inst_addr_ok, inst_data_ok) begin///CHANGE
     if(flush | reset)
         inst_valid <= 1'b1;
-    else if(inst_addr_ok & ~inst_data_ok) 
-        inst_valid <= 1'b0;
-    else if(inst_data_ok)
+    else if(inst_addr_ok & ds_allowin) 
         inst_valid <= 1'b1;
+    else
+        inst_valid <= 1'b0;
 end
 
 assign inst_op    = 1'b0; //¶Á
