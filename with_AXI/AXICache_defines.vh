@@ -9,6 +9,7 @@
     `define I_R_SHAKE3  3'b100
     `define I_R_SHAKE4  3'b101
     
+    
     `define D_RD_IDLE   3'b000
     `define D_AR_SHAKE  3'b001
     `define D_R_SHAKE1  3'b010
