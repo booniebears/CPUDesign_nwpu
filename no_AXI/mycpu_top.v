@@ -119,7 +119,10 @@ id_stage id_stage(
     .CP0_Status_EXL (CP0_Status_EXL ), 
     .CP0_Status_IM  (CP0_Status_IM  ),
     .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   )
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .CP0_EntryHi_asid(CP0_EntryHi_asid),
+    .CP0_EntryHi_vpn2(CP0_EntryHi_vpn2),
+    .CP0_Entrylo0_d  (CP0_Entrylo0_d ),
 );
 // EXE stage
 exe_stage exe_stage(

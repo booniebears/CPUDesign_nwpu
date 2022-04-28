@@ -183,6 +183,11 @@ wire [ 4:0] rf_raddr2; //目前是rt
 wire [31:0] rf_rdata2;
 
 wire        rs_eq_rt; //rs==rt
+//tlb添加，添加指令tlbp，tlbr，tlbwi，tlbwr
+wire        inst_tlbp;
+wire        inst_tlbr;
+wire        inst_tlbwi;
+wire        inst_tlbwr;
 
 //lab4添加
 wire rs_wait;
