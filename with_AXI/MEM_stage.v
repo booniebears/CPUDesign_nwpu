@@ -49,8 +49,8 @@ wire ms_inst_mtc0;
 wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
-
-assign {
+wire ms_inst_index ;
+assign {  
         ms_data_sram_addr,//164:133 
         ms_mfc0_rd     ,  //132:128
         ms_ex          ,  //127:127

@@ -174,6 +174,12 @@ wire        inst_eret;
 wire        inst_syscall;
 wire        inst_break;
 
+//tlbÌí¼Ó Ìí¼ÓÖ¸ÁîTLBWI,TLBWR,TLBP,TLBR
+wire        inst_tlbp;
+wire        inst_tlbr;
+wire        inst_tlbwi;
+wire        inst_tlbwr;
+
 wire        dst_is_r31;  
 wire        dst_is_rt;   
 
@@ -207,6 +213,10 @@ wire mfc0_stall; //ÓÉÓÚmfc0Ö¸ÁîÔÚEXEºÍMEM½×¶Î,¶øÔÚWB½×¶Î²ÅÄÜ¶Á³öÊý¾Ý,¹ÊÈç¹ûID½×¶
 assign br_bus       = {is_branch,br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
+                       inst_tlbwr  ,  //181:181
+                       inst_tlbwi  ,  //180:180
+                       inst_tlbr   ,  //179:179
+                       inst_tlbp   ,  //178:178 --
                        mfc0_rd     ,  //177:173 --mfc0ÖÐµÄrdÓò Ö¸¶¨CP0¼Ä´æÆ÷µÄ¶ÁÐ´µØÖ·
                        Overflow_inst, //172:170 --¿ÉÄÜÉæ¼°ÕûÐÍÒç³öÀýÍâµÄÈýÌõÖ¸Áî:add,addi,sub
                        ds_ex       ,  //169:169 --ID½×¶Î ·¢ÏÖÒì³£ÔòÖÃÎª1
@@ -338,6 +348,13 @@ assign inst_mfc0   = op_d[6'h10] & rs_d[5'h00];
 assign inst_eret   = op_d[6'h10] & func_d[6'h18];
 assign inst_syscall= op_d[6'h00] & func_d[6'h0c];
 assign inst_break  = op_d[6'h00] & func_d[6'h0d];
+
+//tlbÌí¼Ó Ìí¼ÓÖ¸ÁîTLBWI,TLBWR,TLBP,TLBR 
+assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
+assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
+assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
+assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
+
 //ÒÑ¾­ÔÚ¸ÃmipsÖ¸Áî¼¯ÖÐ¶¨Òå¹ýµÄÖ¸Áî
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -346,7 +363,7 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break;
+| inst_eret | inst_syscall | inst_break|inst_tlbp|inst_tlbr|inst_tlbwi|inst_tlbwr;
 
 //lab7Ìí¼Ó
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
