@@ -226,7 +226,7 @@ always @(posedge clk) begin
         entrylo0_g  <=tlb_g0_wd;
     end
 end
-//8.EntryLo1寄存器
+//8.EntryLo1寄存器，只实现了描述中的功能
 reg [31:0] CP0_EntryLo1;
 always @(posedge clk) begin
     if(inst_tlbr) begin
