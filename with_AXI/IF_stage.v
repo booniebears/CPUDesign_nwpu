@@ -38,7 +38,7 @@ wire         br_taken;
 wire [ 31:0] br_target;
 assign {fs_bd,br_stall,br_taken,br_target} = br_bus; //这里的fs_bd即为ID阶段的is_branch信号 
 
-reg  [31:0] fs_inst;
+wire  [31:0] fs_inst;
 reg  [31:0] fs_pc;
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -82,10 +82,10 @@ assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:全1目前代表无异常
 
 
-// assign fs_inst         = inst_data_ok ? inst_rdata : 32'b0 ;
-always @(*) begin
-    if(inst_data_ok) fs_inst<=inst_rdata;
-end
+assign fs_inst         = inst_rdata ;
+// always @(posedge clk) begin
+//     if(inst_data_ok) fs_inst <= inst_rdata;
+// end
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
