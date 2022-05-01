@@ -38,7 +38,7 @@ wire         br_taken;
 wire [ 31:0] br_target;
 assign {fs_bd,br_stall,br_taken,br_target} = br_bus; //这里的fs_bd即为ID阶段的is_branch信号 
 
-reg  [31:0] fs_inst;
+wire  [31:0] fs_inst;
 reg  [31:0] fs_pc;
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -51,20 +51,21 @@ assign fs_to_ds_bus = {
 // pre-IF stage
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
-assign nextpc          = ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
-                         flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
-                         //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
-                         br_taken ? br_target : seq_pc; //nextpc在branch指令指定的pc和seq_pc中产生
+
+reg npc_control;
+always @(posedge clk) begin
+    npc_control <= fs_allowin & inst_addr_ok;
+end
+
+assign nextpc          = npc_control ? (ws_inst_eret ? CP0_EPC : 
+                         flush ? 32'hbfc00380 :
+                         br_taken ? br_target : seq_pc) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
 
 assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
-
-// assign fs_to_ds_valid = inst_data_ok;
 
 always @(posedge clk) begin
     if (reset) 
         fs_to_ds_valid <= 1'b0;
-    //TODO:inst_data_ok只是对fs_to_ds_valid操作了一下，我担心还是会有组合环路的问题,还有流水线流不动的问题。
-    //目前还不清楚怎么使用addr_ok.
     else if(~inst_data_ok) 
         fs_to_ds_valid <= 1'b0; 
     else
@@ -82,15 +83,11 @@ assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:全1目前代表无异常
 
 
-// assign fs_inst         = inst_data_ok ? inst_rdata : 32'b0 ;
-always @(*) begin
-    if(inst_data_ok) fs_inst<=inst_rdata;
-end
+assign fs_inst         = inst_rdata ;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
-// assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
-always @(flush ,inst_addr_ok, inst_data_ok) begin///CHANGE
+always @(flush ,inst_addr_ok) begin///CHANGE
     if(flush | reset)
         inst_valid <= 1'b1;
     else if(inst_addr_ok & ds_allowin) 

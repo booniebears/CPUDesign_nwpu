@@ -129,7 +129,7 @@ wire  [31:0] data_rdata;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
-    .reset   (reset    ),
+    .resetn  (aresetn  ),
     //AXI规范定义的信号
     .arid    (arid     ),
     .araddr  (araddr   ),
