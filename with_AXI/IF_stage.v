@@ -24,6 +24,10 @@ module if_stage(
     input  [31:0] inst_rdata
 );
 
+/*
+    TODO: 如果使用fs_pc请求icache，同时将返回的指令送到id阶段，则也许可能不需要考虑nextpc的阻塞，后期可以尝试一下
+*/
+
 wire        fs_allowin; //仅在IF阶段中作用 fs_allowin=1,IF阶段允许指令流入 是fs_valid fs_pc inst_sram_en的控制信号
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 wire        fs_bd;  //IF阶段 当前指令若在延迟槽中,则置为1
@@ -48,13 +52,19 @@ assign fs_to_ds_bus = {
                        fs_pc       //31:0
                        };
 
+
+reg npc_block;
+always @(posedge clk)begin
+    npc_block <= fs_allowin & inst_addr_ok;
+end
 // pre-IF stage
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
-assign nextpc          = ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
+assign nextpc          = npc_block ? ( 
+                         ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
                          flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
-                         br_taken ? br_target : seq_pc; //nextpc在branch指令指定的pc和seq_pc中产生
+                         br_taken ? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
 
 assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
 

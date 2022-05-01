@@ -6,7 +6,7 @@ module icache(
     input op,///TODO can delete
     input [7:0] index,
     input [19:0] tag,
-    input [3:0] offest,
+    input [3:0] offset,
     input [31:0] wdata,
     output addr_ok,
     output reg data_ok,
@@ -113,9 +113,14 @@ end
 
 assign addr_ok = ( c_state == IDLE && ~isAgain ) || c_state == LOOKUP && hit;
 
-always @(c_state) begin
-    if(c_state == LOOKUP && hit)begin
-        data_ok <= 1;
+always @(*) begin
+    if(c_state == LOOKUP)begin
+        if(hit) begin
+            data_ok <= 1;
+        end
+        else begin
+            data_ok <= 0;
+        end
     end else begin
         data_ok <= 0;
     end
@@ -126,7 +131,7 @@ always @(posedge clk) begin
         CPU_Cache_buffer <= {
                                 tag,    // [31:12]
                                 index,  // [11:4]
-                                offest // [3:0]
+                                offset // [3:0]
         };
     end 
 end
@@ -176,7 +181,7 @@ always @(posedge clk) begin
 end
 
 always @(*) begin
-    if(hit) begin
+    if(c_state == LOOKUP) begin
          case (CPU_Cache_buffer[3:2])//offest[3:2]
             2'd0: rdata <= ({ 32{hit_way[0]} } & way0_block[31:0]) | ({ 32{hit_way[1]} } & way1_block[31:0]);
             2'd1: rdata <= ({ 32{hit_way[0]} } & way0_block[63:32]) | ({ 32{hit_way[1]} } & way1_block[63:32]);
