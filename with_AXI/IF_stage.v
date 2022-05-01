@@ -66,15 +66,12 @@ assign nextpc          = npc_block ? (
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
                          br_taken ? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
 
-assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
 
-// assign fs_to_ds_valid = inst_data_ok;
+assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
 
 always @(posedge clk) begin
     if (reset) 
         fs_to_ds_valid <= 1'b0;
-    //TODO:inst_data_ok只是对fs_to_ds_valid操作了一下，我担心还是会有组合环路的问题,还有流水线流不动的问题。
-    //目前还不清楚怎么使用addr_ok.
     else if(~inst_data_ok) 
         fs_to_ds_valid <= 1'b0; 
     else
@@ -99,8 +96,7 @@ assign fs_inst         = inst_rdata ;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
-// assign inst_valid = flush ? 1'b1 : (fs_to_ds_valid & ds_allowin) ? 1'b1 : 1'b0; 
-always @(flush ,inst_addr_ok, inst_data_ok) begin///CHANGE
+always @(flush ,inst_addr_ok) begin///CHANGE
     if(flush | reset)
         inst_valid <= 1'b1;
     else if(inst_addr_ok & ds_allowin) 

@@ -125,7 +125,6 @@ always @(*) begin
         data_ok <= 0;
     end
 end
-
 always @(posedge clk) begin
     if(c_state == IDLE && valid || c_state == LOOKUP) begin
         CPU_Cache_buffer <= {
