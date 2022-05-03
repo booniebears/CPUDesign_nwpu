@@ -182,7 +182,7 @@ AXI_Interface U_AXI_Interface(
     .dcache_ret_data  (dcache_ret_data  ),
     .dcache_wr_req    (dcache_wr_req    ),
     .dcache_wr_addr   (dcache_wr_addr   ),
-    .dcache_wr_strb   (dcache_wr_strb   ),
+    // .dcache_wr_strb   (dcache_wr_strb   ),
     .dcache_wr_data   (dcache_wr_data   ),
     .dcache_wr_rdy    (dcache_wr_rdy    )
 );

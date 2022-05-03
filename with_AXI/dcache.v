@@ -29,7 +29,7 @@ module dcache (
     input rd_rdy,
     input ret_valid,
     input [127:0] ret_data,
-    output wr_strb,
+    // output wr_strb,
     output reg wr_req,
     input wr_rdy,
     output [31:0] wr_addr,
