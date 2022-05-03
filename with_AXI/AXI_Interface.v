@@ -105,6 +105,13 @@ wire [ 1:0] inst_rresp;
 wire        inst_rlast;
 wire        inst_rvalid;
 wire        inst_rready;
+//icache不处理写问题，下面信号悬空即可
+wire        inst_awready;
+wire        inst_wready;
+wire [ 3:0] inst_bid;
+wire [ 1:0] inst_bresp;
+wire        inst_bvalid;
+
 /*******************ICache对应的AXI端口信号定义如上******************/
 
 /*******************DCache对应的AXI端口信号定义如下******************/
@@ -601,18 +608,18 @@ axi_crossbar U_axi_crossbar(
     .s_axi_awprot  ({3'b0         ,data_awprot  ,udata_awprot }),
     .s_axi_awqos   (0                                          ), //没用
     .s_axi_awvalid ({1'b0         ,data_awvalid ,udata_awvalid}),
-    .s_axi_awready ({1'b0         ,data_awready ,udata_awready}),
+    .s_axi_awready ({inst_awready ,data_awready ,udata_awready}),
 
     .s_axi_wid     ({4'b0         ,data_wid     ,udata_wid    }),
     .s_axi_wdata   ({32'b0        ,data_wdata   ,udata_wdata  }),
     .s_axi_wstrb   ({4'b0         ,data_wstrb   ,udata_wstrb  }),
     .s_axi_wlast   ({1'b0         ,data_wlast   ,udata_wlast  }),
     .s_axi_wvalid  ({1'b0         ,data_wvalid  ,udata_wvalid }),
-    .s_axi_wready  ({1'b0         ,data_wready  ,udata_wready }),
+    .s_axi_wready  ({inst_wready  ,data_wready  ,udata_wready }),
 
-    .s_axi_bid     ({4'b0         ,data_bid     ,udata_bid    }),
-    .s_axi_bresp   ({2'b0         ,data_bresp   ,udata_bresp  }),
-    .s_axi_bvalid  ({1'b0         ,data_bvalid  ,udata_bvalid }),
+    .s_axi_bid     ({inst_bid     ,data_bid     ,udata_bid    }),
+    .s_axi_bresp   ({inst_bresp   ,data_bresp   ,udata_bresp  }),
+    .s_axi_bvalid  ({inst_bvalid  ,data_bvalid  ,udata_bvalid }),
     .s_axi_bready  ({1'b0         ,data_bready  ,udata_bready }),  
 
     .s_axi_arid    ({inst_arid    ,data_arid    ,udata_arid   }),
