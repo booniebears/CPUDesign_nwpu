@@ -174,7 +174,7 @@ end
 assign d_addr_ok = ( d_c_state == IDLE && ~d_isAgain ) || d_c_state == LOOKUP && d_hit;
 
 always @(*) begin
-    if(d_op && d_c_state == IDLE)begin
+    if(d_CPU_Cache_buffer[68] && d_c_state == LOOKUP)begin
         d_data_ok <= 1;
     end
     else begin
@@ -227,16 +227,19 @@ wire [19:0] d_way1_tag;
 wire d_way0_v;
 wire d_way1_v;
 
-assign d_hit_way[0] = (d_way0_tag == d_tag ) && d_way0_v;
-assign d_hit_way[1] = (d_way1_tag == d_tag ) && d_way1_v;
+assign d_hit_way[0] = (d_way0_tag == RAddr[31:12] ) && d_way0_v;
+assign d_hit_way[1] = (d_way1_tag == RAddr[31:12] ) && d_way1_v;
 
 
-assign d_hit = (d_index == d_CPU_Cache_buffer[47:40] & ~isUncache )? d_hit_way[0] || d_hit_way[1] : 1'b0;
+assign d_hit = (~isUncache) ? d_hit_way[0] || d_hit_way[1] : 1'b0;
+
+
+
 
 assign d_rd_addr  = {RAddr[31:4],4'b0};
-assign ud_rd_addr = {RAddr[31:4],4'b0};
+assign ud_rd_addr = RAddr;
 
-always @(posedge clk) begin
+always @(*) begin
     if(d_c_state == MISS && d_chose_dirty && ~isUncache)
         d_wr_req <= d_wr_rdy;
     else if(d_c_state == MISS && !d_chose_dirty)
@@ -246,7 +249,7 @@ always @(posedge clk) begin
 
 end
 
-always @(posedge clk) begin
+always @(*) begin
     if(d_c_state == MISS  && isUncache && d_CPU_Cache_buffer[68])
         ud_wr_req <= ud_wr_rdy;
     else
@@ -265,17 +268,17 @@ assign d_chose_dirty = d_count[0] && d_way0_dirty[ d_CPU_Cache_buffer[47:40] ] |
                         d_count[1] && d_way1_dirty[ d_CPU_Cache_buffer[47:40] ];
 
 always @(posedge clk) begin
-    if(d_c_state == REPLACE & ~isUncache)
+    if(d_c_state == REPLACE && ~isUncache)
         d_rd_req <= d_rd_rdy;
     else
         d_rd_req <= 0;
 end
 
 always @(posedge clk) begin
-    if(d_c_state == REPLACE & isUncache)
+    if(d_c_state == REPLACE && isUncache)
         ud_rd_req <= ud_rd_rdy;
     else
-        d_rd_req <= 0;
+        ud_rd_req <= 0;
 end
 
 
@@ -329,20 +332,20 @@ always @(posedge clk) begin
     if(d_c_state == LOOKUP && d_hit && d_CPU_Cache_buffer[68]) begin
         case (d_CPU_Cache_buffer[39:38])
             2'b00:begin
-                d_wr0_en <= {d_count[0],3'b0};
-                d_wr1_en <= {d_count[1],3'b0};
+                d_wr0_en <= {3'b0,d_count[0]};
+                d_wr1_en <= {3'b0,d_count[1]};
             end
             2'b01:begin
-                d_wr0_en <= {1'b0,d_count[0],2'b0};
-                d_wr1_en <= {1'b0,d_count[1],2'b0};
-            end
-            2'b10:begin
                 d_wr0_en <= {2'b0,d_count[0],1'b0};
                 d_wr1_en <= {2'b0,d_count[1],1'b0};
             end
+            2'b10:begin
+                d_wr0_en <= {1'b0,d_count[0],2'b0};
+                d_wr1_en <= {1'b0,d_count[1],2'b0};
+            end
             2'b11:begin
-                d_wr0_en <= {3'b0,d_count[0]};
-                d_wr1_en <= {3'b0,d_count[1]};
+                d_wr0_en <= {d_count[0],3'b0};
+                d_wr1_en <= {d_count[1],3'b0};
             end
             default:begin
                 d_wr0_en <= 0;
@@ -406,6 +409,8 @@ ram_tag dcache_way0_tagv(
     .dina({RAddr[31:12],1'b1 }),
     .douta({d_way0_tag,d_way0_v})
 );
+wire [19:0] debug_in_tag;
+assign debug_in_tag = RAddr[31:12];
 
 ram_tag dcache_way1_tagv(
     .clka(clk),

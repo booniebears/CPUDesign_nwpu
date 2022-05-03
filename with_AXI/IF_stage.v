@@ -72,10 +72,12 @@ assign fs_allowin     =  flush ? 1'b1 : ds_allowin;
 always @(posedge clk) begin
     if (reset) 
         fs_to_ds_valid <= 1'b0;
-    else if(~inst_data_ok) 
-        fs_to_ds_valid <= 1'b0; 
-    else
+    else if(~ds_allowin) 
+        fs_to_ds_valid <= fs_to_ds_valid; 
+    else if(inst_data_ok)
         fs_to_ds_valid <= 1'b1;
+    else
+        fs_to_ds_valid <= 1'b0;
 
     if (reset) 
         fs_pc <= 32'hbfbffffc;
@@ -96,7 +98,7 @@ assign fs_inst         = inst_rdata ;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
-always @(flush ,inst_addr_ok) begin///CHANGE
+always @(flush ,inst_addr_ok,ds_allowin) begin///CHANGE
     if(flush | reset)
         inst_valid <= 1'b1;
     else if(inst_addr_ok & ds_allowin) 

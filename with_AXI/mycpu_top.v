@@ -352,7 +352,9 @@ exe_stage exe_stage(
     .data_tag       (data_tag       ),
     .data_offset    (data_offset    ),
     .data_addr_ok   (data_addr_ok   ),
-    .data_data_ok   (data_data_ok   )
+    .data_data_ok   (data_data_ok   ),
+    .data_wstrb     (data_wstrb     ),
+    .data_wdata     (data_wdata     )
 );
 // MEM stage
 mem_stage mem_stage(

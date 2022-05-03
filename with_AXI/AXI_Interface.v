@@ -376,7 +376,8 @@ assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalid±
 assign data_wid     = 4'b0001;
 assign data_wstrb   = 4'b1111; //Attention:¶ÔÓÚÔ¶³ÌµÄaxi_ram,wstrb±ØÈ»ÊÇÈ«²¿ÓĞĞ§µÄ;Ğ´DCache¾ÍÊÇÁíÒ»»ØÊÂÁË
 //Attention:¿ÉÒÔÖ¤Ã÷,´ËÊ±´«Êä×îºóÒ»¸ö×Ö,Í¬Ê±Í¨¹ı¿ØÖÆdata_wvalid¿ÉÒÔ±£Ö¤wlastÖ»ÔÚÒ»¸öÊ±ÖÓÉÏÉıÑØ×÷ÓÃ
-assign data_wlast   = (D_WR_nextstate == `D_B_SHAKE && data_wvalid && data_wready) ? 1'b1 : 1'b0;
+//TODO:
+assign data_wlast   = (D_WR_state == `D_W_SHAKE4 && data_wvalid && data_wready) ? 1'b1 : 1'b0;
 assign data_wvalid  = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 ||
                        D_WR_state == `D_W_SHAKE3 || D_WR_state == `D_W_SHAKE4) ? 1'b1 : 1'b0;
 
@@ -431,7 +432,7 @@ assign udata_awvalid = (UD_WR_state == `UD_AW_SHAKE) ? 1'b1 : 1'b0;
 
 assign udata_wid     = 4'b0010;
 assign udata_wstrb   = udcache_wr_strb; 
-assign udata_wlast   = (UD_WR_nextstate == `UD_B_SHAKE && udata_wvalid && udata_wready) ? 1'b1 : 1'b0;
+assign udata_wlast   = (UD_WR_state == `UD_W_SHAKE && udata_wvalid && udata_wready) ? 1'b1 : 1'b0;
 assign udata_wvalid  = (UD_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;
 
 assign udata_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
@@ -466,7 +467,7 @@ always @(*) begin //ICache Read
             else I_RD_nextstate <= `I_R_SHAKE3;
         `I_R_SHAKE4:
         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËI_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
-            if(inst_rvalid & inst_rready & inst_rlast) I_RD_nextstate <= `I_RD_IDLE;
+            if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_RD_IDLE;
             else I_RD_nextstate <= `I_R_SHAKE4;  
         default: I_RD_nextstate <= `I_RD_IDLE;
     endcase
@@ -499,7 +500,7 @@ always @(*) begin //DCache Read
             else D_RD_nextstate <= `D_R_SHAKE3;
         `D_R_SHAKE4:
         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
-            if(data_rvalid & data_rready & data_rlast) D_RD_nextstate <= `D_RD_IDLE;
+            if(data_rvalid & data_rready) D_RD_nextstate <= `D_RD_IDLE;
             else D_RD_nextstate <= `D_R_SHAKE4;
         default: D_RD_nextstate <= `D_RD_IDLE;
     endcase
@@ -558,7 +559,8 @@ always @(*) begin
             if(udata_arvalid & udata_arready) UD_RD_nextstate <= `UD_R_SHAKE;
             else UD_RD_nextstate <= `UD_AR_SHAKE;
         `UD_R_SHAKE:
-            if(udata_rvalid & udata_rready & udata_rlast) UD_RD_nextstate <= `UD_RD_IDLE;
+        //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_R_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+            if(udata_rvalid & udata_rready) UD_RD_nextstate <= `UD_RD_IDLE;
             else UD_RD_nextstate <= `UD_R_SHAKE;
         default: UD_RD_nextstate <= `UD_RD_IDLE;
     endcase
@@ -581,7 +583,8 @@ always @(*) begin
             if(udata_awvalid & udata_awready) UD_WR_nextstate <= `UD_W_SHAKE;
             else UD_WR_nextstate <= `UD_AW_SHAKE;
         `UD_W_SHAKE:
-            if(udata_wvalid & udata_wready & udata_wlast) UD_WR_nextstate <= `UD_B_SHAKE;
+        //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_W_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇwlast
+            if(udata_wvalid & udata_wready) UD_WR_nextstate <= `UD_B_SHAKE;
             else UD_WR_nextstate <= `UD_W_SHAKE;
         `UD_B_SHAKE:
             if(udata_bvalid & udata_bready) UD_WR_nextstate <= `UD_WR_IDLE;

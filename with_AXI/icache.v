@@ -32,6 +32,7 @@ wire [127:0] way1_block;
 
 // 哪一路hit
 wire [1:0] hit_way;
+reg  [1:0] pre_hit_way;
 
 // 最终hit结果
 wire hit;
@@ -146,6 +147,12 @@ wire way1_v;
 
 assign hit_way[0] = (way0_tag == tag) && way0_v;
 assign hit_way[1] = (way1_tag == tag) && way1_v;
+always @(posedge clk) begin
+    if(reset) 
+        pre_hit_way <= 2'b00;
+    else
+        pre_hit_way <= hit_way; 
+end
 
 assign hit = (index == CPU_Cache_buffer[11:4])? hit_way[0] || hit_way[1] : 1'b0;
 
@@ -158,7 +165,6 @@ always @(posedge clk) begin
         rd_req <= rd_rdy;
     else
         rd_req <= 0;
-    
 end
 
 reg [127:0] ram_write_data;
@@ -183,10 +189,10 @@ end
 always @(*) begin
     if(c_state == LOOKUP) begin
          case (CPU_Cache_buffer[3:2])//offest[3:2]
-            2'd0: rdata <= ({ 32{hit_way[0]} } & way0_block[31:0]) | ({ 32{hit_way[1]} } & way1_block[31:0]);
-            2'd1: rdata <= ({ 32{hit_way[0]} } & way0_block[63:32]) | ({ 32{hit_way[1]} } & way1_block[63:32]);
-            2'd2: rdata <= ({ 32{hit_way[0]} } & way0_block[95:64]) | ({ 32{hit_way[1]} } & way1_block[95:64]);
-            2'd3: rdata <= ({ 32{hit_way[0]} } & way0_block[127:96]) | ({ 32{hit_way[1]} } & way1_block[127:96]);
+            2'd0: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[31:0]) | ({ 32{pre_hit_way[1]} } & way1_block[31:0]);
+            2'd1: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[63:32]) | ({ 32{pre_hit_way[1]} } & way1_block[63:32]);
+            2'd2: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[95:64]) | ({ 32{pre_hit_way[1]} } & way1_block[95:64]);
+            2'd3: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[127:96]) | ({ 32{pre_hit_way[1]} } & way1_block[127:96]);
             default: rdata <= 0;
         endcase
     end
