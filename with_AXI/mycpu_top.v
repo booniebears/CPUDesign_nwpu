@@ -105,6 +105,18 @@ wire  [ 3:0] dcache_wr_strb; //TODO:目前没用到,不过Uncache会用到
 wire [127:0] dcache_wr_data; //一次写一个cache line的数据
 wire         dcache_wr_rdy;
 
+//AXI和Uncache(DCache)的交互信号
+wire         udcache_rd_req; 
+wire  [31:0] udcache_rd_addr;
+wire         udcache_rd_rdy; 
+wire         udcache_ret_valid; //传输完成后ret_valid置1
+wire  [31:0] udcache_ret_data; //一次一个字
+wire         udcache_wr_req; 
+wire  [31:0] udcache_wr_addr;     
+wire  [ 3:0] udcache_wr_strb; 
+wire  [31:0] udcache_wr_data; //一次一个字
+wire         udcache_wr_rdy; 
+
 //CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
 wire         inst_valid;
 wire         inst_op;
@@ -115,7 +127,7 @@ wire         inst_addr_ok;
 wire         inst_data_ok;
 wire  [31:0] inst_rdata;
 
-//Attention:CPU和DCache的交互信号如下;
+//CPU和DCache的交互信号如下;
 wire         data_valid;
 wire         data_op;
 wire  [ 7:0] data_index;
@@ -184,7 +196,17 @@ AXI_Interface U_AXI_Interface(
     .dcache_wr_addr   (dcache_wr_addr   ),
     // .dcache_wr_strb   (dcache_wr_strb   ),
     .dcache_wr_data   (dcache_wr_data   ),
-    .dcache_wr_rdy    (dcache_wr_rdy    )
+    .dcache_wr_rdy    (dcache_wr_rdy    ),
+    .udcache_rd_req   (udcache_rd_req   ),
+    .udcache_rd_addr  (udcache_rd_addr  ),
+    .udcache_rd_rdy   (udcache_rd_rdy   ),
+    .udcache_ret_valid(udcache_ret_valid),
+    .udcache_ret_data (udcache_ret_data ),
+    .udcache_wr_req   (udcache_wr_req   ),
+    .udcache_wr_addr  (udcache_wr_addr  ),
+    .udcache_wr_strb  (udcache_wr_strb  ),
+    .udcache_wr_data  (udcache_wr_data  ),
+    .udcache_wr_rdy   (udcache_wr_rdy   )
 );
 
 icache icache(
@@ -206,7 +228,7 @@ icache icache(
     .ret_data       (icache_ret_data  )
 );
 
-dcache decache(
+dcache dcache(
     .clk            (aclk     ),
     .reset          (reset    ),
     .valid          (data_valid),

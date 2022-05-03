@@ -126,7 +126,8 @@ always @(*) begin
     end
 end
 always @(posedge clk) begin
-    if(c_state == IDLE && valid || c_state == LOOKUP) begin
+    if(reset) CPU_Cache_buffer <= 32'b0;
+    else if(c_state == IDLE && valid || c_state == LOOKUP) begin
         CPU_Cache_buffer <= {
                                 tag,    // [31:12]
                                 index,  // [11:4]
@@ -281,11 +282,5 @@ ram_bank icache_way1_bank3(
     .dina(ram_write_data[127:96]),
     .douta(way1_block[127:96])
 );
-
-
-
-
-
-
 
 endmodule
