@@ -1,5 +1,5 @@
 
-`include "MacroDef.v"
+// `include "MacroDef.v"
 
 
 `define free        3'd0
@@ -14,19 +14,26 @@ module Divider (
   aresetn,                                // input wire aresetn
   s_axis_divisor_tvalid,    // input wire s_axis_divisor_tvalid
   s_axis_divisor_tdata,      // input wire [31 : 0] s_axis_divisor_tdata
+  s_axis_divisor_tready,      // output wire s_axis_divisor_tready
   s_axis_dividend_tvalid,  // input wire s_axis_dividend_tvalid
   s_axis_dividend_tdata,    // input wire [31 : 0] s_axis_dividend_tdata
+  s_axis_dividend_tready,   // output wire s_axis_divisor_tready
   m_axis_dout_tvalid,          // output wire m_axis_dout_tvalid
   m_axis_dout_tdata            // output wire [63 : 0] m_axis_dout_tdata
 );
-    input aclk;
+  input aclk;
     input aresetn;
     input s_axis_divisor_tvalid;    // input wire s_axis_divisor_tvalid
     input [31:0] s_axis_divisor_tdata;      // input wire [31 : 0] s_axis_divisor_tdata
+    output s_axis_divisor_tready;   // output wire s_axis_divisor_tready
     input s_axis_dividend_tvalid;  // input wire s_axis_dividend_tvalid
     input [31:0]s_axis_dividend_tdata;    // input wire [31 : 0] s_axis_dividend_tdata
+    output s_axis_dividend_tready;   // output wire s_axis_divisor_tready
     output reg m_axis_dout_tvalid;          // output wire m_axis_dout_tvalid
     output reg [63:0]m_axis_dout_tdata;            // output wire [63 : 0] m_axis_dout_tdata
+
+    assign s_axis_divisor_tready = 1'b1;
+    assign s_axis_dividend_tready = 1'b1;
 
     reg [63:0] temp;
     reg [2:0]  state;
@@ -96,8 +103,10 @@ module Divider_Unsighed(
   aresetn,                                // input wire aresetn
   s_axis_divisor_tvalid,    // input wire s_axis_divisor_tvalid
   s_axis_divisor_tdata,      // input wire [31 : 0] s_axis_divisor_tdata
+  s_axis_divisor_tready,      // output wire s_axis_divisor_tready
   s_axis_dividend_tvalid,  // input wire s_axis_dividend_tvalid
   s_axis_dividend_tdata,    // input wire [31 : 0] s_axis_dividend_tdata
+  s_axis_dividend_tready,   // output wire s_axis_divisor_tready
   m_axis_dout_tvalid,          // output wire m_axis_dout_tvalid
   m_axis_dout_tdata            // output wire [63 : 0] m_axis_dout_tdata
 );
@@ -106,10 +115,15 @@ module Divider_Unsighed(
     input aresetn;
     input s_axis_divisor_tvalid;    // input wire s_axis_divisor_tvalid
     input [31:0] s_axis_divisor_tdata;      // input wire [31 : 0] s_axis_divisor_tdata
+    output s_axis_divisor_tready;   // output wire s_axis_divisor_tready
     input s_axis_dividend_tvalid;  // input wire s_axis_dividend_tvalid
     input [31:0]s_axis_dividend_tdata;    // input wire [31 : 0] s_axis_dividend_tdata
+    output s_axis_dividend_tready;   // output wire s_axis_divisor_tready
     output reg m_axis_dout_tvalid;          // output wire m_axis_dout_tvalid
     output reg [63:0]m_axis_dout_tdata;            // output wire [63 : 0] m_axis_dout_tdata
+
+    assign s_axis_divisor_tready = 1'b1;
+    assign s_axis_dividend_tready = 1'b1;
 
     reg [63:0] temp;
     reg [2:0]  state;
