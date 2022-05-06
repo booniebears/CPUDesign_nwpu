@@ -178,8 +178,8 @@ always @(*) begin
         d_data_ok <= 1;
     end
     else begin
-        if(~isUncache)begin
-            if(d_c_state == LOOKUP)begin
+        if(~isUncache) begin
+            if(d_c_state == LOOKUP)begin //TODO:目前遇到load类指令都暂停一个时钟周期
                 if(d_hit) begin
                     d_data_ok <= 1;
                 end
@@ -281,39 +281,66 @@ always @(posedge clk) begin
         ud_rd_req <= 0;
 end
 
-
-
-
 reg [127:0] d_ram_write_data;
-always @(posedge clk) begin
-    if(d_CPU_Cache_buffer[68]) begin
-        case (d_CPU_Cache_buffer[35:32])
-            4'b1111: begin
+always @(posedge clk) begin //TODO:逻辑我不太理解?
+    if(d_CPU_Cache_buffer[68]) begin //TODO:逻辑可以优化,这里显得比较复杂
+        case (d_CPU_Cache_buffer[35:32]) //wstrb 没有分清楚store的几种类型
+            4'b0001:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:8],d_CPU_Cache_buffer[7:0] } : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:8], d_CPU_Cache_buffer[7:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:8], d_CPU_Cache_buffer[7:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:8], d_CPU_Cache_buffer[7:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b0010:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b0100:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b1000:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_CPU_Cache_buffer[31:24],d_rdata[23:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_CPU_Cache_buffer[31:24],d_rdata[23:0]} : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_CPU_Cache_buffer[31:24],d_rdata[23:0]} : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_CPU_Cache_buffer[31:24],d_rdata[23:0]} : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b0011:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:0] } : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:16], d_CPU_Cache_buffer[15:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:16], d_CPU_Cache_buffer[15:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:16], d_CPU_Cache_buffer[15:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b1100:begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_CPU_Cache_buffer[31:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_CPU_Cache_buffer[31:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_CPU_Cache_buffer[31:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_CPU_Cache_buffer[31:16],d_rdata[15:0]} : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b0111: begin 
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:24], d_CPU_Cache_buffer[23:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:24], d_CPU_Cache_buffer[23:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ?{d_rdata[31:24], d_CPU_Cache_buffer[23:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b1110: begin
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_CPU_Cache_buffer[31:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_CPU_Cache_buffer[31:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[63:32] : 0;
+                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_CPU_Cache_buffer[31:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[95:64] : 0;
+                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ?{d_CPU_Cache_buffer[31:8],d_rdata[7:0]} : d_ret_valid ? d_ret_data[127:96] : 0;
+            end
+            4'b1111: begin //d_CPU_Cache_buffer[39:38] 关注offset高两位
                 d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[31:0] : 0;
                 d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[63:32] : 0;
                 d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[95:64] : 0;
                 d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[127:96] : 0;
             end
-            4'b0111: begin
-                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:24],d_CPU_Cache_buffer[23:0] } : d_ret_valid ? d_ret_data[31:0] : 0;
-                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:24], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
-                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:24], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
-                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ?{d_rdata[31:24], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
-            end
-            4'b0011:begin
-                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:16],d_CPU_Cache_buffer[15:0] } : d_ret_valid ? d_ret_data[31:0] : 0;
-                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:16], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
-                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:16], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
-                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:16], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
-            end
-            4'b0001:begin
-                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? {d_rdata[31:8],d_CPU_Cache_buffer[7:0] } : d_ret_valid ? d_ret_data[31:0] : 0;
-                d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? {d_rdata[31:8], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[63:32] : 0;
-                d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? {d_rdata[31:8], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[95:64] : 0;
-                d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? {d_rdata[31:8], d_CPU_Cache_buffer[31:0] } : d_ret_valid ? d_ret_data[127:96] : 0;
-            end
             default:begin
-                 d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[31:0] : 0;
+                d_ram_write_data[31:0] <= d_CPU_Cache_buffer[39:38] == 2'b00 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[31:0] : 0;
                 d_ram_write_data[63:32] <= d_CPU_Cache_buffer[39:38] == 2'b01 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[63:32] : 0;
                 d_ram_write_data[95:64] <= d_CPU_Cache_buffer[39:38] == 2'b10 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[95:64] : 0;
                 d_ram_write_data[127:96] <= d_CPU_Cache_buffer[39:38] == 2'b11 ? d_CPU_Cache_buffer[31:0] : d_ret_valid ? d_ret_data[127:96] : 0;
@@ -353,11 +380,11 @@ always @(posedge clk) begin
             end
         endcase
     end else if(d_c_state == REFILL && d_ret_valid) begin
-        d_wr0_en = { 4{d_count[0]} };
-        d_wr1_en = { 4{d_count[1]} };
+        d_wr0_en <= { 4{d_count[0]} };
+        d_wr1_en <= { 4{d_count[1]} };
     end else begin
-        d_wr0_en = 0;
-        d_wr1_en = 0;
+        d_wr0_en <= 0;
+        d_wr1_en <= 0;
     end
         
 end
