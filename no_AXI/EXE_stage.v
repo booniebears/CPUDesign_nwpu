@@ -52,6 +52,12 @@ wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 wire [2:0] es_sel; 
 wire [4:0] es_mfc0_rd;
 wire es_inst_mtc0; 
+//exe阶段tlb指令
+wire es_inst_tlbp;
+wire es_inst_tlbr;
+wire es_inst_tlbwi;
+wire es_inst_tlbwr;
+
 // wire es_inst_mfc0; //该信号在模块端口定义
 wire es_inst_eret;
 wire es_bd;
@@ -65,6 +71,10 @@ wire ADES_ex; //地址错例外(写数据)
 wire ADEL_ex; //地址错例外(读数据)
 
 assign {
+        es_inst_tlbp   ,  //181:181
+        es_inst_tlbr   ,  //180:180
+        es_inst_tlbwi  ,  //178:179
+        es_inst_tlbwr  ,  //178:178
         es_mfc0_rd     ,  //177:173 
         Overflow_inst  ,  //172:170
         temp_ex        ,  //169:169 
@@ -118,6 +128,10 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
+                       es_inst_tlbp   ,  //168:168
+                       es_inst_tlbr   ,  //167:167
+                       es_inst_tlbwi  ,  //166:166
+                       es_inst_tlbwr  ,  //165:165
                        es_alu_result  ,  //164:133 --es_alu_result是读写sram的虚地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127

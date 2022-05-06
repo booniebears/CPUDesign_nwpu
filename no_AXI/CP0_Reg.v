@@ -20,8 +20,7 @@ module CP0_Reg
     output eret_flush, //ERET指令修改EXL域的使能信号
     input inst_tlbr,
     input inst_tlbwi,//判断是否为tlbwi指令
-    input [3:0]  index_tlbwi,//tlbwi指令的索引值
-    input [3:0]  index_tlbr,//tlbwr指令的索引值
+    input inst_tlbp,//判断是否为tlbp指令
     input [18:0] tlb_vpn2_wd, //以下为tlb写入的数据
     input [7:0]  tlb_asid_wd ,
     input [19:0] tlb_pfn0_wd ,//以下为entrylo0寄存器写入tlb的数据
@@ -34,6 +33,8 @@ module CP0_Reg
     input  tlb_d1_wd ,
     input  tlb_v1_wd ,
     input  tlb_g1_wd ,
+    input      [3:0]  index_tlbp,
+    input      [3:0]  index_tlbwi,//tlbwi指令的索引值
     output reg [18:0] tlb_vpn2_rd, //以下为tlb读出的数据
     output reg [7:0]  tlb_asid_rd ,
     output reg [19:0] tlb_pfn0_rd ,//以下为entrylo0寄存器读出的tlb的数据
@@ -47,6 +48,8 @@ module CP0_Reg
     output reg tlb_v1_rd ,
     output reg tlb_g1_rd ,
 
+   
+    output reg [3:0]  index_tlbr,//tlbwr指令的索引值
     output reg [31:0] CP0_EPC,
     output reg CP0_Status_IE,
     output reg CP0_Status_EXL,
@@ -67,6 +70,11 @@ reg entrylo1_v;
 reg entrylo1_g;
 reg entryhi_vpn2; //EntryHi寄存器中的VPN2
 reg entryhi_asid; //EntryHi寄存器中的ASID
+
+reg index_p;
+reg [3:0] index_index;
+reg found_vindex;//index寄存器P值中判断是否查询到虚地址
+reg tlb_found;
 
 
 wire [7:0] CP0_Addr; //写CP0寄存器组的地址
@@ -244,8 +252,30 @@ always @(posedge clk) begin
         entrylo0_g<=tlb_g1_wd ;
     end
 end
-
-
+//9.index寄存器
+reg [3:0] CP0_Index;
+always @(posedge clk) begin
+    if(inst_tlbp) begin
+        if(found_vindex) begin
+        index_p<=1'b1;
+        end 
+        else if(!found_vindex) begin
+        index_p<=1'b0;
+        end
+        end
+        else if(tlb_found) begin
+            index_index<=index_tlbp;
+        end
+        else if(!tlb_found) begin
+            index_index<=4'bxxx;
+        end
+    else if(inst_tlbwi) begin
+        index_index<=index_tlbwi;
+    end
+    else if(inst_tlbr)  begin
+        index_tlbr<=index_index; 
+    end
+end
 
 //mfc0指令实现:
 assign CP0_data = 
@@ -257,6 +287,10 @@ assign CP0_data =
                   CP0_Addr == `Cause_RegAddr   ? {CP0_Cause_BD,CP0_Cause_TI,14'b0,CP0_Cause_IP,
                                                   1'b0,CP0_Cause_ExcCode,2'b0}:
                   CP0_Addr == `EPC_RegAddr     ? CP0_EPC:
+                  CP0_Addr == `Entryhi_RegAddr ? {entryhi_vpn2,5'b0,entryhi_asid}:
+                  CP0_Addr == `Entrylo0_RegAddr? {6'b0,entrylo0_pfn,entrylo0_c,entrylo0_d,entrylo0_v,entrylo0_g}:
+                  CP0_Addr == `Entrylo1_RegAddr? {6'b0,entrylo1_pfn,entrylo1_c,entrylo1_d,entrylo1_v,entrylo1_g}:
+                  CP0_Addr == `Index_RegAddr   ? {index_p,27'b0,index_index}:
                                                  32'b0; //TODO:目前CP0_data默认32'b0
 
 endmodule //CP0_Reg

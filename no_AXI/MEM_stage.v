@@ -51,8 +51,17 @@ wire ms_inst_mtc0;
 wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
+//MEM½×¶ÎµÄtlbÖ¸Áî
+wire ms_inst_tlbp   ;
+wire ms_inst_tlbr   ;  
+wire ms_inst_tlbwi  ;  
+wire ms_inst_tlbwr  ;
 
 assign {
+        ms_inst_tlbp   ,  //168:168
+        ms_inst_tlbr   ,  //167:167
+        ms_inst_tlbwi  ,  //166:166
+        ms_inst_tlbwr  ,  //165:165
         ms_data_sram_addr,//164:133 
         ms_mfc0_rd     ,  //132:128
         ms_ex          ,  //127:127
@@ -75,6 +84,10 @@ wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
+                       ms_inst_tlbp   ,  //123:123
+                       ms_inst_tlbr   ,  //122:122
+                       ms_inst_tlbwi  ,  //121:121
+                       ms_inst_tlbwr  ,  //120:120
                        ms_data_sram_addr,//119:88
                        ms_mfc0_rd     ,  //87:83
                        ms_ex          ,  //82:82
