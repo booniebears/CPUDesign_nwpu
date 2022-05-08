@@ -21,7 +21,8 @@ module if_stage(
     output [ 3:0] inst_offset,
     input         inst_addr_ok,
     input         inst_data_ok,
-    input  [31:0] inst_rdata
+    input  [31:0] inst_rdata,
+    input         mfc0_stall //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 );
 
 /*
@@ -60,11 +61,11 @@ end
 // pre-IF stage
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
-assign nextpc          = npc_block ? ( 
-                         ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
+assign nextpc          = ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
                          flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
-                         br_taken ? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
+                         npc_block ? ( 
+                         br_taken && ~br_stall && ~mfc0_stall? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
 
 
 assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
@@ -74,14 +75,15 @@ always @(posedge clk) begin
         fs_to_ds_valid <= 1'b0;
     else if(~ds_allowin) 
         fs_to_ds_valid <= fs_to_ds_valid; 
-    else if(inst_data_ok)
+    else if(inst_data_ok | (nextpc[1:0] != 2'b00))
         fs_to_ds_valid <= 1'b1;
     else
         fs_to_ds_valid <= 1'b0;
 
     if (reset) 
         fs_pc <= 32'hbfbffffc;
-    else if (fs_allowin & inst_data_ok)  //TODO:不确定行不行,inst_data_ok控制fs_pc更新,从而控制nextpc更新
+    //我们认为，在nextpc!=2'b00,必然是出现了ADEL_ex,这个时候fs_pc直接更新,不向Cache发请求,fs_to_ds_valid放行
+    else if ((nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok))  
         fs_pc <= nextpc;
 end
 
@@ -90,17 +92,18 @@ assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0;
 assign fs_ex      = ADEL_ex;
 assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:全1目前代表无异常
 
+//TODO:flush情况下,为了防止可能被错误读进来的跳转指令,强行设置为0
+//TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
+assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
 
-assign fs_inst         = inst_rdata ;
-// always @(posedge clk) begin
-//     if(inst_data_ok) fs_inst <= inst_rdata;
-// end
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
 always @(flush ,inst_addr_ok,ds_allowin) begin///CHANGE
     if(flush | reset)
         inst_valid <= 1'b1;
+    else if(nextpc[1:0] != 2'b00)
+        inst_valid <= 1'b0;
     else if(inst_addr_ok & ds_allowin) 
         inst_valid <= 1'b1;
     else

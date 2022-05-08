@@ -74,7 +74,8 @@ wire  [31:0] MEM_result; //MEM阶段 ms_final_result
 wire  [31:0] WB_result; //WB阶段 ws_final_result
 wire         es_load_op; //EXE阶段 判定是否为load指令
 
-wire         flush; 
+wire         flush;
+wire         es_ex; 
 wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC;
@@ -87,6 +88,7 @@ wire         es_inst_mfc0;
 wire         ms_inst_mfc0;
 wire         ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 wire         ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -217,6 +219,7 @@ icache icache(
     .index          (inst_index),
     .tag            (inst_tag  ),
     .offset         (inst_offset),
+    .flush          (flush     ),
     .addr_ok        (inst_addr_ok),
     .data_ok        (inst_data_ok),
     .rdata          (inst_rdata),
@@ -288,7 +291,8 @@ if_stage if_stage(
     .inst_offset    (inst_offset    ),
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),
-    .inst_rdata     (inst_rdata     )
+    .inst_rdata     (inst_rdata     ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // ID stage
 id_stage id_stage(
@@ -321,7 +325,8 @@ id_stage id_stage(
     .CP0_Status_EXL (CP0_Status_EXL ), 
     .CP0_Status_IM  (CP0_Status_IM  ),
     .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   )
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -340,7 +345,8 @@ exe_stage exe_stage(
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
-    .flush          (flush          ),  
+    .flush          (flush          ),
+    .es_ex          (es_ex          ),
     .ms_ex          (ms_ex          ),  
     .ws_ex          (ws_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),

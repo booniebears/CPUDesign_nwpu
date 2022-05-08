@@ -404,7 +404,7 @@ assign udata_awaddr  = ff_udata_awaddr;
 always @(posedge clk) begin //udata_wdata 直接写一个字到远端axi_ram 配合下面的udata_wstrb
     if(~resetn)
         udata_wdata <= 32'b0;
-    else if(UD_WR_nextstate == `UD_W_SHAKE) //这个可以看nextstate
+    else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //Attention:与awaddr保持一致。不能照搬data_wdata
         udata_wdata <= udcache_wr_data;
 end
 

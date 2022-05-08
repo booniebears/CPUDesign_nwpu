@@ -7,7 +7,7 @@ module icache(
     input [7:0] index,
     input [19:0] tag,
     input [3:0] offset,
-    input [31:0] wdata,
+    input        flush, //TODO:当流水线flush(出现异常),rdata直接置零
     output addr_ok,
     output reg data_ok,
     output reg [31:0] rdata,
@@ -38,7 +38,7 @@ reg  [1:0] pre_hit_way;
 wire hit;
 
 // 对于需要多周期处理的CPU请求，cache需要缓存CPU的请求
-reg [31:0] CPU_Cache_buffer;
+reg [32:0] CPU_Cache_buffer;
 
 // 选择替换哪一路
 reg [1:0] count;
@@ -72,7 +72,7 @@ always @(*) begin
     end else begin
             case (c_state)
                 IDLE: begin
-                    if(valid || isAgain) //如果CPU发出请求 
+                    if(valid || isAgain ) //如果CPU发出请求 
                         n_state <= LOOKUP;
                     else
                         n_state <= IDLE;
@@ -127,9 +127,10 @@ always @(*) begin
     end
 end
 always @(posedge clk) begin
-    if(reset) CPU_Cache_buffer <= 32'b0;
+    if(reset) CPU_Cache_buffer <= 33'b0;
     else if(c_state == IDLE && valid || c_state == LOOKUP) begin
         CPU_Cache_buffer <= {
+                                valid,   // [32]
                                 tag,    // [31:12]
                                 index,  // [11:4]
                                 offset // [3:0]
@@ -187,13 +188,14 @@ always @(posedge clk) begin
 end
 
 always @(*) begin
-    if(c_state == LOOKUP) begin
+    if(flush) rdata <= 32'b0; //TODO:当流水线flush(出现异常),rdata直接置零
+    else if(c_state == LOOKUP && CPU_Cache_buffer[32]) begin /// 神之一手！！！
          case (CPU_Cache_buffer[3:2])//offest[3:2]
             2'd0: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[31:0]) | ({ 32{pre_hit_way[1]} } & way1_block[31:0]);
             2'd1: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[63:32]) | ({ 32{pre_hit_way[1]} } & way1_block[63:32]);
             2'd2: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[95:64]) | ({ 32{pre_hit_way[1]} } & way1_block[95:64]);
             2'd3: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[127:96]) | ({ 32{pre_hit_way[1]} } & way1_block[127:96]);
-            default: rdata <= 0;
+            default: rdata <= 32'b0;
         endcase
     end
     else begin
