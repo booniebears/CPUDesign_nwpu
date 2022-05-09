@@ -7,6 +7,7 @@ module tlb
     input                             clk,
 
     //search port0
+    //用于取指的虚实指令转换
     input        [18:0]               s0_vpn2,
     input                             s0_odd_page,
     input        [7:0]                s0_asid,
@@ -18,6 +19,7 @@ module tlb
     output   reg                      s0_v,
 
     //search port1
+    //用于访存的虚实地址转换
     input        [18:0]               s1_vpn2,
     input                             s1_odd_page,
     input        [7:0]                s1_asid,
