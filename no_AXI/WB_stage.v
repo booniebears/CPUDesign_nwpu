@@ -48,8 +48,16 @@ wire [31:0] CP0_data; //mfc0从CP0中读出的数据
 wire [4:0] ws_ExcCode; //例外的5位编码
 wire eret_flush;
 wire [31:0] ws_data_sram_addr;
+wire ws_inst_tlbp; 
+wire ws_inst_tlbr;
+wire ws_inst_tlbwi;
+wire ws_inst_tlbwr;
 
 assign {
+        ws_inst_tlbp   ,  //123:123
+        ws_inst_tlbr   ,  //122:122
+        ws_inst_tlbwi  ,  //121:121
+        ws_inst_tlbwr  ,  //120:120
         ws_data_sram_addr,//119:88
         ws_mfc0_rd     ,  //87:83
         ws_ex          ,  //82:82
