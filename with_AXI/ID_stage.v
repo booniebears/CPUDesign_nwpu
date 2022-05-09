@@ -30,7 +30,8 @@ module id_stage(
     input        CP0_Status_EXL, //EXL=0,没有例外正在处理
     input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
     input [ 7:0] CP0_Cause_IP, //待处理中断标识
-    input        CP0_Cause_TI  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input        CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output       mfc0_stall   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 );
 
 reg         ds_valid   ;
@@ -208,7 +209,7 @@ wire        rslez;
 wire        rsltz;
 
 //lab8添加
-wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
+// wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
 
 assign br_bus       = {is_branch,br_stall,br_taken,br_target};
 
@@ -380,7 +381,7 @@ reg [1:0] Time_state,Time_next_state;
 always @(*) begin //该状态机同时处理next_state和Time_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI&&has_int) begin
+            if(CP0_Cause_TI&&has_int && ds_valid) begin
                 Time_next_state<=Time_Start;
                 Time_int<=1'b1;
             end
@@ -416,7 +417,7 @@ reg [1:0] Soft_state,Soft_next_state;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP[1:0]!=0&&has_int) begin
+            if(CP0_Cause_IP[1:0]!=0&&has_int && ds_valid) begin
                 Soft_next_state<=Soft_Start;
                 Soft_int<=1'b1;
             end
@@ -527,7 +528,7 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 assign rs_eq_rt = (rs_value == rt_value);
 assign is_branch= inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
 | inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
-assign br_taken = (   inst_beq  &  rs_eq_rt
+assign br_taken =  (   inst_beq  &  rs_eq_rt
                    || inst_bne  & !rs_eq_rt
                    || inst_jal
                    || inst_jr
@@ -539,7 +540,7 @@ assign br_taken = (   inst_beq  &  rs_eq_rt
                    || inst_bltz & rsltz
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
-                  ); //Attention:删掉ds_valid
+                  ) ; //TODO:见例外不跳转
 
 //fs_pc为当前指令的下一条指令的地址,直接从fs_to_ds_bus中取出的没有经过寄存器
 //例外入口地址统一为0xbfc00380
