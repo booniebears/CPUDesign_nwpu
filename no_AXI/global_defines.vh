@@ -28,6 +28,9 @@
     `define Index_RegAddr    8'h90
     //ExcCode编码及其对应例外类型
     `define Int  5'b00000 //中断
+    `define Mod  5'b00001 //模块访问
+    `define TLBL 5'b00010 //取值或读数据
+    `define TLBS 5'b00011 //写数据
     `define AdEL 5'b00100 //地址错例外(读数据/取指令)
     `define AdES 5'b00101 //地址错例外(写数据)
     `define Sys  5'b01000 //syscall系统调用例外

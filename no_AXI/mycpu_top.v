@@ -51,6 +51,7 @@ wire [31:0] WB_result; //WB阶段 ws_final_result
 wire es_load_op; //EXE阶段 判定是否为load指令
 
 wire flush; 
+wire flush_refill;
 wire ms_ex;
 wire ws_ex;
 wire [31:0] CP0_EPC;
@@ -86,7 +87,9 @@ if_stage if_stage(
     //lab8添加
     .flush          (flush          ),
     .CP0_EPC        (CP0_EPC        ), 
-    .ws_inst_eret   (ws_inst_eret   ) 
+    .ws_inst_eret   (ws_inst_eret   ),
+    //tlb添加
+    .flush_refill   (flush_refill   )
 );
 // ID stage
 id_stage id_stage(
@@ -113,6 +116,7 @@ id_stage id_stage(
     .WB_result      (WB_result      ),
     .es_load_op     (es_load_op     ),
     .flush          (flush          ),
+    .flush_refill   (flush_refill   ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .ms_inst_mfc0   (ms_inst_mfc0   ),
     .CP0_Status_IE  (CP0_Status_IE  ), 
@@ -145,7 +149,8 @@ exe_stage exe_stage(
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
-    .flush          (flush          ),  
+    .flush          (flush          ),
+    .flush_refill   (flush_refill   ),  
     .ms_ex          (ms_ex          ),  
     .ws_ex          (ws_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
@@ -170,6 +175,7 @@ mem_stage mem_stage(
     .MEM_dest       (MEM_dest       ), 
     .MEM_result     (MEM_result     ),
     .flush          (flush          ), 
+    .flush_refill   (flush_refill   ),
     .ms_ex          (ms_ex          ), 
     .ms_inst_mfc0   (ms_inst_mfc0   ), 
     .ms_inst_eret   (ms_inst_eret   ) 
@@ -193,6 +199,7 @@ wb_stage wb_stage(
     .WB_dest          (WB_dest          ), 
     .WB_result        (WB_result        ),
     .flush            (flush            ), 
+    .flush_refill     (flush_refill     ),
     .ws_ex            (ws_ex            ), 
     .CP0_EPC          (CP0_EPC          ), 
     .CP0_Status_IE    (CP0_Status_IE    ), 

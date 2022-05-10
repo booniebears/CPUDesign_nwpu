@@ -17,6 +17,7 @@ module mem_stage(
     output [4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
     input flush, //flush=1时表明需要处理异常
+    input flush_refill,
     output ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
     output ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
@@ -155,6 +156,9 @@ always @(posedge clk ) begin
         es_to_ms_bus_r <= 0;
     else if (flush) //清除流水线
         es_to_ms_bus_r <= 0;
+    else if(flush_refill) begin //清除流水线
+        es_to_ms_bus_r <= 0;
+    end
     else if (es_to_ms_valid && ms_allowin) begin
         es_to_ms_bus_r <= es_to_ms_bus;
     end
