@@ -24,6 +24,7 @@ module id_stage(
     input [31:0] WB_result , //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
     input es_load_op , //EXE阶段 判定是否为load指令
     input flush, //flush=1时表明需要处理异常
+    input flush_refill, //flush_refill=1时表明需要处理异常
     input es_inst_mfc0,
     input ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
     input CP0_Status_IE, //IE=1,全局中断使能开启
@@ -256,7 +257,7 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill) //清除流水线
         fs_to_ds_bus_r <= 0;
     else if (fs_to_ds_valid && ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;

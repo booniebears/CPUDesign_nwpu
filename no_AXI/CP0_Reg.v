@@ -36,7 +36,9 @@ module CP0_Reg
     input [2:0]  tlb_c1_wd ,
     input        tlb_d1_wd ,
     input        tlb_v1_wd ,
-    input        tlb_g1_wd ,
+    input [31:0] virtual_addr,
+    input [31:0] virtual_vpn2,
+  input        tlb_g1_wd ,
     output reg [3:0]     tlb_index_rd,
     output reg        tlb_p_rd,
     output reg [18:0] tlb_vpn2_rd, //以下为tlb读出的数据
@@ -200,14 +202,16 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst
             CP0_BadVAddr<=ws_data_sram_addr;
         else if(ExcCode==`AdEL)
             CP0_BadVAddr<=ws_pc[1:0]?ws_pc:ws_data_sram_addr;
-        else if(ExcCode==`TLBR || ExcCode==`TLBL || ExcCode==`Mod)
-            CP0_BadVAddr<= ws_data_sram_addr;
+        else if(ExcCode==`TLBS || ExcCode==`TLBL || ExcCode==`Mod)
+            CP0_BadVAddr<=virtual_addr;
     end
 end
 //6.EntryHi寄存器
 reg [31:0] CP0_EntryHi;
 always @(posedge clk) begin
-    if(inst_tlbr) begin
+    if(reset) 
+        CP0_EntryHi<=32'b0;
+    else if(inst_tlbr) begin
         entryhi_vpn2<=tlb_vpn2_wd [index_tlbr];
         entryhi_asid<=tlb_asid_wd [index_tlbr];
     end
@@ -215,12 +219,16 @@ always @(posedge clk) begin
         tlb_vpn2_rd [index_tlbwi]<=entryhi_vpn2;
         tlb_asid_rd [index_tlbwi]<=entryhi_asid;
     end
+     else if(ExcCode==`TLBS || ExcCode==`TLBL || ExcCode==`Mod)
+            entryhi_vpn2<=virtual_vpn2;
 end
 
 //7.EntryLo0寄存器
 reg [31:0] CP0_EntryLo0;
 always @(posedge clk) begin
-    if(inst_tlbr) begin
+    if(reset) 
+        CP0_EntryLo0<=32'b0;
+    else    if(inst_tlbr) begin
         tlb_pfn0_rd<=entrylo0_pfn;
         tlb_c0_rd  <=entrylo0_c;
         tlb_d0_rd  <=entrylo0_d;
@@ -238,7 +246,9 @@ end
 //8.EntryLo1寄存器，只实现了描述中的功能
 reg [31:0] CP0_EntryLo1;
 always @(posedge clk) begin
-    if(inst_tlbr) begin
+    if(reset) 
+        CP0_EntryLo1<=32'b0;
+    else if(inst_tlbr) begin
         tlb_pfn1_rd<=entrylo1_pfn;
         tlb_c1_rd<=entrylo1_c;
         tlb_d1_rd<=entrylo1_d;
