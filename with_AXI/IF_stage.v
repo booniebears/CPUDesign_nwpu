@@ -63,7 +63,7 @@ end
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
 assign nextpc          = ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
-                           flush_refill ? 32'hbfc00200:
+                         flush_refill ? 32'hbfc00200:
                          flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
                          npc_block ? ( 
@@ -101,8 +101,8 @@ assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
-always @(flush ,inst_addr_ok,ds_allowin) begin///CHANGE
-    if(flush | reset)
+always @(flush ,flush_refill, inst_addr_ok,ds_allowin) begin///CHANGE
+    if(flush |flush_refill| reset)
         inst_valid <= 1'b1;
     else if(nextpc[1:0] != 2'b00)
         inst_valid <= 1'b0;

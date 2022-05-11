@@ -70,7 +70,16 @@ wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire ADES_ex; //地址错例外(写数据)
 wire ADEL_ex; //地址错例外(读数据)
 
+wire        es_inst_tlbp;
+wire        es_inst_tlbr;
+wire        es_inst_tlbwi;
+wire        es_inst_tlbwr;
+
 assign {
+        es_inst_tlbp   ,  //181:181
+        es_inst_tlbr   ,  //180:180
+        es_inst_tlbwi  ,  //179:179
+        es_inst_tlbwr  ,  //178:178
         es_mfc0_rd     ,  //177:173 
         Overflow_inst  ,  //172:170
         temp_ex        ,  //169:169 
@@ -124,6 +133,10 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
+                       es_inst_tlbp   ,  //168:168
+                       es_inst_tlbr   ,  //167:167
+                       es_inst_tlbwi  ,  //166:166
+                       es_inst_tlbwr  ,  //165:165
                       //TODO:es_alu_result目前暂代data_sram_addr
                        es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
