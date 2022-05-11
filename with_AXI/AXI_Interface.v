@@ -67,9 +67,20 @@ module AXI_Interface (
     output [127:0] dcache_ret_data, 
     input          dcache_wr_req, 
     input   [31:0] dcache_wr_addr,     
-    input   [ 3:0] dcache_wr_strb, //TODO:Ä¿Ç°Ã»ÓÃµ½,²»¹ıUncache»áÓÃµ½
+    // input   [ 3:0] dcache_wr_strb, //TODO:¸Ğ¾õÓÃ²»µ½?
     input  [127:0] dcache_wr_data, //Ò»´ÎĞ´Ò»¸öcache lineµÄÊı¾İ
-    output         dcache_wr_rdy
+    output         dcache_wr_rdy,
+    //ºÍUncache(DCache)½»»¥
+    input             udcache_rd_req, 
+    input      [31:0] udcache_rd_addr, 
+    output            udcache_rd_rdy, 
+    output reg        udcache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
+    output reg [31:0] udcache_ret_data, //Ò»´ÎÒ»¸ö×Ö
+    input             udcache_wr_req, 
+    input      [31:0] udcache_wr_addr,     
+    input      [ 3:0] udcache_wr_strb, 
+    input      [31:0] udcache_wr_data, //Ò»´ÎÒ»¸ö×Ö
+    output            udcache_wr_rdy    
 /*******************AXIÓëCacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÉÏ******************/
 );
 
@@ -94,6 +105,13 @@ wire [ 1:0] inst_rresp;
 wire        inst_rlast;
 wire        inst_rvalid;
 wire        inst_rready;
+//icache²»´¦ÀíĞ´ÎÊÌâ£¬ÏÂÃæĞÅºÅĞü¿Õ¼´¿É
+wire        inst_awready;
+wire        inst_wready;
+wire [ 3:0] inst_bid;
+wire [ 1:0] inst_bresp;
+wire        inst_bvalid;
+
 /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
 
 /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÏÂ******************/
@@ -139,19 +157,67 @@ wire        data_bvalid;
 wire        data_bready;
 /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
 
+/*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÏÂ******************/
+wire [ 3:0] udata_arid;
+wire [31:0] udata_araddr;
+wire [ 3:0] udata_arlen;
+wire [ 2:0] udata_arsize;
+wire [ 1:0] udata_arburst;
+wire [ 1:0] udata_arlock;
+wire [ 3:0] udata_arcache;
+wire [ 2:0] udata_arprot;
+wire        udata_arvalid;
+wire        udata_arready;
+//r¶ÁÏìÓ¦Í¨µÀ
+wire [ 3:0] udata_rid;
+wire [31:0] udata_rdata;
+wire [ 1:0] udata_rresp;
+wire        udata_rlast;
+wire        udata_rvalid;
+wire        udata_rready;
+//awĞ´ÇëÇóÍ¨µÀ
+wire [ 3:0] udata_awid;
+wire [31:0] udata_awaddr;
+wire [ 3:0] udata_awlen;
+wire [ 2:0] udata_awsize;
+wire [ 1:0] udata_awburst;
+wire [ 1:0] udata_awlock;
+wire [ 3:0] udata_awcache;
+wire [ 2:0] udata_awprot;
+wire        udata_awvalid;
+wire        udata_awready;
+//wĞ´Êı¾İÍ¨µÀ
+wire [ 3:0] udata_wid;
+reg  [31:0] udata_wdata;
+wire [ 3:0] udata_wstrb;
+wire        udata_wlast;
+wire        udata_wvalid;
+wire        udata_wready;
+//bĞ´ÏìÓ¦Í¨µÀ
+wire [ 3:0] udata_bid;
+wire [ 1:0] udata_bresp;
+wire        udata_bvalid;
+wire        udata_bready;
+/*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
+
 //×´Ì¬»ú¶¨Òå
 reg  [ 2:0] I_RD_state,I_RD_nextstate;
 reg  [ 2:0] D_RD_state,D_RD_nextstate; 
-reg  [ 2:0] D_WR_state,D_WR_nextstate; 
+reg  [ 2:0] D_WR_state,D_WR_nextstate;
+reg  [ 1:0] UD_RD_state,UD_RD_nextstate; 
+reg  [ 1:0] UD_WR_state,UD_WR_nextstate; 
+
 //Ëø´æÆ÷
 reg  [31:0] ff_inst_araddr; 
 reg  [31:0] ff_data_araddr;
 reg  [31:0] ff_data_awaddr;
+reg  [31:0] ff_udata_araddr;
+reg  [31:0] ff_udata_awaddr;
 reg [127:0] ff_dcache_wr_data;
 reg [127:0] ff_icache_ret_data;
 reg [127:0] ff_dcache_ret_data;
 
-/*******************AXIÓëCacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÏÂ******************/
+/*******************AXIÓëICache/DCache/UncacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÏÂ******************/
 //Attention:°Ñret_validÉèÖÃ³ÉregÀàĞÍ,ÊÇÎªÁË±£Ö¤ret_valid¸ßµçÆ½ºÍ·µ»ØµÄÊı¾İÔÚÍ¬Ò»¸öÊ±ÖÓÉÏÉıÑØ·µ»Ø
 always @(posedge clk) begin
     if(~resetn) 
@@ -199,13 +265,30 @@ always @(posedge clk) begin
 end
 assign dcache_ret_data  = ff_dcache_ret_data;
 
-//TODO:ÕâÀïµÄĞÅºÅ¸³Öµ±¾ÈËÓĞ²»È·¶¨Ö®´¦£¬ºÍÑ§³¤´úÂë²î¾à½Ï´ó£¬ĞÇÆÚÎåÌÖÂÛ
-//ÊéÉÏÊÇÒªÇówr_rdyÏÈÓÚwr_reqÖÃ1;ÄÇrd_rdy´ó¸ÅÍ¬Àí?? ¸öÈËÈÏÎªrd_rdyĞÅºÅ¶ÔÓÚCacheÉè¼ÆÓ°Ïì½ÏĞ¡
-assign icache_rd_rdy    = (I_RD_state == `I_RD_IDLE) ? 1'b1 : 1'b0;
-assign dcache_rd_rdy    = (D_RD_state == `D_RD_IDLE) ? 1'b1 : 1'b0;
-assign dcache_wr_rdy    = (D_WR_state == `D_WR_IDLE) ? 1'b1 : 1'b0;
+always @(posedge clk) begin
+    if(~resetn) 
+        udcache_ret_valid <= 1'b0;
+    else if(UD_RD_nextstate == `UD_RD_IDLE && UD_RD_state == `UD_R_SHAKE)
+        udcache_ret_valid <= 1'b1;
+    else
+        udcache_ret_valid <= 1'b0;
+end
 
-/*******************AXIÓëCacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÉÏ******************/
+always @(posedge clk) begin
+    if(~resetn) 
+        udcache_ret_data <= 32'b0;
+    else if(UD_RD_nextstate == `UD_RD_IDLE && UD_RD_state == `UD_R_SHAKE)
+        udcache_ret_data <= udata_rdata;
+end
+
+//ÊéÉÏÊÇÒªÇówr_rdyÏÈÓÚwr_reqÖÃ1;ÄÇrd_rdy´ó¸ÅÍ¬Àí?? ¸öÈËÈÏÎªrd_rdyĞÅºÅ¶ÔÓÚCacheÉè¼ÆÓ°Ïì½ÏĞ¡
+assign icache_rd_rdy   = (I_RD_state  == `I_RD_IDLE)  ? 1'b1 : 1'b0;
+assign dcache_rd_rdy   = (D_RD_state  == `D_RD_IDLE)  ? 1'b1 : 1'b0;
+assign dcache_wr_rdy   = (D_WR_state  == `D_WR_IDLE)  ? 1'b1 : 1'b0;
+assign udcache_rd_rdy  = (UD_RD_state == `UD_RD_IDLE) ? 1'b1 : 1'b0;
+assign udcache_wr_rdy  = (UD_WR_state == `UD_WR_IDLE) ? 1'b1 : 1'b0;
+
+/*******************AXIÓëICache/DCache/UncacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÉÏ******************/
 
 /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÏÂ******************/
 //Attention:AXI×ÜÏßÒªÇó,master¶ËÒ»µ©·¢ÆğÄ³Ò»µØÖ·»òÕßÊı¾İ´«ÊäµÄÇëÇó(req),ÔÚÎÕÊÖ³É¹¦Ö®Ç°,²»µÃ¸ü¸Ä´«ÊäµÄµØÖ·/Êı¾İ
@@ -244,7 +327,7 @@ assign data_araddr  = ff_data_araddr;
 always @(posedge clk) begin //data_awaddr
     if(~resetn) 
         ff_data_awaddr <= 32'b0;
-    else if(D_WR_state == `D_RD_IDLE && dcache_wr_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Ödata_araddr²»±ä
+    else if(D_WR_state == `D_WR_IDLE && dcache_wr_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Ödata_awaddr²»±ä
         ff_data_awaddr <= dcache_wr_addr;
 end
 assign data_awaddr  = ff_data_awaddr;
@@ -293,15 +376,71 @@ assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalid±
 assign data_wid     = 4'b0001;
 assign data_wstrb   = 4'b1111; //Attention:¶ÔÓÚÔ¶³ÌµÄaxi_ram,wstrb±ØÈ»ÊÇÈ«²¿ÓĞĞ§µÄ;Ğ´DCache¾ÍÊÇÁíÒ»»ØÊÂÁË
 //Attention:¿ÉÒÔÖ¤Ã÷,´ËÊ±´«Êä×îºóÒ»¸ö×Ö,Í¬Ê±Í¨¹ı¿ØÖÆdata_wvalid¿ÉÒÔ±£Ö¤wlastÖ»ÔÚÒ»¸öÊ±ÖÓÉÏÉıÑØ×÷ÓÃ
-assign data_wlast   = (D_WR_nextstate == `D_B_SHAKE && data_wvalid && data_wready) ? 1'b1 : 1'b0;
+//TODO:
+assign data_wlast   = (D_WR_state == `D_W_SHAKE4 && data_wvalid && data_wready) ? 1'b1 : 1'b0;
 assign data_wvalid  = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 ||
                        D_WR_state == `D_W_SHAKE3 || D_WR_state == `D_W_SHAKE4) ? 1'b1 : 1'b0;
 
 assign data_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
 /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÉÏ******************/
 
+/*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÏÂ******************/
+always @(posedge clk) begin //udata_araddr
+    if(~resetn) 
+        ff_udata_araddr <= 32'b0;
+    else if(UD_RD_state == `UD_RD_IDLE && udcache_rd_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Öudata_araddr²»±ä
+        ff_udata_araddr <= udcache_rd_addr;
+end
+assign udata_araddr  = ff_udata_araddr;
+
+always @(posedge clk) begin //udata_awaddr
+    if(~resetn) 
+        ff_udata_awaddr <= 32'b0;
+    else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Öudata_awaddr²»±ä
+        ff_udata_awaddr <= udcache_wr_addr;
+end
+assign udata_awaddr  = ff_udata_awaddr;
+
+always @(posedge clk) begin //udata_wdata Ö±½ÓĞ´Ò»¸ö×Öµ½Ô¶¶Ëaxi_ram ÅäºÏÏÂÃæµÄudata_wstrb
+    if(~resetn)
+        udata_wdata <= 32'b0;
+    else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //Attention:Óëawaddr±£³ÖÒ»ÖÂ¡£²»ÄÜÕÕ°ádata_wdata
+        udata_wdata <= udcache_wr_data;
+end
+
+assign udata_araddr  = ff_udata_araddr;
+assign udata_arid    = 4'b0010;
+assign udata_arlen   = 4'b0000; //Ò»´Î´«Êä
+assign udata_arsize  = 3'b010; //Ò»´Î4 bytes
+assign udata_arburst = 2'b01;
+assign udata_arlock  = 2'b00;
+assign udata_arcache = 4'b0000;
+assign udata_arprot  = 3'b000;
+//udata_arvalid±Èudcache_rd_reqÍíÒ»ÖÜÆÚ
+assign udata_arvalid = (UD_RD_state == `UD_AR_SHAKE) ? 1'b1 : 1'b0; 
+assign udata_rready  = (UD_RD_state == `UD_R_SHAKE) ? 1'b1 : 1'b0;
+
+assign udata_awid    = 4'b0010;
+assign udata_awlen   = 4'b0000; //Ò»´Î´«Êä
+assign udata_awsize  = 3'b010; //Ò»´Î4 bytes
+assign udata_awburst = 2'b01;
+assign udata_awlock  = 2'b00; 
+assign udata_awcache = 4'b0000;
+assign udata_awprot  = 3'b000;
+//udata_awvalid±Èudcache_wr_reqÍíÒ»ÖÜÆÚ
+assign udata_awvalid = (UD_WR_state == `UD_AW_SHAKE) ? 1'b1 : 1'b0; 
+
+assign udata_wid     = 4'b0010;
+assign udata_wstrb   = udcache_wr_strb; 
+assign udata_wlast   = (UD_WR_state == `UD_W_SHAKE && udata_wvalid && udata_wready) ? 1'b1 : 1'b0;
+assign udata_wvalid  = (UD_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;
+
+assign udata_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
+/*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÉÏ******************/
+
+/*******************AXI-Cache×´Ì¬»úÈçÏÂ******************/
 //TODO:×´Ì¬»úµÄ×ªÒÆÌõ¼ş»òĞí¿ÉÒÔ¼ò»¯£¬ºóÆÚ´¦Àí
-//×´Ì¬»ú:ICache Read
+//ICache Read
 always @(posedge clk) begin
     if(~resetn) 
         I_RD_state <= `I_RD_IDLE;
@@ -328,7 +467,7 @@ always @(*) begin //ICache Read
             else I_RD_nextstate <= `I_R_SHAKE3;
         `I_R_SHAKE4:
         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËI_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
-            if(inst_rvalid & inst_rready & inst_rlast) I_RD_nextstate <= `I_RD_IDLE;
+            if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_RD_IDLE;
             else I_RD_nextstate <= `I_R_SHAKE4;  
         default: I_RD_nextstate <= `I_RD_IDLE;
     endcase
@@ -361,7 +500,7 @@ always @(*) begin //DCache Read
             else D_RD_nextstate <= `D_R_SHAKE3;
         `D_R_SHAKE4:
         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
-            if(data_rvalid & data_rready & data_rlast) D_RD_nextstate <= `D_RD_IDLE;
+            if(data_rvalid & data_rready) D_RD_nextstate <= `D_RD_IDLE;
             else D_RD_nextstate <= `D_R_SHAKE4;
         default: D_RD_nextstate <= `D_RD_IDLE;
     endcase
@@ -403,54 +542,107 @@ always @(*) begin //DCache Write
     endcase
 end
 
+//Uncache(DCache) Read
+always @(posedge clk) begin
+    if(~resetn) 
+        UD_RD_state <= `UD_RD_IDLE;
+    else
+        UD_RD_state <= UD_RD_nextstate;        
+end
+
+always @(*) begin
+    case (UD_RD_state)
+        `UD_RD_IDLE: 
+            if(udcache_rd_req) UD_RD_nextstate <= `UD_AR_SHAKE;
+            else UD_RD_nextstate <= `UD_RD_IDLE;
+        `UD_AR_SHAKE:
+            if(udata_arvalid & udata_arready) UD_RD_nextstate <= `UD_R_SHAKE;
+            else UD_RD_nextstate <= `UD_AR_SHAKE;
+        `UD_R_SHAKE:
+        //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_R_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+            if(udata_rvalid & udata_rready) UD_RD_nextstate <= `UD_RD_IDLE;
+            else UD_RD_nextstate <= `UD_R_SHAKE;
+        default: UD_RD_nextstate <= `UD_RD_IDLE;
+    endcase
+end
+
+//Uncache(DCache) Write
+always @(posedge clk) begin
+    if(~resetn) 
+        UD_WR_state <= `UD_WR_IDLE;
+    else
+        UD_WR_state <= UD_WR_nextstate;        
+end
+
+always @(*) begin
+    case (UD_WR_state)
+        `UD_WR_IDLE: 
+            if(udcache_wr_req) UD_WR_nextstate <= `UD_AW_SHAKE;
+            else UD_WR_nextstate <= `UD_WR_IDLE;
+        `UD_AW_SHAKE:
+            if(udata_awvalid & udata_awready) UD_WR_nextstate <= `UD_W_SHAKE;
+            else UD_WR_nextstate <= `UD_AW_SHAKE;
+        `UD_W_SHAKE:
+        //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_W_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇwlast
+            if(udata_wvalid & udata_wready) UD_WR_nextstate <= `UD_B_SHAKE;
+            else UD_WR_nextstate <= `UD_W_SHAKE;
+        `UD_B_SHAKE:
+            if(udata_bvalid & udata_bready) UD_WR_nextstate <= `UD_WR_IDLE;
+            else UD_WR_nextstate <= `UD_B_SHAKE;
+        default: UD_WR_nextstate <= `UD_WR_IDLE;
+    endcase
+end
+/*******************AXI-Cache×´Ì¬»úÈçÉÏ******************/
+
+
 //axi_crossbar:¸ºÔğÖÙ²ÃĞÅºÅ
 //Attention:ÓÅÏÈ¼¶ÎªDCache>ICache
 axi_crossbar U_axi_crossbar(
     .aclk(clk),
     .aresetn(resetn),
 
-    .s_axi_awid    ({4'b0         ,data_awid   }),
-    .s_axi_awaddr  ({32'b0        ,data_awaddr }),
-    .s_axi_awlen   ({4'b0         ,data_awlen  }),
-    .s_axi_awsize  ({3'b0         ,data_awsize }),
-    .s_axi_awburst ({2'b0         ,data_awburst}),
-    .s_axi_awlock  ({2'b0         ,data_awlock }),
-    .s_axi_awcache ({4'b0         ,data_awcache}),
-    .s_axi_awprot  ({3'b0         ,data_awprot }),
-    .s_axi_awqos   (0                           ), //Ã»ÓÃ
-    .s_axi_awvalid ({1'b0         ,data_awvalid}),
-    .s_axi_awready ({1'b0         ,data_awready}),
+    .s_axi_awid    ({4'b0         ,data_awid    ,udata_awid   }),
+    .s_axi_awaddr  ({32'b0        ,data_awaddr  ,udata_awaddr }),
+    .s_axi_awlen   ({4'b0         ,data_awlen   ,udata_awlen  }),
+    .s_axi_awsize  ({3'b0         ,data_awsize  ,udata_awsize }),
+    .s_axi_awburst ({2'b0         ,data_awburst ,udata_awburst}),
+    .s_axi_awlock  ({2'b0         ,data_awlock  ,udata_awlock }),
+    .s_axi_awcache ({4'b0         ,data_awcache ,udata_awcache}),
+    .s_axi_awprot  ({3'b0         ,data_awprot  ,udata_awprot }),
+    .s_axi_awqos   (0                                          ), //Ã»ÓÃ
+    .s_axi_awvalid ({1'b0         ,data_awvalid ,udata_awvalid}),
+    .s_axi_awready ({inst_awready ,data_awready ,udata_awready}),
 
-    .s_axi_wid     ({4'b0         ,data_wid    }),
-    .s_axi_wdata   ({32'b0        ,data_wdata  }),
-    .s_axi_wstrb   ({4'b0         ,data_wstrb  }),
-    .s_axi_wlast   ({1'b0         ,data_wlast  }),
-    .s_axi_wvalid  ({1'b0         ,data_wvalid }),
-    .s_axi_wready  ({1'b0         ,data_wready }),
+    .s_axi_wid     ({4'b0         ,data_wid     ,udata_wid    }),
+    .s_axi_wdata   ({32'b0        ,data_wdata   ,udata_wdata  }),
+    .s_axi_wstrb   ({4'b0         ,data_wstrb   ,udata_wstrb  }),
+    .s_axi_wlast   ({1'b0         ,data_wlast   ,udata_wlast  }),
+    .s_axi_wvalid  ({1'b0         ,data_wvalid  ,udata_wvalid }),
+    .s_axi_wready  ({inst_wready  ,data_wready  ,udata_wready }),
 
-    .s_axi_bid     ({4'b0         ,data_bid    }),
-    .s_axi_bresp   ({2'b0         ,data_bresp  }),
-    .s_axi_bvalid  ({1'b0         ,data_bvalid }),
-    .s_axi_bready  ({1'b0         ,data_bready }),  
+    .s_axi_bid     ({inst_bid     ,data_bid     ,udata_bid    }),
+    .s_axi_bresp   ({inst_bresp   ,data_bresp   ,udata_bresp  }),
+    .s_axi_bvalid  ({inst_bvalid  ,data_bvalid  ,udata_bvalid }),
+    .s_axi_bready  ({1'b0         ,data_bready  ,udata_bready }),  
 
-    .s_axi_arid    ({inst_arid    ,data_arid   }),
-    .s_axi_araddr  ({inst_araddr  ,data_araddr }),
-    .s_axi_arlen   ({inst_arlen   ,data_arlen  }),
-    .s_axi_arsize  ({inst_arsize  ,data_arsize }),
-    .s_axi_arburst ({inst_arburst ,data_arburst}),
-    .s_axi_arlock  ({inst_arlock  ,data_arlock }),
-    .s_axi_arcache ({inst_arcache ,data_arcache}),
-    .s_axi_arprot  ({inst_arprot  ,data_arprot }),
-    .s_axi_arqos   (0                           ), //Ã»ÓÃ
-    .s_axi_arvalid ({inst_arvalid ,data_arvalid}),
-    .s_axi_arready ({inst_arready ,data_arready}),
+    .s_axi_arid    ({inst_arid    ,data_arid    ,udata_arid   }),
+    .s_axi_araddr  ({inst_araddr  ,data_araddr  ,udata_araddr }),
+    .s_axi_arlen   ({inst_arlen   ,data_arlen   ,udata_arlen  }),
+    .s_axi_arsize  ({inst_arsize  ,data_arsize  ,udata_arsize }),
+    .s_axi_arburst ({inst_arburst ,data_arburst ,udata_arburst}),
+    .s_axi_arlock  ({inst_arlock  ,data_arlock  ,udata_arlock }),
+    .s_axi_arcache ({inst_arcache ,data_arcache ,udata_arcache}),
+    .s_axi_arprot  ({inst_arprot  ,data_arprot  ,udata_arprot }),
+    .s_axi_arqos   (0                                          ), //Ã»ÓÃ
+    .s_axi_arvalid ({inst_arvalid ,data_arvalid ,udata_arvalid}),
+    .s_axi_arready ({inst_arready ,data_arready ,udata_arready}),
 
-    .s_axi_rid     ({inst_rid     ,data_rid    }),
-    .s_axi_rdata   ({inst_rdata   ,data_rdata  }),
-    .s_axi_rresp   ({inst_rresp   ,data_rresp  }),
-    .s_axi_rlast   ({inst_rlast   ,data_rlast  }),              
-    .s_axi_rvalid  ({inst_rvalid  ,data_rvalid }),              
-    .s_axi_rready  ({inst_rready  ,data_rready }),             
+    .s_axi_rid     ({inst_rid     ,data_rid     ,udata_rid    }),
+    .s_axi_rdata   ({inst_rdata   ,data_rdata   ,udata_rdata  }),
+    .s_axi_rresp   ({inst_rresp   ,data_rresp   ,udata_rresp  }),
+    .s_axi_rlast   ({inst_rlast   ,data_rlast   ,udata_rlast  }),              
+    .s_axi_rvalid  ({inst_rvalid  ,data_rvalid  ,udata_rvalid }),              
+    .s_axi_rready  ({inst_rready  ,data_rready  ,udata_rready }),             
 
     .m_axi_awid    (awid   ),
     .m_axi_awaddr  (awaddr ),

@@ -74,7 +74,8 @@ wire  [31:0] MEM_result; //MEM阶段 ms_final_result
 wire  [31:0] WB_result; //WB阶段 ws_final_result
 wire         es_load_op; //EXE阶段 判定是否为load指令
 
-wire         flush; 
+wire         flush;
+wire         es_ex; 
 wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC;
@@ -87,6 +88,7 @@ wire         es_inst_mfc0;
 wire         ms_inst_mfc0;
 wire         ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 wire         ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -105,6 +107,18 @@ wire  [ 3:0] dcache_wr_strb; //TODO:目前没用到,不过Uncache会用到
 wire [127:0] dcache_wr_data; //一次写一个cache line的数据
 wire         dcache_wr_rdy;
 
+//AXI和Uncache(DCache)的交互信号
+wire         udcache_rd_req; 
+wire  [31:0] udcache_rd_addr;
+wire         udcache_rd_rdy; 
+wire         udcache_ret_valid; //传输完成后ret_valid置1
+wire  [31:0] udcache_ret_data; //一次一个字
+wire         udcache_wr_req; 
+wire  [31:0] udcache_wr_addr;     
+wire  [ 3:0] udcache_wr_strb; 
+wire  [31:0] udcache_wr_data; //一次一个字
+wire         udcache_wr_rdy; 
+
 //CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
 wire         inst_valid;
 wire         inst_op;
@@ -115,7 +129,7 @@ wire         inst_addr_ok;
 wire         inst_data_ok;
 wire  [31:0] inst_rdata;
 
-//Attention:CPU和DCache的交互信号如下;
+//CPU和DCache的交互信号如下;
 wire         data_valid;
 wire         data_op;
 wire  [ 7:0] data_index;
@@ -181,9 +195,78 @@ AXI_Interface U_AXI_Interface(
     .dcache_ret_data  (dcache_ret_data  ),
     .dcache_wr_req    (dcache_wr_req    ),
     .dcache_wr_addr   (dcache_wr_addr   ),
-    .dcache_wr_strb   (dcache_wr_strb   ),
+    // .dcache_wr_strb   (dcache_wr_strb   ),
     .dcache_wr_data   (dcache_wr_data   ),
-    .dcache_wr_rdy    (dcache_wr_rdy    )
+    .dcache_wr_rdy    (dcache_wr_rdy    ),
+    .udcache_rd_req   (udcache_rd_req   ),
+    .udcache_rd_addr  (udcache_rd_addr  ),
+    .udcache_rd_rdy   (udcache_rd_rdy   ),
+    .udcache_ret_valid(udcache_ret_valid),
+    .udcache_ret_data (udcache_ret_data ),
+    .udcache_wr_req   (udcache_wr_req   ),
+    .udcache_wr_addr  (udcache_wr_addr  ),
+    .udcache_wr_strb  (udcache_wr_strb  ),
+    .udcache_wr_data  (udcache_wr_data  ),
+    .udcache_wr_rdy   (udcache_wr_rdy   )
+);
+
+icache icache(
+    .clk            (aclk     ),
+    .reset          (reset    ),
+    .valid          (inst_valid),
+    .op             (inst_op   ),
+    .index          (inst_index),
+    .tag            (inst_tag  ),
+    .offset         (inst_offset),
+    .flush          (flush     ),
+    .addr_ok        (inst_addr_ok),
+    .data_ok        (inst_data_ok),
+    .rdata          (inst_rdata),
+
+    .rd_req         (icache_rd_req    ),
+    .rd_addr        (icache_rd_addr   ),
+    .rd_rdy         (icache_rd_rdy    ),
+    .ret_valid      (icache_ret_valid ),
+    .ret_data       (icache_ret_data  )
+);
+
+dcache dcache(
+    .clk            (aclk     ),
+    .reset          (reset    ),
+    .d_valid        (data_valid),
+    .d_op           (data_op   ),
+    .d_index        (data_index),
+    .d_tag          (data_tag  ),
+    .d_offset       (data_offset),
+    .d_wstrb        (data_wstrb),
+    .d_wdata        (data_wdata),
+    .d_addr_ok      (data_addr_ok),
+    .d_data_ok      (data_data_ok),
+    .d_rdata        (data_rdata),
+
+    .d_rd_req       (dcache_rd_req    ),
+    .d_rd_addr      (dcache_rd_addr   ),
+    .d_rd_rdy       (dcache_rd_rdy    ),
+    .d_ret_valid    (dcache_ret_valid ),
+    .d_ret_data     (dcache_ret_data  ),
+    .d_wr_req       (dcache_wr_req    ),
+    .d_wr_addr      (dcache_wr_addr   ),
+    // .d_wr_strb      (dcache_wr_strb   ),
+    .d_wr_data      (dcache_wr_data   ),
+    .d_wr_rdy       (dcache_wr_rdy    ),
+
+    .ud_rd_req      (udcache_rd_req    ),
+    .ud_rd_addr     (udcache_rd_addr   ),
+    .ud_rd_rdy      (udcache_rd_rdy    ),
+    .ud_ret_valid   (udcache_ret_valid ),
+    .ud_ret_data    (udcache_ret_data  ),
+    .ud_wr_req      (udcache_wr_req    ),
+    .ud_wr_addr     (udcache_wr_addr   ),
+    .ud_wr_strb     (udcache_wr_strb   ),
+    .ud_wr_data     (udcache_wr_data   ),
+    .ud_wr_rdy      (udcache_wr_rdy    )
+    
+
 );
 
 // IF stage
@@ -207,7 +290,8 @@ if_stage if_stage(
     .inst_offset    (inst_offset    ),
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),
-    .inst_rdata     (inst_rdata     )
+    .inst_rdata     (inst_rdata     ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // ID stage
 id_stage id_stage(
@@ -240,7 +324,8 @@ id_stage id_stage(
     .CP0_Status_EXL (CP0_Status_EXL ), 
     .CP0_Status_IM  (CP0_Status_IM  ),
     .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   )
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -259,7 +344,8 @@ exe_stage exe_stage(
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
-    .flush          (flush          ),  
+    .flush          (flush          ),
+    .es_ex          (es_ex          ),
     .ms_ex          (ms_ex          ),  
     .ws_ex          (ws_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
@@ -271,7 +357,9 @@ exe_stage exe_stage(
     .data_tag       (data_tag       ),
     .data_offset    (data_offset    ),
     .data_addr_ok   (data_addr_ok   ),
-    .data_data_ok   (data_data_ok   )
+    .data_data_ok   (data_data_ok   ),
+    .data_wstrb     (data_wstrb     ),
+    .data_wdata     (data_wdata     )
 );
 // MEM stage
 mem_stage mem_stage(
