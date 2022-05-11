@@ -22,7 +22,7 @@ module mem_stage(
     //from data-sram
     input  [31                 :0] data_sram_rdata,
     output [4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
-    output [31:0] MEM_result, //MEM阶段 ms_final_result  
+    output [31:0] MEM_result,   //MEM阶段 ms_final_result  
     input flush, //flush=1时表明需要处理异常
     input flush_refill,
     output ms_ex, //判定MEM阶段是否有被标记为例外的指令
@@ -71,6 +71,10 @@ wire ms_inst_tlbr   ;
 wire ms_inst_tlbwi  ;  
 wire ms_inst_tlbwr  ;
 
+wire  ms_inst_tlbp;  
+wire  ms_inst_tlbr; 
+wire  ms_inst_tlbwi; 
+wire  ms_inst_tlbwr;
 assign {
         ms_inst_tlbp   ,  //168:168
         ms_inst_tlbr   ,  //167:167
@@ -167,7 +171,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_ms_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill   ) //清除流水线
         es_to_ms_bus_r <= 0;
     else if(flush_refill) begin //清除流水线
         es_to_ms_bus_r <= 0;

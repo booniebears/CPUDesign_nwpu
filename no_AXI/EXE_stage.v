@@ -52,11 +52,20 @@ wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 wire [2:0] es_sel; 
 wire [4:0] es_mfc0_rd;
 wire es_inst_mtc0; 
+<<<<<<< HEAD
 //exe阶段tlb指令
 wire es_inst_tlbp;
 wire es_inst_tlbr;
 wire es_inst_tlbwi;
 wire es_inst_tlbwr;
+=======
+
+//
+wire        es_inst_tlbp;
+wire        es_inst_tlbr;
+wire        es_inst_tlbwi;
+wire        es_inst_tlbwr;
+>>>>>>> origin/HSJ
 
 // wire es_inst_mfc0; //该信号在模块端口定义
 wire es_inst_eret;
@@ -73,7 +82,11 @@ wire ADEL_ex; //地址错例外(读数据)
 assign {
         es_inst_tlbp   ,  //181:181
         es_inst_tlbr   ,  //180:180
+<<<<<<< HEAD
         es_inst_tlbwi  ,  //178:179
+=======
+        es_inst_tlbwi  ,  //179:179
+>>>>>>> origin/HSJ
         es_inst_tlbwr  ,  //178:178
         es_mfc0_rd     ,  //177:173 
         Overflow_inst  ,  //172:170

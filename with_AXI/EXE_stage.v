@@ -16,6 +16,7 @@ module exe_stage(
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output        es_load_op, //EXE阶段 判定是否为load指令
     input         flush, //flush=1时表明需要处理异常
+    input     flush_refill,
     output        es_ex, // TODO 没有必要送到myCPU_top里面
     input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
     input         ws_ex, //判定WB阶段是否有被标记为例外的指令
@@ -167,7 +168,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill) //清除流水线
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;

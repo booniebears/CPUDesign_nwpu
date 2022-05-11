@@ -184,6 +184,7 @@ wire [ 4:0] rf_raddr2; //目前是rt
 wire [31:0] rf_rdata2;
 
 wire        rs_eq_rt; //rs==rt
+
 //tlb添加，添加指令tlbp，tlbr，tlbwi，tlbwr
 wire        inst_tlbp;
 wire        inst_tlbr;
@@ -256,7 +257,7 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill) //清除流水线
         fs_to_ds_bus_r <= 0;
     else if (flush_refill)
         fs_to_ds_bus_r <=0;

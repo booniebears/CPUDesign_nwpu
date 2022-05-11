@@ -58,7 +58,6 @@ assign op_mflo = alu_op[17];
 assign op_mthi = alu_op[18];
 assign op_mtlo = alu_op[19];
 
-
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result; 
 wire [31:0] sltu_result;

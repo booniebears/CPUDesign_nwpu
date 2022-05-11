@@ -17,6 +17,43 @@ module CP0_Reg (
     input [31:0] ws_pc, //WB阶段的PC值
     output [31:0] CP0_data, //mfc0从CP0中读出的数据
     output eret_flush, //ERET指令修改EXL域的使能信号
+    input inst_tlbr,
+    input inst_tlbwi,//判断是否为tlbwi指令
+    input [3:0]  index_tlbwi,//tlbwi指令的索引值
+    input [3:0]  index_tlbr,//tlbwr指令的索引值
+    input inst_tlbp,
+    input [18:0] tlb_vpn2_wd, //以下为tlb写入的数据
+    input [7:0]  tlb_asid_wd ,
+    input [3:0]  tlb_index_wd,
+    input        tlb_p_wd,
+    input [19:0] tlb_pfn0_wd ,//以下为entrylo0寄存器写入tlb的数据
+    input [2:0]  tlb_c0_wd ,
+    input        tlb_d0_wd ,
+    input        tlb_v0_wd ,
+    input        tlb_g0_wd ,
+    input [19:0] tlb_pfn1_wd ,//以下为entrylo1寄存器写入tlb的数据
+    input [2:0]  tlb_c1_wd ,
+    input        tlb_d1_wd ,
+    input        tlb_v1_wd ,
+    input [31:0] virtual_addr,
+    input [31:0] virtual_vpn2,
+  input        tlb_g1_wd ,
+    output reg [3:0]     tlb_index_rd,
+    output reg        tlb_p_rd,
+    output reg [18:0] tlb_vpn2_rd, //以下为tlb读出的数据
+    output reg [7:0]  tlb_asid_rd ,
+    output reg [19:0] tlb_pfn0_rd ,//以下为entrylo0寄存器读出的tlb的数据
+    output reg [2:0]  tlb_c0_rd ,
+    output reg        tlb_d0_rd ,
+    output reg        tlb_v0_rd ,
+    output reg        tlb_g0_rd ,
+    output reg [19:0] tlb_pfn1_rd,//以下为entrylo1寄存器读出的tlb的数据
+    output reg [2:0]  tlb_c1_rd,
+    output reg        tlb_d1_rd ,
+    output reg        tlb_v1_rd ,
+    output reg        tlb_g1_rd ,
+    output      is_found,
+
     output reg [31:0] CP0_EPC,
     output reg CP0_Status_IE,
     output reg CP0_Status_EXL,
@@ -24,6 +61,20 @@ module CP0_Reg (
     output reg [7:0] CP0_Cause_IP,
     output reg CP0_Cause_TI //TI为1,触发定时中断;我们将该中断标记在ID阶段
 );
+reg [3:0] index_index;
+reg index_p;
+reg [19:0] entrylo0_pfn;//entrylo0寄存器的值
+reg [2:0] entrylo0_c;
+reg entrylo0_d;
+reg entrylo0_v;
+reg entrylo0_g;
+reg [19:0] entrylo1_pfn;//entrylo1寄存器的值
+reg [2:0] entrylo1_c;
+reg entrylo1_d;
+reg entrylo1_v;
+reg entrylo1_g;
+reg [18:0] entryhi_vpn2; //EntryHi寄存器中的VPN2
+reg [ 7:0] entryhi_asid; //EntryHi寄存器中的ASID
 
 wire [7:0] CP0_Addr; //写CP0寄存器组的地址
 wire mtc0_we; //写CP0寄存器的写使能信号
@@ -154,9 +205,90 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst
             CP0_BadVAddr<=ws_data_sram_addr;
         else if(ExcCode==`AdEL)
             CP0_BadVAddr<=ws_pc[1:0]?ws_pc:ws_data_sram_addr;
+        else if(ExcCode==`TLBS || ExcCode==`TLBL || ExcCode==`Mod)
+            CP0_BadVAddr<=virtual_addr;
+    end
+end
+//6.EntryHi寄存器
+reg [31:0] CP0_EntryHi;
+always @(posedge clk) begin
+    if(reset) 
+        CP0_EntryHi<=32'b0;
+    else if(inst_tlbr) begin
+        entryhi_vpn2<=tlb_vpn2_wd [index_tlbr];
+        entryhi_asid<=tlb_asid_wd [index_tlbr];
+    end
+    else if (inst_tlbwi) begin
+        tlb_vpn2_rd [index_tlbwi]<=entryhi_vpn2;
+        tlb_asid_rd [index_tlbwi]<=entryhi_asid;
+    end
+     else if(ExcCode==`TLBS || ExcCode==`TLBL || ExcCode==`Mod)
+            entryhi_vpn2<=virtual_vpn2;
+end
+
+//7.EntryLo0寄存器
+reg [31:0] CP0_EntryLo0;
+always @(posedge clk) begin
+    if(reset) 
+        CP0_EntryLo0<=32'b0;
+    else    if(inst_tlbr) begin
+        tlb_pfn0_rd<=entrylo0_pfn;
+        tlb_c0_rd  <=entrylo0_c;
+        tlb_d0_rd  <=entrylo0_d;
+        tlb_v0_rd  <=entrylo0_v;
+        tlb_g0_rd  <=entrylo0_g;
+    end
+    else if (inst_tlbwi) begin
+        entrylo0_pfn<=tlb_pfn0_wd [index_tlbwi];
+        entrylo0_c  <=tlb_c0_wd;
+        entrylo0_d  <=tlb_d0_wd;
+        entrylo0_v  <=tlb_v0_wd;
+        entrylo0_g  <=tlb_g0_wd;
+    end
+end
+//8.EntryLo1寄存器，只实现了描述中的功能
+reg [31:0] CP0_EntryLo1;
+always @(posedge clk) begin
+    if(reset) 
+        CP0_EntryLo1<=32'b0;
+    else if(inst_tlbr) begin
+        tlb_pfn1_rd<=entrylo1_pfn;
+        tlb_c1_rd<=entrylo1_c;
+        tlb_d1_rd<=entrylo1_d;
+        tlb_v1_rd<=entrylo1_v;
+        tlb_g1_rd<=entrylo1_g;
+    end
+    else if (inst_tlbwi) begin
+        entrylo0_pfn<=tlb_pfn1_wd ;
+        entrylo0_c<=tlb_c1_wd ;
+        entrylo0_d<=tlb_d1_wd ;
+        entrylo0_v<=tlb_v1_wd ;
+        entrylo0_g<=tlb_g1_wd ;
     end
 end
 
+//9.Index寄存器
+reg [31:0] CP0_Index;
+always @(posedge clk) begin
+    if(reset)  begin
+        index_index = 5'bx;
+        index_p     = 1'b0;
+    end
+    else if (inst_tlbr) begin
+        index_index<=tlb_index_wd [index_tlbr];
+    end
+    else if (inst_tlbwi) begin
+        tlb_index_rd[index_tlbwi]<=index_index;
+    end
+    else if(inst_tlbp) begin
+        if(is_found) begin
+            index_p=0;
+        end
+        else  begin
+            index_p=1;
+        end
+    end
+    end
 //mfc0指令实现:
 assign CP0_data = 
                   CP0_Addr == `BadVAddr_RegAddr? CP0_BadVAddr:
@@ -167,6 +299,10 @@ assign CP0_data =
                   CP0_Addr == `Cause_RegAddr   ? {CP0_Cause_BD,CP0_Cause_TI,14'b0,CP0_Cause_IP,
                                                   1'b0,CP0_Cause_ExcCode,2'b0}:
                   CP0_Addr == `EPC_RegAddr     ? CP0_EPC:
+                   CP0_Addr == `EntryHi_RegAddr ? {entryhi_vpn2,5'b0,entryhi_asid}:
+                  CP0_Addr == `EntryLo0_RegAddr? {6'b0,entrylo0_pfn,entrylo0_c,entrylo0_d,entrylo0_v,entrylo0_g}:
+                  CP0_Addr == `EntryLo1_RegAddr? {6'b0,entrylo1_pfn,entrylo1_c,entrylo1_d,entrylo1_v,entrylo1_g}:
+                  CP0_Addr == `Index_RegAddr   ? {index_p,27'b0,index_index}:
                                                  32'b0; //TODO:目前CP0_data默认32'b0
 
 endmodule //CP0_Reg

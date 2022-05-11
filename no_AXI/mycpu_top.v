@@ -86,6 +86,7 @@ if_stage if_stage(
     .inst_sram_rdata(inst_sram_rdata),
     //lab8Ìí¼Ó
     .flush          (flush          ),
+    .flush_refill   (flush_refill),
     .CP0_EPC        (CP0_EPC        ), 
     .ws_inst_eret   (ws_inst_eret   ),
     //tlbÌí¼Ó

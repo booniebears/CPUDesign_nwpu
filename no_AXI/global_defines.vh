@@ -22,6 +22,7 @@
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
+<<<<<<< HEAD
     `define Entryhi_RegAddr  8'h78
     `define Entrylo0_RegAddr 8'h80
     `define Entrylo1_RegAddr 8'h88
@@ -32,6 +33,19 @@
     `define TLBL 5'b00010 //取值或读数据
     `define TLBS 5'b00011 //写数据
     `define AdEL 5'b00100 //地址错例外(读数据/取指令)，if
+=======
+    `define EntryHi_RegAddr  8'h78
+    `define EntryLo0_RegAddr 8'h80
+    `define EntryLo1_RegAddr 8'h88
+    `define Index_RegAddr    8'h90
+
+    //ExcCode编码及其对应例外类型
+    `define Int  5'b00000 //中断
+    `define Mod  5'b00001 // TLB修改例外
+    `define TLBL 5'b00010 //TLB例外(取指或读数据)
+    `define TLBS 5'b00011 //TLB例外(写数据)
+    `define AdEL 5'b00100 //地址错例外(读数据/取指令)
+>>>>>>> origin/HSJ
     `define AdES 5'b00101 //地址错例外(写数据)
     `define Sys  5'b01000 //syscall系统调用例外
     `define Bp   5'b01001 //break断点例外
