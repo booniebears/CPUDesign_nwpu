@@ -18,6 +18,7 @@ module wb_stage(
     output [ 4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
     output [31:0] WB_result, //WB阶段 ws_final_result
     output        flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
+   output flush_refill,
     output        ws_ex, //判定WB阶段是否有被标记为例外的指令
     output [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     output        CP0_Status_IE, //IE=1,全局中断使能开启
@@ -48,8 +49,16 @@ wire [31:0] CP0_data; //mfc0从CP0中读出的数据
 wire [4:0] ws_ExcCode; //例外的5位编码
 wire eret_flush;
 wire [31:0] ws_data_sram_addr;
+wire ws_inst_tlbp; 
+wire ws_inst_tlbr;
+wire ws_inst_tlbwi;
+wire ws_inst_tlbwr;
 
 assign {
+    ws_inst_tlbp   ,  //123:123
+        ws_inst_tlbr   ,  //122:122
+        ws_inst_tlbwi  ,  //121:121
+        ws_inst_tlbwr  ,  //120:120
         ws_data_sram_addr,//119:88
         ws_mfc0_rd     ,  //87:83
         ws_ex          ,  //82:82
@@ -88,7 +97,7 @@ end
 always @(posedge clk) begin
     if (reset)
         ms_to_ws_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill) //清除流水线
         ms_to_ws_bus_r <= 0;
     else if (ms_to_ws_valid && ws_allowin) begin
         ms_to_ws_bus_r <= ms_to_ws_bus;

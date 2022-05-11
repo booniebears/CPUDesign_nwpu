@@ -11,6 +11,7 @@ module if_stage(
     output reg                     fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
+    input flush_refill,
     input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     input         ws_inst_eret,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
@@ -62,13 +63,14 @@ end
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
 assign nextpc          = ws_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
+                           flush_refill ? 32'hbfc00200:
                          flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
                          npc_block ? ( 
                          br_taken && ~br_stall && ~mfc0_stall? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生
 
 
-assign fs_allowin     =  flush ? 1'b1 : ds_allowin; 
+assign fs_allowin     =  flush||flush_refill ? 1'b1 : ds_allowin; 
 
 always @(posedge clk) begin
     if (reset) 
