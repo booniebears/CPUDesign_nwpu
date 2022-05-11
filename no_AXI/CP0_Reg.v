@@ -70,8 +70,8 @@ reg [2:0] entrylo1_c;
 reg entrylo1_d;
 reg entrylo1_v;
 reg entrylo1_g;
-reg entryhi_vpn2; //EntryHi寄存器中的VPN2
-reg entryhi_asid; //EntryHi寄存器中的ASID
+reg [18:0] entryhi_vpn2; //EntryHi寄存器中的VPN2
+reg  entryhi_asid; //EntryHi寄存器中的ASID
 
 reg index_p;
 reg [3:0] index_index;
