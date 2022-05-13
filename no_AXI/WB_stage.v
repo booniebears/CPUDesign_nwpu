@@ -153,11 +153,10 @@ CP0_Reg u_CP0_Reg(
     .tlb_to_cp0_c1(tlb_to_cp0_c1),
     .tlb_to_cp0_d1(tlb_to_cp0_d1),
     .tlb_to_cp0_g1(tlb_to_cp0_g1),
-    .virtual_vpn2(virtual_vpn2),
-    
+    .virtual_vpn2(virtual_vpn2)
     );
 
-     input clk,
+    input clk,
     input reset,
     input [ 4:0] ws_mfc0_rd,
     input [2:0] ws_sel,
