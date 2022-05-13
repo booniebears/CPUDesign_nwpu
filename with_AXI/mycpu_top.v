@@ -2,7 +2,7 @@
 
 module mycpu_top(
     // 外部中断信号
-    input  [ 5:0]   ext_int, //6个外部硬件中断输入
+    input  [ 5:0]   int, //6个外部硬件中断输入
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -419,7 +419,7 @@ wb_stage wb_stage(
     .CP0_Cause_IP     (CP0_Cause_IP     ),
     .CP0_Cause_TI     (CP0_Cause_TI     ), 
     .ws_inst_eret     (ws_inst_eret     ), 
-    .ext_int          (ext_int          )
+    .ext_int          (int          )
 );
 
 tlb_stage tlb_stage(
