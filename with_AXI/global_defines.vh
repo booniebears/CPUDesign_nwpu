@@ -22,9 +22,9 @@
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
-    `define EntryHi_RegAddr  8'h78
-    `define EntryLo0_RegAddr 8'h80
-    `define EntryLo1_RegAddr 8'h88
+    `define Entryhi_RegAddr  8'h78
+    `define Entrylo0_RegAddr 8'h80
+    `define Entrylo1_RegAddr 8'h88
     `define Index_RegAddr    8'h90
     //ExcCode编码及其对应例外类型
     `define Int  5'b00000 //中断
