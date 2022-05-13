@@ -54,6 +54,63 @@ wire ws_inst_tlbr;
 wire ws_inst_tlbwi;
 wire ws_inst_tlbwr;
 
+CP0_Reg u_CP0_Reg(
+    .clk(clk),
+    .reset(reset),
+    .ws_mfc0_rd(ws_mfc0_rd),
+    .ws_sel(ws_sel),
+    .ws_valid(ws_valid),
+    .ws_inst_mtc0(ws_inst_mtc0),
+    .ws_inst_eret(ws_inst_eret),
+    .ws_result(ws_result),
+    .ws_bd(ws_bd),
+    .ws_ex(ws_ex),
+    .ws_data_sram_addr(ws_data_sram_addr),
+    .ext_int(ext_int),
+    .ExcCode(ExcCode),
+    .ws_pc(ws_pc),
+    .CP0_data(CP0_data),
+    .eret_flush(eret_flush),
+    .inst_tlbr(ws_inst_tlbr),
+    .inst_tlbwi(ws_inst_tlbwi),
+    .inst_tlbp(ws_inst_tlbp),
+    .tlb_to_cp0_vpn2(tlb_to_cp0_vpn2),
+    .tlb_to_cp0_asid(tlb_to_cp0_asid),
+    .tlb_to_cp0_index(tlb_to_cp0_index),
+    .tlb_to_cp0_p(tlb_to_cp0_p),
+    .tlb_to_cp0_pfn0(tlb_to_cp0_pfn0),
+    .tlb_to_cp0_c0(tlb_to_cp0_c0),
+    .tlb_to_cp0_d0(tlb_to_cp0_d0),
+    .tlb_to_cp0_v0(tlb_to_cp0_v0),
+    .tlb_to_cp0_g0(tlb_to_cp0_g0),
+    .tlb_to_cp0_pfn1(tlb_to_cp0_pfn1),
+    .tlb_to_cp0_c1(tlb_to_cp0_c1),
+    .tlb_to_cp0_d1(tlb_to_cp0_d1),
+    .tlb_to_cp0_g1(tlb_to_cp0_g1),
+    .virtual_vpn2(virtual_vpn2),
+    .cp0_to_tlb_vpn2(cp0_to_tlb_vpn2),
+    .cp0_to_tlb_asid(cp0_to_tlb_asid),
+    .cp0_to_tlb_pfn0(cp0_to_tlb_pfn0),
+    .cp0_to_tlb_c0(cp0_to_tlb_c0),
+    .cp0_to_tlb_d0(cp0_to_tlb_d0),
+    .cp0_to_tlb_v0(cp0_to_tlb_v0),
+    .cp0_to_tlb_g0(cp0_to_tlb_g0),
+    .cp0_to_tlb_pfn1(cp0_to_tlb_pfn1),
+    .cp0_to_tlb_c1(cp0_to_tlb_c1),
+    .cp0_to_tlb_d1(cp0_to_tlb_d1),
+    .cp0_to_tlb_v1(cp0_to_tlb_v1),
+    .cp0_to_tlb_g1(cp0_to_tlb_g1),
+    .cp0_to_tlb_index(cp0_to_tlb_index),
+    .CP0_EPC(CP0_EPC),
+    .CP0_Status_IE(CP0_Status_IE),
+    .CP0_Status_EXL(CP0_Status_EXL),
+    .CP0_Status_IM(CP0_Status_IM),
+    .CP0_Cause_IP(CP0_Cause_IP),
+    .CP0_Cause_TI(CP0_Cause_TI)
+    );
+
+
+
 assign {
     ws_inst_tlbp   ,  //123:123
         ws_inst_tlbr   ,  //122:122
@@ -118,30 +175,6 @@ assign debug_wb_rf_wdata = ws_final_result;
 assign WB_dest=ws_dest&{5{ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign WB_result=ws_final_result; //mfc0读出的数据也会前递到ID阶段
 
-CP0_Reg u_CP0_Reg(
-    .clk(clk),
-    .reset(reset),
-    .ws_mfc0_rd(ws_mfc0_rd),
-    .ws_sel(ws_sel),
-    .ws_valid(ws_valid),
-    .ws_inst_mtc0(ws_inst_mtc0),
-    .ws_inst_eret(ws_inst_eret),
-    .ws_result(ws_result),
-    .ws_bd(ws_bd),
-    .ws_ex(ws_ex),
-    .ws_data_sram_addr(ws_data_sram_addr),
-    .ext_int(ext_int),
-    .ExcCode(ws_ExcCode),
-    .ws_pc(ws_pc),
-    .CP0_data(CP0_data),
-    .eret_flush(eret_flush),
-    .CP0_EPC(CP0_EPC),
-    .CP0_Status_IE(CP0_Status_IE),
-    .CP0_Status_EXL(CP0_Status_EXL),
-    .CP0_Status_IM(CP0_Status_IM),
-    .CP0_Cause_IP(CP0_Cause_IP),
-    .CP0_Cause_TI(CP0_Cause_TI)
-);
 
 assign flush = eret_flush | ws_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 
