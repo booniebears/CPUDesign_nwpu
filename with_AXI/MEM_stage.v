@@ -17,7 +17,7 @@ module mem_stage(
     output [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
     input         flush, //flush=1时表明需要处理异常
-    input flush_refill,
+    input         flush_refill,
     output        ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output        ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
     output        ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
@@ -51,12 +51,13 @@ wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
 
+//mem阶段tlb指令
 wire  ms_inst_tlbp;  
 wire  ms_inst_tlbr; 
 wire  ms_inst_tlbwi; 
 wire  ms_inst_tlbwr;
 assign {  
-     ms_inst_tlbp   ,  //168:168
+        ms_inst_tlbp   ,  //168:168
         ms_inst_tlbr   ,  //167:167
         ms_inst_tlbwi  ,  //166:166
         ms_inst_tlbwr  ,  //165:165

@@ -16,7 +16,7 @@ module exe_stage(
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output        es_load_op, //EXE阶段 判定是否为load指令
     input         flush, //flush=1时表明需要处理异常
-    input     flush_refill,
+    input         flush_refill,
     output        es_ex, // TODO 没有必要送到myCPU_top里面
     input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
     input         ws_ex, //判定WB阶段是否有被标记为例外的指令
@@ -70,6 +70,7 @@ wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire ADES_ex; //地址错例外(写数据)
 wire ADEL_ex; //地址错例外(读数据)
 
+// exe阶段tlb指令
 wire        es_inst_tlbp;
 wire        es_inst_tlbr;
 wire        es_inst_tlbwi;

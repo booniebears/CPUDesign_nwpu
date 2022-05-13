@@ -11,7 +11,7 @@ module if_stage(
     output reg                     fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
-    input flush_refill,
+    input         flush_refill,
     input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     input         ws_inst_eret,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
