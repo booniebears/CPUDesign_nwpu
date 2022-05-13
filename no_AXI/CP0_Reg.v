@@ -1,5 +1,8 @@
 `include "global_defines.vh"
-
+//todo 1.tlb例外是由if还是mem触发的，
+//tlb例外分读和写
+//查命名，接口，信号生成逻辑
+//考虑加入itlb，dtlb
 module CP0_Reg 
 (
     input clk,
@@ -21,37 +24,34 @@ module CP0_Reg
     input inst_tlbr,
     input inst_tlbwi,//判断是否为tlbwi指令
     input inst_tlbp,//判断是否为tlbp指令
-    input [18:0] tlb_vpn2_wd, //以下为tlb写入的数据
-    input [7:0]  tlb_asid_wd ,
-    input [3:0]  tlb_index_wd,
-    input        tlb_p_wd,
-    input [19:0] tlb_pfn0_wd ,//以下为entrylo0寄存器写入tlb的数据
-    input [2:0]  tlb_c0_wd ,
-    input        tlb_d0_wd ,
-    input        tlb_v0_wd ,
-    input        tlb_g0_wd ,
-    input [19:0] tlb_pfn1_wd ,//以下为entrylo1寄存器写入tlb的数据
-    input [2:0] tlb_c1_wd ,
-    input  tlb_d1_wd ,
-    input  tlb_v1_wd ,
-    input  tlb_g1_wd ,
-    input      [3:0]  index_tlbp,
-    input      [3:0]  index_tlbwi,//tlbwi指令的索引值
-    input [31:0] virtual_addr,
+    input        tlb_to_cp0_isfound,//tlb查找是否成功
+    input [18:0] tlb_to_cp0_vpn2, //以下为tlb写入的数据
+    input [7:0]  tlb_to_cp0_asid ,
+    input [3:0]  tlb_to_cp0_index, 
+    input        tlb_to_cp0_p, //TODO:没用到?
+    input [19:0] tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c0 ,
+    input        tlb_to_cp0_d0 ,
+    input        tlb_to_cp0_v0 ,
+    input        tlb_to_cp0_g0 ,
+    input [19:0] tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c1 ,
+    input        tlb_to_cp0_d1 ,
+    input        tlb_to_cp0_v1 ,
+    input        tlb_to_cp0_g1 ,
     input [18:0] virtual_vpn2,
-    output reg [18:0] tlb_vpn2_rd, //以下为tlb读出的数据
-    output reg [7:0]  tlb_asid_rd ,
-    output reg [19:0] tlb_pfn0_rd ,//以下为entrylo0寄存器读出的tlb的数据
-    output reg [2:0]  tlb_c0_rd ,
-    output reg        tlb_d0_rd ,
-    output reg        tlb_v0_rd ,
-    output reg        tlb_g0_rd ,
-    output reg [19:0] tlb_pfn1_rd,//以下为entrylo1寄存器读出的tlb的数据
-    output reg [2:0]  tlb_c1_rd,
-    output reg        tlb_d1_rd ,
-    output reg        tlb_v1_rd ,
-    output reg        tlb_g1_rd ,
-    output      is_found,
+    output reg [18:0] cp0_to_tlb_vpn2, //以下为tlb读出的数据
+    output reg [7:0]  cp0_to_tlb_asid ,
+    output reg [19:0] cp0_to_tlb_pfn0 ,//以下为entrylo0寄存器读出的tlb的数据
+    output reg [2:0]  cp0_to_tlb_c0 ,
+    output reg        cp0_to_tlb_d0 ,
+    output reg        cp0_to_tlb_v0 ,
+    output reg        cp0_to_tlb_g0 ,
+    output reg [19:0] cp0_to_tlb_pfn1,//以下为entrylo1寄存器读出的tlb的数据
+    output reg [2:0]  cp0_to_tlb_c1,
+    output reg        cp0_to_tlb_d1 ,
+    output reg        cp0_to_tlb_v1 ,
+    output reg        cp0_to_tlb_g1 ,
 
    
     output reg [3:0]  index_tlbr,//tlbwr指令的索引值
@@ -73,11 +73,9 @@ reg entrylo1_d;
 reg entrylo1_v;
 reg entrylo1_g;
 reg [18:0] entryhi_vpn2; //EntryHi寄存器中的VPN2
-reg  entryhi_asid; //EntryHi寄存器中的ASID
+reg [7:0]  entryhi_asid; //EntryHi寄存器中的ASID
 
-reg index_p;
-reg [3:0] index_index;
-reg found_vindex;//index寄存器P值中判断是否查询到虚地址
+
 reg tlb_found;
 
 
@@ -206,22 +204,25 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst
         else if(ExcCode==`AdEL)
             CP0_BadVAddr<=ws_pc[1:0]?ws_pc:ws_data_sram_addr;
         else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod)
-            CP0_BadVAddr <= virtual_addr;
+            CP0_BadVAddr <= ws_data_sram_addr;
     end
 end
 //6.EntryHi寄存器
 reg [31:0] CP0_EntryHi;
 always @(posedge clk) begin
     if(reset) begin
-        CP0_EntryHi<=32'h0;
+        CP0_EntryHi <= 32'h0 ;
     end
     else if(inst_tlbr) begin
-        entryhi_vpn2<=tlb_vpn2_wd [index_tlbr];
-        entryhi_asid<=tlb_asid_wd [index_tlbr];
+        entryhi_vpn2 <= tlb_to_cp0_vpn2 ;
+        entryhi_asid <= tlb_to_cp0_asid ;
+    end
+    else if(inst_tlbp) begin
+        if()
     end
     else if (inst_tlbwi) begin
-        tlb_vpn2_rd [index_tlbwi]<=entryhi_vpn2;
-        tlb_asid_rd [index_tlbwi]<=entryhi_asid;
+        cp0_to_tlb_vpn2 <= entryhi_vpn2 ;
+        cp0_to_tlb_asid <= entryhi_asid ;
     end
     else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod) begin
         entryhi_vpn2<=virtual_vpn2;
@@ -235,18 +236,18 @@ always @(posedge clk) begin
         CP0_EntryLo0<=32'h0;
     end
     else if(inst_tlbr) begin
-        tlb_pfn0_rd<=entrylo0_pfn;
-        tlb_c0_rd  <=entrylo0_c;
-        tlb_d0_rd  <=entrylo0_d;
-        tlb_v0_rd  <=entrylo0_v;
-        tlb_g0_rd  <=entrylo0_g;
+        cp0_to_tlb_pfn0<=entrylo0_pfn;
+        cp0_to_tlb_c0  <=entrylo0_c;
+        cp0_to_tlb_d0  <=entrylo0_d;
+        cp0_to_tlb_v0  <=entrylo0_v;
+        cp0_to_tlb_g0  <=entrylo0_g;
     end
     else if (inst_tlbwi) begin
-        entrylo0_pfn<=tlb_pfn0_wd [index_tlbwi];
-        entrylo0_c  <=tlb_c0_wd;
-        entrylo0_d  <=tlb_d0_wd;
-        entrylo0_v  <=tlb_v0_wd;
-        entrylo0_g  <=tlb_g0_wd;
+        entrylo0_pfn<=tlb_to_cp0_pfn0 [tlb_to_cp0_index];
+        entrylo0_c  <=tlb_to_cp0_c0;
+        entrylo0_d  <=tlb_to_cp0_d0;
+        entrylo0_v  <=tlb_to_cp0_v0;
+        entrylo0_g  <=tlb_to_cp0_g0;
     end
 end
 //8.EntryLo1寄存器，只实现了描述中的功能
@@ -256,46 +257,53 @@ always @(posedge clk) begin
         CP0_EntryLo1<=32'h0;
     end
     else if(inst_tlbr) begin
-        tlb_pfn1_rd<=entrylo1_pfn;
-        tlb_c1_rd<=entrylo1_c;
-        tlb_d1_rd<=entrylo1_d;
-        tlb_v1_rd<=entrylo1_v;
-        tlb_g1_rd<=entrylo1_g;
+        cp0_to_tlb_pfn1<=entrylo1_pfn;
+        cp0_to_tlb_c1<=entrylo1_c;
+        cp0_to_tlb_d1<=entrylo1_d;
+        cp0_to_tlb_v1<=entrylo1_v;
+        cp0_to_tlb_g1<=entrylo1_g;
     end
     else if (inst_tlbwi) begin
-        entrylo0_pfn<=tlb_pfn1_wd ;
-        entrylo0_c<=tlb_c1_wd ;
-        entrylo0_d<=tlb_d1_wd ;
-        entrylo0_v<=tlb_v1_wd ;
-        entrylo0_g<=tlb_g1_wd ;
+        entrylo0_pfn<=tlb_to_cp0_pfn1 ;
+        entrylo0_c<=tlb_to_cp0_c1 ;
+        entrylo0_d<=tlb_to_cp0_d1 ;
+        entrylo0_v<=tlb_to_cp0_v1 ;
+        entrylo0_g<=tlb_to_cp0_g1 ;
     end
 end
 //9.index寄存器
-reg [3:0] CP0_Index;
+reg CP0_Index_P;
+reg [3:0] CP0_Index_Index;
+
+always @(posedge clk) begin
+    if(reset) 
+        CP0_Index_P <= 1'b0;
+    else if(inst_tlbp) begin
+        if(tlb_to_cp0_isfound) begin
+            CP0_Index_P <= 1'b1;
+        end 
+        else if(!tlb_to_cp0_isfound) begin
+            CP0_Index_P <= 1'b0;
+        end
+    end
+end
+
 always @(posedge clk) begin
     if(reset) begin
-        CP0_Index<=4'b0;
+        CP0_Index_Index <= 4'b0;
     end
-    else if(inst_tlbp) begin
-        if(found_vindex) begin
-        index_p<=1'b1;
-        end 
-        else if(!found_vindex) begin
-        index_p<=1'b0;
-        end
-        end
-        else if(tlb_found) begin
-            index_index<=index_tlbp;
-        end
-        else if(!tlb_found) begin
-            index_index<=4'bxxx;
-        end
+    else if(tlb_found) begin
+        CP0_Index_Index <= tlb_to_cp0_index;
+    end
+    else if(!tlb_found) begin
+        CP0_Index_Index <= 4'b0;
+    end
     else if(inst_tlbwi) begin
-        index_index<=index_tlbwi;
+        CP0_Index_Index <= tlb_to_cp0_index;
     end
-    else if(inst_tlbr)  begin
-        index_tlbr<=index_index; 
-    end
+    // else if(inst_tlbr)  begin
+    //     index_tlbr <= CP0_Index_Index; 
+    // end
 end
 
 //mfc0指令实现:
@@ -311,7 +319,7 @@ assign CP0_data =
                   CP0_Addr == `Entryhi_RegAddr ? {entryhi_vpn2,5'b0,entryhi_asid}:
                   CP0_Addr == `Entrylo0_RegAddr? {6'b0,entrylo0_pfn,entrylo0_c,entrylo0_d,entrylo0_v,entrylo0_g}:
                   CP0_Addr == `Entrylo1_RegAddr? {6'b0,entrylo1_pfn,entrylo1_c,entrylo1_d,entrylo1_v,entrylo1_g}:
-                  CP0_Addr == `Index_RegAddr   ? {index_p,27'b0,index_index}:
+                  CP0_Addr == `Index_RegAddr   ? {CP0_Index_P,27'b0,CP0_Index_Index}:
                                                  32'b0; //TODO:目前CP0_data默认32'b0
 
 endmodule //CP0_Reg

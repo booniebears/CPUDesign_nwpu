@@ -133,17 +133,87 @@ CP0_Reg u_CP0_Reg(
     .ws_ex(ws_ex),
     .ws_data_sram_addr(ws_data_sram_addr),
     .ext_int(ext_int),
-    .ExcCode(ws_ExcCode),
+    .ExcCode(ExcCode),
     .ws_pc(ws_pc),
     .CP0_data(CP0_data),
     .eret_flush(eret_flush),
-    .CP0_EPC(CP0_EPC),
-    .CP0_Status_IE(CP0_Status_IE),
-    .CP0_Status_EXL(CP0_Status_EXL),
-    .CP0_Status_IM(CP0_Status_IM),
-    .CP0_Cause_IP(CP0_Cause_IP),
-    .CP0_Cause_TI(CP0_Cause_TI)
-);
+    .inst_tlbr(ws_inst_tlbr),
+    .inst_tlbp(ws_inst_tlbp),
+    .inst_tlbwi(ws_inst_tlbwi),
+    .tlb_to_cp0_vpn2(tlb_to_cp0_vpn2),
+    .tlb_to_cp0_asid(tlb_to_cp0_asid),
+    .tlb_to_cp0_index(tlb_to_cp0_index),
+    .tlb_to_cp0_p(tlb_to_cp0_p),
+    .tlb_to_cp0_pfn0(tlb_to_cp0_pfn0),
+    .tlb_to_cp0_c0(tlb_to_cp0_c0),
+    .tlb_to_cp0_d0(tlb_to_cp0_d0),
+    .tlb_to_cp0_v0(tlb_to_cp0_v0),
+    .tlb_to_cp0_g0(tlb_to_cp0_g0),
+    .tlb_to_cp0_pfn1(tlb_to_cp0_pfn1),
+    .tlb_to_cp0_c1(tlb_to_cp0_c1),
+    .tlb_to_cp0_d1(tlb_to_cp0_d1),
+    .tlb_to_cp0_g1(tlb_to_cp0_g1),
+    .virtual_vpn2(virtual_vpn2),
+    
+    );
+
+    input clk,
+    input reset,
+    input [ 4:0] ws_mfc0_rd,
+    input [2:0] ws_sel,
+    input ws_valid,
+    input ws_inst_mtc0,
+    input ws_inst_eret,
+    input [31:0] ws_result,
+    input ws_bd,
+    input ws_ex, //ws阶段 若报出例外,置为1,否则为0
+    input [31:0] ws_data_sram_addr, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
+    input [5:0] ext_int, //6个外部硬件中断输入
+    input [4:0] ExcCode, //Cause寄存器中 例外的5位编码
+    input [31:0] ws_pc, //WB阶段的PC值
+    output [31:0] CP0_data, //mfc0从CP0中读出的数据
+    output eret_flush, //ERET指令修改EXL域的使能信号
+    input inst_tlbr,
+    input inst_tlbwi,//判断是否为tlbwi指令
+    input inst_tlbp,//判断是否为tlbp指令
+    input [18:0] tlb_to_cp0_vpn2, //以下为tlb写入的数据
+    input [7:0]  tlb_to_cp0_asid ,
+    input [3:0]  tlb_to_cp0_index, 
+    input        tlb_to_cp0_p, //TODO:没用到?
+    input [19:0] tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c0 ,
+    input        tlb_to_cp0_d0 ,
+    input        tlb_to_cp0_v0 ,
+    input        tlb_to_cp0_g0 ,
+    input [19:0] tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c1 ,
+    input        tlb_to_cp0_d1 ,
+    input        tlb_to_cp0_v1 ,
+    input        tlb_to_cp0_g1 ,
+    // input [31:0] virtual_addr,
+    input [18:0] virtual_vpn2,
+    output reg [18:0] tlb_vpn2_rd, //以下为tlb读出的数据
+    output reg [7:0]  tlb_asid_rd ,
+    output reg [19:0] tlb_pfn0_rd ,//以下为entrylo0寄存器读出的tlb的数据
+    output reg [2:0]  tlb_c0_rd ,
+    output reg        tlb_d0_rd ,
+    output reg        tlb_v0_rd ,
+    output reg        tlb_g0_rd ,
+    output reg [19:0] tlb_pfn1_rd,//以下为entrylo1寄存器读出的tlb的数据
+    output reg [2:0]  tlb_c1_rd,
+    output reg        tlb_d1_rd ,
+    output reg        tlb_v1_rd ,
+    output reg        tlb_g1_rd ,
+    output      is_found,
+
+   
+    output reg [3:0]  index_tlbr,//tlbwr指令的索引值
+    output reg [31:0] CP0_EPC,
+    output reg CP0_Status_IE,
+    output reg CP0_Status_EXL,
+    output reg [7:0] CP0_Status_IM,
+    output reg [7:0] CP0_Cause_IP,
+    output reg CP0_Cause_TI //TI为1,触发定时中断;我们将该中断标记在ID阶段
 
 assign flush = eret_flush | ws_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 
