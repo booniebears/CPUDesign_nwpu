@@ -18,6 +18,10 @@ module exe_stage(
     input         flush, //flush=1时表明需要处理异常
     input     flush_refill,
     output        es_ex, // TODO 没有必要送到myCPU_top里面
+  //tlb例外
+    input         tlb_invalid_mem_ex,
+    input         tlb_refill_mem_ex,
+    input         tlb_mod_ex,
     input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
     input         ws_ex, //判定WB阶段是否有被标记为例外的指令
     output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段

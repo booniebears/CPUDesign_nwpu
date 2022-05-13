@@ -14,6 +14,8 @@ module if_stage(
     input flush_refill,
     input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     input         ws_inst_eret,
+    input [4:0] tlb_refill_if_ex,
+    input [4:0] tlb_invalid_if_ex,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
     output reg    inst_valid,
     output        inst_op,
@@ -91,9 +93,11 @@ end
 
 //异常的报出和fs_pc同拍,而inst_sram的使能信号则要与nextpc的更新同拍,后者比前者快一拍
 assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0; 
-assign fs_ex      = ADEL_ex;
-assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111; //TODO:全1目前代表无异常
-
+assign fs_ex      = ADEL_ex||tlb_invalid_if_ex||tlb_invalid_if_ex;
+assign fs_ExcCode = ADEL_ex ? `AdEL : //TODO:全1目前代表无异常
+                    tlb_invalid_if_ex ? `tlb_invalid_if :
+                    tlb_refill_if_ex  ? `tlb_refill_if  : 5'b11111;   
+                                
 //TODO:flush情况下,为了防止可能被错误读进来的跳转指令,强行设置为0
 //TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
 assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
@@ -114,6 +118,22 @@ end
 
 assign inst_op    = 1'b0; //读
 assign {inst_tag,inst_index,inst_offset} = nextpc;
+
+//ExcCode编码及其对应例外类型
+    `define Int                 5'b00000 //中断
+    `define Mod                 5'b00001 // TLB修改例外
+    `define tlb_refill_if       5'b00010 //TLB例外(取指或读数据)
+    `define tlb_invalid_if      5'b00011 //TLB例外(取指或读数据)
+    `define rd_tlb_refill_mem   5'b00100 //TLB例外(取指或读数据)
+    `define rd_tlb_invalid_mem  5'b00101 //TLB例外(取指或读数据)
+    `define wr_tlb_refill_mem   5'b00110 //TLB例外(写数据)
+    `define wr_tlb_invalid_mem  5'b00111
+    `define AdEL                5'b01000 //地址错例外(读数据/取指令)
+    `define AdES                5'b01001 //地址错例外(写数据)
+    `define Sys                 5'b01010 //syscall系统调用例外
+    `define Bp                  5'b01011 //break断点例外
+    `define RI                  5'b01100 //保留指令(未定义指令)例外
+    `define Ov                  5'b01101 //算术溢出例外
 
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule

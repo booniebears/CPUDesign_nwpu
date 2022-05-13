@@ -8,16 +8,16 @@ module mem_stage(
     output        ms_allowin,
     //from es
     input         es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    input         [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
     //to ws
     output        ms_to_ws_valid,
-    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
+    output        [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
     //from data-sram
-    input  [                 31:0] data_rdata,//TODO:data_rdata换成从DCache读回来的数据rdata
+    input  [31:0] data_rdata,//TODO:data_rdata换成从DCache读回来的数据rdata
     output [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
     input         flush, //flush=1时表明需要处理异常
-    input flush_refill,
+    input         flush_refill,
     output        ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output        ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
     output        ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写

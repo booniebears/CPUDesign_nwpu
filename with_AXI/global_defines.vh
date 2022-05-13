@@ -22,19 +22,23 @@
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
-    `define EntryHi_RegAddr  8'h78
-    `define EntryLo0_RegAddr 8'h80
-    `define EntryLo1_RegAddr 8'h88
+    `define Entryhi_RegAddr  8'h78
+    `define Entrylo0_RegAddr 8'h80
+    `define Entrylo1_RegAddr 8'h88
     `define Index_RegAddr    8'h90
     //ExcCode编码及其对应例外类型
-    `define Int  5'b00000 //中断
-     `define Mod  5'b00001 // TLB修改例外
-    `define TLBL 5'b00010 //TLB例外(取指或读数据)
-    `define TLBS 5'b00011 //TLB例外(写数据)
-    `define AdEL 5'b00100 //地址错例外(读数据/取指令)
-    `define AdES 5'b00101 //地址错例外(写数据)
-    `define Sys  5'b01000 //syscall系统调用例外
-    `define Bp   5'b01001 //break断点例外
-    `define RI   5'b01010 //保留指令(未定义指令)例外
-    `define Ov   5'b01100 //算术溢出例外
+    `define Int                 5'b00000 //中断
+    `define Mod                 5'b00001 // TLB修改例外
+    `define tlb_refill_if       5'b00010 //TLB例外(取指或读数据)
+    `define tlb_invalid_if      5'b00011 //TLB例外(取指或读数据)
+    `define rd_tlb_refill_mem   5'b00100 //TLB例外(取指或读数据)
+    `define rd_tlb_invalid_mem  5'b00101 //TLB例外(取指或读数据)
+    `define wr_tlb_refill_mem   5'b00110 //TLB例外(写数据)
+    `define wr_tlb_invalid_mem  5'b00111
+    `define AdEL                5'b01000 //地址错例外(读数据/取指令)
+    `define AdES                5'b01001 //地址错例外(写数据)
+    `define Sys                 5'b01010 //syscall系统调用例外
+    `define Bp                  5'b01011 //break断点例外
+    `define RI                  5'b01100 //保留指令(未定义指令)例外
+    `define Ov                  5'b01101 //算术溢出例外
 `endif
