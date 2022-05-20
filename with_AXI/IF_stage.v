@@ -100,6 +100,9 @@ assign fs_ExcCode = ADEL_ex ? `AdEL : 5'b11111;
 //TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
 assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
 
+//TODO:flush情况下,为了防止可能被错误读进来的跳转指令,强行设置为0
+//TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
+assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
