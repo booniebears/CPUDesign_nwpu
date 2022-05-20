@@ -24,13 +24,15 @@ module id_stage(
     input [31:0] WB_result, //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
     input        es_load_op, //EXE阶段 判定是否为load指令
     input        flush, //flush=1时表明需要处理异常
+    input        flush_refill, //flush_refill=1时表明需要处理异常
     input        es_inst_mfc0,
     input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
     input        CP0_Status_IE, //IE=1,全局中断使能开启
     input        CP0_Status_EXL, //EXL=0,没有例外正在处理
     input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
     input [ 7:0] CP0_Cause_IP, //待处理中断标识
-    input        CP0_Cause_TI  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input        CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output       mfc0_stall   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 );
 
 reg         ds_valid   ;
@@ -174,6 +176,12 @@ wire        inst_eret;
 wire        inst_syscall;
 wire        inst_break;
 
+//tlb添加 添加指令TLBWI,TLBWR,TLBP,TLBR
+wire        inst_tlbp;
+wire        inst_tlbr;
+wire        inst_tlbwi;
+wire        inst_tlbwr;
+
 wire        dst_is_r31;  
 wire        dst_is_rt;   
 
@@ -202,11 +210,15 @@ wire        rslez;
 wire        rsltz;
 
 //lab8添加
-wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
+// wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
 
 assign br_bus       = {is_branch,br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
+                       inst_tlbp,     //181:181
+                       inst_tlbr,     //180:180
+                       inst_tlbwi,    //179:179
+                       inst_tlbwr,    //178:178
                        mfc0_rd     ,  //177:173 --mfc0中的rd域 指定CP0寄存器的读写地址
                        Overflow_inst, //172:170 --可能涉及整型溢出例外的三条指令:add,addi,sub
                        ds_ex       ,  //169:169 --ID阶段 发现异常则置为1
@@ -246,7 +258,7 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill) //清除流水线
         fs_to_ds_bus_r <= 0;
     else if (fs_to_ds_valid & ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
@@ -338,6 +350,13 @@ assign inst_mfc0   = op_d[6'h10] & rs_d[5'h00];
 assign inst_eret   = op_d[6'h10] & func_d[6'h18];
 assign inst_syscall= op_d[6'h00] & func_d[6'h0c];
 assign inst_break  = op_d[6'h00] & func_d[6'h0d];
+
+//tlb添加 添加指令TLBWI,TLBWR,TLBP,TLBR 
+assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
+assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
+assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
+assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -346,7 +365,7 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break;
+| inst_eret | inst_syscall | inst_break|inst_tlbp|inst_tlbr|inst_tlbwi|inst_tlbwr;
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
@@ -367,7 +386,7 @@ reg [1:0] Time_state,Time_next_state;
 always @(*) begin //该状态机同时处理next_state和Time_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI&&has_int) begin
+            if(CP0_Cause_TI&&has_int && ds_valid) begin
                 Time_next_state<=Time_Start;
                 Time_int<=1'b1;
             end
@@ -403,7 +422,7 @@ reg [1:0] Soft_state,Soft_next_state;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP[1:0]!=0&&has_int) begin
+            if(CP0_Cause_IP[1:0]!=0&&has_int && ds_valid) begin
                 Soft_next_state<=Soft_Start;
                 Soft_int<=1'b1;
             end
@@ -514,7 +533,7 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 assign rs_eq_rt = (rs_value == rt_value);
 assign is_branch= inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
 | inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
-assign br_taken = (   inst_beq  &  rs_eq_rt
+assign br_taken =  (   inst_beq  &  rs_eq_rt
                    || inst_bne  & !rs_eq_rt
                    || inst_jal
                    || inst_jr
@@ -526,7 +545,7 @@ assign br_taken = (   inst_beq  &  rs_eq_rt
                    || inst_bltz & rsltz
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
-                  ); //Attention:删掉ds_valid
+                  ) ; //TODO:见例外不跳转
 
 //fs_pc为当前指令的下一条指令的地址,直接从fs_to_ds_bus中取出的没有经过寄存器
 //例外入口地址统一为0xbfc00380

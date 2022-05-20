@@ -2,7 +2,7 @@
 
 module mycpu_top(
     // 外部中断信号
-    input  [ 5:0]   ext_int, //6个外部硬件中断输入
+    input  [ 5:0]   int, //6个外部硬件中断输入
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -74,7 +74,8 @@ wire  [31:0] MEM_result; //MEM阶段 ms_final_result
 wire  [31:0] WB_result; //WB阶段 ws_final_result
 wire         es_load_op; //EXE阶段 判定是否为load指令
 
-wire         flush; 
+wire         flush;
+wire         es_ex; 
 wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC;
@@ -87,6 +88,7 @@ wire         es_inst_mfc0;
 wire         ms_inst_mfc0;
 wire         ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 wire         ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -186,7 +188,6 @@ AXI_Interface U_AXI_Interface(
     .icache_rd_rdy    (icache_rd_rdy    ),
     .icache_ret_valid (icache_ret_valid ),
     .icache_ret_data  (icache_ret_data  ),
-
     .dcache_rd_req    (dcache_rd_req    ),
     .dcache_rd_addr   (dcache_rd_addr   ),
     .dcache_rd_rdy    (dcache_rd_rdy    ),
@@ -217,6 +218,7 @@ icache icache(
     .index          (inst_index),
     .tag            (inst_tag  ),
     .offset         (inst_offset),
+    .flush          (flush     ),
     .addr_ok        (inst_addr_ok),
     .data_ok        (inst_data_ok),
     .rdata          (inst_rdata),
@@ -279,8 +281,11 @@ if_stage if_stage(
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
     .flush          (flush          ),
+    .flush_refill   (flush_refill   ), 
     .CP0_EPC        (CP0_EPC        ), 
     .ws_inst_eret   (ws_inst_eret   ),
+    .tlb_refill_if_ex(tlb_refill_if_ex),
+    .tlb_invalid_if_ex(tlb_invalid_if_ex),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
     .inst_index     (inst_index     ),
@@ -288,7 +293,8 @@ if_stage if_stage(
     .inst_offset    (inst_offset    ),
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),
-    .inst_rdata     (inst_rdata     )
+    .inst_rdata     (inst_rdata     ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // ID stage
 id_stage id_stage(
@@ -315,13 +321,15 @@ id_stage id_stage(
     .WB_result      (WB_result      ),
     .es_load_op     (es_load_op     ),
     .flush          (flush          ),
+    .flush_refill   (flush_refill   ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .ms_inst_mfc0   (ms_inst_mfc0   ),
     .CP0_Status_IE  (CP0_Status_IE  ), 
     .CP0_Status_EXL (CP0_Status_EXL ), 
     .CP0_Status_IM  (CP0_Status_IM  ),
     .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   )
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -340,7 +348,12 @@ exe_stage exe_stage(
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
-    .flush          (flush          ),  
+    .flush          (flush          ),
+    .flush_refill   (flush_refill   ),
+    .es_ex          (es_ex          ),
+    .tlb_invalid_mem_ex(tlb_invalid_mem_ex),
+    .tlb_refill_mem_ex(tlb_refill_mem_ex),
+    .tlb_mod_ex     (tlb_mod_ex),
     .ms_ex          (ms_ex          ),  
     .ws_ex          (ws_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
@@ -351,10 +364,10 @@ exe_stage exe_stage(
     .data_index     (data_index     ),
     .data_tag       (data_tag       ),
     .data_offset    (data_offset    ),
-    .data_addr_ok   (data_addr_ok   ),
-    .data_data_ok   (data_data_ok   ),
     .data_wstrb     (data_wstrb     ),
-    .data_wdata     (data_wdata     )
+    .data_wdata     (data_wdata     ),
+    .data_addr_ok   (data_addr_ok   ),
+    .data_data_ok   (data_data_ok   )
 );
 // MEM stage
 mem_stage mem_stage(
@@ -373,6 +386,7 @@ mem_stage mem_stage(
     .MEM_dest       (MEM_dest       ), 
     .MEM_result     (MEM_result     ),
     .flush          (flush          ), 
+    .flush_refill   (flush_refill   ),
     .ms_ex          (ms_ex          ), 
     .ms_inst_mfc0   (ms_inst_mfc0   ), 
     .ms_inst_eret   (ms_inst_eret   ) 
@@ -395,7 +409,8 @@ wb_stage wb_stage(
     .debug_wb_rf_wdata(debug_wb_rf_wdata),
     .WB_dest          (WB_dest          ), 
     .WB_result        (WB_result        ),
-    .flush            (flush            ), 
+    .flush            (flush            ),
+    .flush_refill     (flush_refill     ), 
     .ws_ex            (ws_ex            ), 
     .CP0_EPC          (CP0_EPC          ), 
     .CP0_Status_IE    (CP0_Status_IE    ), 
@@ -404,8 +419,56 @@ wb_stage wb_stage(
     .CP0_Cause_IP     (CP0_Cause_IP     ),
     .CP0_Cause_TI     (CP0_Cause_TI     ), 
     .ws_inst_eret     (ws_inst_eret     ), 
-    .ext_int          (ext_int          )
+    .ext_int          (int          )
 );
+
+tlb tlb_stage(
+    .clk              (aclk             ),
+    .s0_vpn2          (s0_vpn2          ),
+    .s0_odd_page      (s0_odd_page      ),
+    .s0_asid          (s0_asid          ),
+    .s0_found         (s0_found         ),
+    .s0_index         (s0_index         ),
+    .s0_pfn           (s0_pfn           ),
+    .s0_c             (s0_c             ),
+    .s0_d             (s0_d             ),
+    .s0_v             (s0_v             ),
+    .s1_vpn2          (s1_vpn2          ),
+    .s1_odd_page      (s1_odd_page      ),
+    .s1_asid          (s1_asid          ),
+    .s1_found         (s1_found         ),
+    .s1_index         (s1_index         ),
+    .s1_pfn           (s1_pfn           ),
+    .s1_c             (s1_c             ),
+    .s1_d             (s1_d             ),
+    .s1_v             (s1_v             ),
+    .we               (we               ),    //
+    .w_index          (w_index          ),
+    .w_vpn2           (w_vpn2           ),
+    .w_asid           (w_asid           ),
+    .w_g              (w_g              ),
+    .w_pfn0           (w_pfn0           ),
+    .w_c0             (w_c0             ),
+    .w_d0             (w_d0             ),
+    .w_v0             (w_v0             ),
+    .w_pfn1           (w_pfn1           ),
+    .w_c1             (w_c1             ),
+    .w_d1             (w_d1             ),
+    .w_v1             (w_v1             ),
+    .r_index          (r_index          ),
+    .r_vpn2           (r_vpn2           ),
+    .r_asid           (r_asid           ),
+    .r_g              (r_g              ),    
+    .r_pfn0           (r_pfn0           ),
+    .r_c0             (r_c0             ),
+    .r_d0             (r_d0             ),
+    .r_v0             (r_v0             ),
+    .r_pfn1           (r_pfn1           ),
+    .r_c1             (r_c1             ),
+    .r_d1             (r_d1             ),
+    .r_v1             (r_v1             )
+);
+
 
 
 endmodule

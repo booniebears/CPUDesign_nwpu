@@ -1,6 +1,10 @@
 `include "global_defines.vh"
-
-module CP0_Reg (
+//todo 1.tlbÀıÍâÊÇÓÉif»¹ÊÇmem´¥·¢µÄ£¬
+//tlbÀıÍâ·Ö¶ÁºÍĞ´
+//²éÃüÃû£¬½Ó¿Ú£¬ĞÅºÅÉú³ÉÂß¼­
+//¿¼ÂÇ¼ÓÈëitlb£¬dtlb
+module CP0_Reg 
+(
     input clk,
     input reset,
     input [ 4:0] ws_mfc0_rd,
@@ -11,23 +15,69 @@ module CP0_Reg (
     input [31:0] ws_result,
     input ws_bd,
     input ws_ex, //ws½×¶Î Èô±¨³öÀıÍâ,ÖÃÎª1,·ñÔòÎª0
-    input [31:0] ws_data_sram_addr, //ÈôÓĞµØÖ·´íÀıÍâ,ÔòĞèÒªÓÃBadVAddr¼Ä´æÆ÷¼ÇÂ¼´íÎóµÄĞéµØÖ·
-    input [5:0] ext_int, //6¸öÍâ²¿Ó²¼şÖĞ¶ÏÊäÈë
-    input [4:0] ExcCode, //Cause¼Ä´æÆ÷ÖĞ ÀıÍâµÄ5Î»±àÂë
-    input [31:0] ws_pc, //WB½×¶ÎµÄPCÖµ
+    input  [31:0] ws_data_sram_addr, //ÈôÓĞµØÖ·´íÀıÍâ,ÔòĞèÒªÓÃBadVAddr¼Ä´æÆ÷¼ÇÂ¼´íÎóµÄĞéµØÖ·
+    input  [5:0] ext_int, //6¸öÍâ²¿Ó²¼şÖĞ¶ÏÊäÈë
+    input  [4:0] ExcCode, //Cause¼Ä´æÆ÷ÖĞ ÀıÍâµÄ5Î»±àÂë
+    input  [31:0] ws_pc, //WB½×¶ÎµÄPCÖµ
     output [31:0] CP0_data, //mfc0´ÓCP0ÖĞ¶Á³öµÄÊı¾İ
     output eret_flush, //ERETÖ¸ÁîĞŞ¸ÄEXLÓòµÄÊ¹ÄÜĞÅºÅ
-    output reg [31:0] CP0_EPC,
-    output reg CP0_Status_IE,
-    output reg CP0_Status_EXL,
-    output reg [7:0] CP0_Status_IM,
-    output reg [7:0] CP0_Cause_IP,
-    output reg CP0_Cause_TI //TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
+    input inst_tlbr,
+    input inst_tlbwi,//ÅĞ¶ÏÊÇ·ñÎªtlbwiÖ¸Áî
+    input inst_tlbp,//ÅĞ¶ÏÊÇ·ñÎªtlbpÖ¸Áî
+    input           tlb_to_cp0_found,//tlb²éÕÒÊÇ·ñ³É¹¦
+    input  [18:0]   tlb_to_cp0_vpn2, //ÒÔÏÂÎªtlbĞ´ÈëµÄÊı¾İ
+    input  [7:0]    tlb_to_cp0_asid ,
+    input  [3:0]    tlb_to_cp0_index, 
+    input           tlb_to_cp0_p, //TODO:Ã»ÓÃµ½?
+    input  [19:0]   tlb_to_cp0_pfn0 ,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [2:0]    tlb_to_cp0_c0 ,
+    input           tlb_to_cp0_d0 ,
+    input           tlb_to_cp0_v0 ,
+    input           tlb_to_cp0_g0 ,
+    input  [19:0]   tlb_to_cp0_pfn1 ,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [2:0]    tlb_to_cp0_c1 ,
+    input           tlb_to_cp0_d1 ,
+    input           tlb_to_cp0_v1 ,
+    input           tlb_to_cp0_g1 ,
+    input  [18:0]   virtual_vpn2,
+    output [18:0]   cp0_to_tlb_vpn2, //ÒÔÏÂÎªtlb¶Á³öµÄÊı¾İ
+    output [7:0]    cp0_to_tlb_asid ,
+    output [19:0]   cp0_to_tlb_pfn0 ,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output [2:0]    cp0_to_tlb_c0 ,
+    output          cp0_to_tlb_d0 ,
+    output          cp0_to_tlb_v0 ,
+    output          cp0_to_tlb_g0 ,
+    output   [19:0] cp0_to_tlb_pfn1,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output   [2:0]  cp0_to_tlb_c1,
+    output          cp0_to_tlb_d1 ,
+    output          cp0_to_tlb_v1 ,
+    output          cp0_to_tlb_g1 ,
+    output   [3:0]  cp0_to_tlb_index,//tlbwrÖ¸ÁîµÄË÷ÒıÖµ
+    output  reg [31:0] CP0_EPC,
+    output  reg CP0_Status_IE,
+    output  reg CP0_Status_EXL,
+    output  reg [7:0] CP0_Status_IM,
+    output  reg [7:0] CP0_Cause_IP,
+    output  reg CP0_Cause_TI //TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
 );
+reg [19:0] entrylo0_pfn;//entrylo0¼Ä´æÆ÷µÄÖµ
+reg [2:0] entrylo0_c;
+reg entrylo0_d;
+reg entrylo0_v;
+reg entrylo0_g;
+reg [19:0] entrylo1_pfn;//entrylo1¼Ä´æÆ÷µÄÖµ
+reg [2:0] entrylo1_c;
+reg entrylo1_d;
+reg entrylo1_v;
+reg entrylo1_g;
+reg [18:0] entryhi_vpn2; //EntryHi¼Ä´æÆ÷ÖĞµÄVPN2
+reg [7:0]  entryhi_asid; //EntryHi¼Ä´æÆ÷ÖĞµÄASID
+
+
+
 
 wire [7:0] CP0_Addr; //Ğ´CP0¼Ä´æÆ÷×éµÄµØÖ·
 wire mtc0_we; //Ğ´CP0¼Ä´æÆ÷µÄĞ´Ê¹ÄÜĞÅºÅ
-
 //1.Status¼Ä´æÆ÷:·ÖÎªBevÓò,IM7-IM0,EXLÓò,IEÓò ÆäÖĞIM,EXL,IEÔÚ¶Ë¿ÚÖĞ¶¨ÒåÁË
 wire CP0_Status_Bev; 
 
@@ -35,10 +85,6 @@ assign CP0_Addr={ws_mfc0_rd,ws_sel}; //°´ÕÕÖ¸ÁîÒªÇó,CP0µÄ8Î»¶ÁĞ´µØÖ·ÓÉrd¶Î(ÕâÀï¾
 assign mtc0_we=ws_valid&&ws_inst_mtc0&&!ws_ex; //Ö¸ÁîÎªmtc0,ÇÒWB½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòĞ´Ê¹ÄÜÉúĞ§
 
 assign eret_flush=ws_valid&&ws_inst_eret&&!ws_ex; //Ö¸ÁîÎªeret,ÇÒWB½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòÇå¿ÕÁ÷Ë®ÏßÊ¹ÄÜÓĞĞ§
-// always @(posedge clk) begin //assign¸Ä³Éalways
-//     if(reset) eret_flush<=1'b0;
-//     else eret_flush<=ws_valid&&ws_inst_eret&&!ws_ex;
-// end
 
 assign CP0_Status_Bev=1'b1; //BevÓòºãÎª1,Ö»¶Á
 
@@ -154,8 +200,99 @@ always @(posedge clk) begin //BadVAddr¼Ä´æÆ÷Ö»¶Á Ö»ÒªÓĞµØÖ·´í(¶ÁĞ´sram»òÕß¶Áinst
             CP0_BadVAddr<=ws_data_sram_addr;
         else if(ExcCode==`AdEL)
             CP0_BadVAddr<=ws_pc[1:0]?ws_pc:ws_data_sram_addr;
+       /* else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod)
+            CP0_BadVAddr <= ws_data_sram_addr;*/
     end
 end
+//6.EntryHi¼Ä´æÆ÷
+reg [31:0] CP0_EntryHi;
+always @(posedge clk) begin
+    if(reset) begin
+        CP0_EntryHi <= 32'h0 ;
+    end
+    else if(inst_tlbr) begin
+        entryhi_vpn2 <= tlb_to_cp0_vpn2 ;
+        entryhi_asid <= tlb_to_cp0_asid ;
+    end
+
+    /*else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod) begin
+        entryhi_vpn2<=virtual_vpn2;*/
+end
+
+assign  cp0_to_tlb_vpn2 = inst_tlbwi ? entryhi_vpn2 : 19'b0 ;
+assign  cp0_to_tlb_asid = inst_tlbwi ? entryhi_asid : 8'b0 ;
+
+//7.EntryLo0¼Ä´æÆ÷
+reg [31:0] CP0_EntryLo0;
+always @(posedge clk) begin
+    if(reset) begin
+        CP0_EntryLo0<=32'h0;
+    end
+    else if (inst_tlbr) begin
+        entrylo0_pfn  <= tlb_to_cp0_pfn0;
+        entrylo0_c    <= tlb_to_cp0_c0  ;
+        entrylo0_d    <= tlb_to_cp0_d0  ;
+        entrylo0_v    <= tlb_to_cp0_v0  ;
+        entrylo0_g    <= tlb_to_cp0_g0  ;
+    end
+end
+assign cp0_to_tlb_pfn0 = inst_tlbwi ? entrylo0_pfn  : 20'b0 ;
+assign cp0_to_tlb_c0   = inst_tlbwi ? entrylo0_c    : 3'b0  ;
+assign cp0_to_tlb_d0   = inst_tlbwi ? entrylo0_d    : 1'b0  ;
+assign cp0_to_tlb_v0   = inst_tlbwi ? entrylo0_v    : 1'b0  ;
+assign cp0_to_tlb_g0   = inst_tlbwi ? entrylo0_g    : 1'b0  ;
+//8.EntryLo1¼Ä´æÆ÷£¬Ö»ÊµÏÖÁËÃèÊöÖĞµÄ¹¦ÄÜ
+reg [31:0] CP0_EntryLo1;
+always @(posedge clk) begin
+    if(reset) begin
+        CP0_EntryLo1<=32'h0;
+    end
+    else if (inst_tlbr) begin
+        entrylo1_pfn <= tlb_to_cp0_pfn1 ;
+        entrylo1_c   <= tlb_to_cp0_c1   ;
+        entrylo1_d   <= tlb_to_cp0_d1   ;
+        entrylo1_v   <= tlb_to_cp0_v1   ;
+        entrylo1_g   <= tlb_to_cp0_g1   ;
+    end
+end
+assign cp0_to_tlb_pfn1 = inst_tlbwi ? entrylo1_pfn  : 20'b0 ;
+assign cp0_to_tlb_c1   = inst_tlbwi ? entrylo1_c    : 3'b0  ;
+assign cp0_to_tlb_d1   = inst_tlbwi ? entrylo1_d    : 1'b0  ;
+assign cp0_to_tlb_v1   = inst_tlbwi ? entrylo1_v    : 1'b0  ;
+assign cp0_to_tlb_g1   = inst_tlbwi ? entrylo1_g    : 1'b0  ;
+//9.index¼Ä´æÆ÷
+reg CP0_Index_P;
+reg [3:0] CP0_Index_Index;
+
+always @(posedge clk) begin
+    if(reset) 
+        CP0_Index_P <= 1'b0;
+    else if(inst_tlbp) begin
+        if(tlb_to_cp0_found) begin
+            CP0_Index_P <= 1'b1;
+        end 
+        else if(!tlb_to_cp0_found) begin
+            CP0_Index_P <= 1'b0;
+        end
+    end
+end
+
+always @(posedge clk) begin
+    if(reset) begin
+        CP0_Index_Index <= 4'b0;
+    end
+    else if(inst_tlbp&&tlb_to_cp0_found) begin
+        CP0_Index_Index <= tlb_to_cp0_index;
+    end
+    else if(inst_tlbp&&!tlb_to_cp0_found) begin
+        CP0_Index_Index <= 4'b0;
+    end
+    else if(inst_tlbwi) begin
+        CP0_Index_Index <= tlb_to_cp0_index;
+    end
+end
+
+assign cp0_to_tlb_index = (inst_tlbr||inst_tlbwi) ? CP0_Index_Index : 4'b0 ;
 
 //mfc0Ö¸ÁîÊµÏÖ:
 assign CP0_data = 
@@ -167,6 +304,10 @@ assign CP0_data =
                   CP0_Addr == `Cause_RegAddr   ? {CP0_Cause_BD,CP0_Cause_TI,14'b0,CP0_Cause_IP,
                                                   1'b0,CP0_Cause_ExcCode,2'b0}:
                   CP0_Addr == `EPC_RegAddr     ? CP0_EPC:
+                  CP0_Addr == `Entryhi_RegAddr ? {entryhi_vpn2,5'b0,entryhi_asid}:
+                  CP0_Addr == `Entrylo0_RegAddr? {6'b0,entrylo0_pfn,entrylo0_c,entrylo0_d,entrylo0_v,entrylo0_g}:
+                  CP0_Addr == `Entrylo1_RegAddr? {6'b0,entrylo1_pfn,entrylo1_c,entrylo1_d,entrylo1_v,entrylo1_g}:
+                  CP0_Addr == `Index_RegAddr   ? {CP0_Index_P,27'b0,CP0_Index_Index}:
                                                  32'b0; //TODO:Ä¿Ç°CP0_dataÄ¬ÈÏ32'b0
 
 endmodule //CP0_Reg
