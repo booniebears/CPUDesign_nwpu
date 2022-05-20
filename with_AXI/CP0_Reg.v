@@ -200,9 +200,9 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst
             CP0_BadVAddr<=ws_data_sram_addr;
         else if(ExcCode==`AdEL)
             CP0_BadVAddr<=ws_pc[1:0]?ws_pc:ws_data_sram_addr;
-        else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod)
+        /*else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod)
             CP0_BadVAddr <= ws_data_sram_addr;
-    end
+    end*/
 end
 //6.EntryHi寄存器
 reg [31:0] CP0_EntryHi;
