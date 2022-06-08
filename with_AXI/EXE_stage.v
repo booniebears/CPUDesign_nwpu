@@ -16,17 +16,15 @@ module exe_stage(
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output        es_load_op, //EXE阶段 判定是否为load指令
     input         flush, //flush=1时表明需要处理异常
-    input     flush_refill,
+    // input     flush_refill,
     output        es_ex, // TODO 没有必要送到myCPU_top里面
-  //tlb例外
-    input         tlb_invalid_mem_ex,
-    input         tlb_refill_mem_ex,
-    input         tlb_mod_ex,
+//   //tlb例外
+//     input         tlb_invalid_mem_ex,
+//     input         tlb_refill_mem_ex,
+//     input         tlb_mod_ex,
     input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
-    input         ws_ex, //判定WB阶段是否有被标记为例外的指令
     output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
     input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-    input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
     //Attention:CPU和DCache的交互信号如下;
     output reg    data_valid,
     output        data_op,
@@ -73,8 +71,16 @@ wire Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire ADES_ex; //地址错例外(写数据)
 wire ADEL_ex; //地址错例外(读数据)
+wire es_inst_tlbp ;
+wire es_inst_tlbr ;
+wire es_inst_tlbwi;
+wire es_inst_tlbwr;
 
 assign {
+        es_inst_tlbp   ,  //181:181
+        es_inst_tlbr   ,  //180:180
+        es_inst_tlbwi  ,  //179:179
+        es_inst_tlbwr  ,  //178:178
         es_mfc0_rd     ,  //177:173 
         Overflow_inst  ,  //172:170
         temp_ex        ,  //169:169 
@@ -125,10 +131,13 @@ assign      inst_is_lh  = es_mem_inst[4];
 assign      inst_is_lhu = es_mem_inst[5];
 assign      inst_is_lw  = es_mem_inst[0];
 
-
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
                       //TODO:es_alu_result目前暂代data_sram_addr
+                       es_inst_tlbp   ,  //168:168
+                       es_inst_tlbr   ,  //167:167
+                       es_inst_tlbwi  ,  //166:166
+                       es_inst_tlbwr  ,  //165:165
                        es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
@@ -172,7 +181,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush||flush_refill) //清除流水线
+    else if (flush) //清除流水线
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;
@@ -218,19 +227,18 @@ assign sram_wen   = inst_is_sb  ? (es_alu_result[1:0] == 2'b00 ? 4'b0001 :
                                                                  4'b1111;
 
 alu u_alu(
-    .clk        (clk          ),
-    .reset      (reset        ),
-    .alu_op     (es_alu_op    ),
-    .alu_src1   (es_alu_src1  ),
-    .alu_src2   (es_alu_src2  ),
-    .alu_result (temp_alu_result),
-    .Overflow_inst(Overflow_inst),
-    .m_axis_dout_tvalid(m_axis_dout_tvalid),
+    .clk                (clk          ),
+    .reset              (reset        ),
+    .alu_op             (es_alu_op    ),
+    .alu_src1           (es_alu_src1  ),
+    .alu_src2           (es_alu_src2  ),
+    .alu_result         (temp_alu_result),
+    .Overflow_inst      (Overflow_inst),
+    .m_axis_dout_tvalid (m_axis_dout_tvalid),
     .m_axis_dout_tvalidu(m_axis_dout_tvalidu),
-    .Overflow_ex(Overflow_ex),
-    .es_ex(es_ex),
-    .ms_ex(ms_ex),
-    .ws_ex(ws_ex)
+    .Overflow_ex        (Overflow_ex),
+    .es_ex              (es_ex),
+    .ms_ex              (ms_ex)
 );
 
 //lab8添加 当该指令为mtc0 把es_alu_result保存为es_rt_value;否则即为alu运算得到的值
@@ -252,7 +260,7 @@ assign es_ExcCode = Overflow_ex ? `Ov   :
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin
-    if(es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret)
+    if(es_ex | ms_ex | ms_inst_eret)
         data_valid <= 1'b0;
     else if((es_load_op | es_mem_we) & data_addr_ok & ms_allowin & es_valid)
         data_valid <= 1'b1;
@@ -262,7 +270,7 @@ end
 
 assign data_op    = es_mem_we ? 1'b1 : 1'b0;
 assign {data_tag,data_index,data_offset} = (es_load_op | es_mem_we) ? es_alu_result : {data_tag,data_index,data_offset};
-assign data_wstrb = es_ex | ms_ex | ws_ex | ms_inst_eret | ws_inst_eret ? 4'b0 :
+assign data_wstrb = es_ex | ms_ex | ms_inst_eret ? 4'b0 :
                     es_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
