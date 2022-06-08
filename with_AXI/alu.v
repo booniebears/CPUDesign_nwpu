@@ -6,12 +6,11 @@ module alu(
     input  [31:0] alu_src2,
     output [31:0] alu_result,
     input  [ 2:0] Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
-    output m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
-    output m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
-    output Overflow_ex, //有整型溢出置为1
-    input es_ex,
-    input ms_ex,
-    input ws_ex
+    output        m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
+    output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
+    output        Overflow_ex, //有整型溢出置为1
+    input         es_ex,
+    input         ms_ex
 );
 
 wire op_add;   //加法操作
@@ -231,7 +230,7 @@ always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
         HI <= 32'b0;
         LO <= 32'b0;
     end
-    else if(!es_ex&&!ms_ex&&!ws_ex) begin
+    else if(!es_ex && !ms_ex) begin
         if(op_div) begin
             HI <= div_result[31:0];//商写LO,余数写HI
             LO <= div_result[63:32];
