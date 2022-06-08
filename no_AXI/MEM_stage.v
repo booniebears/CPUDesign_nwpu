@@ -1,6 +1,13 @@
 `include "global_defines.vh"
 
 module mem_stage(
+    //tlb
+    input                          s1_found      ,
+    input                          mem_store     ,
+    input                          s1_v          ,
+    input                          mem_load      ,
+    input                          s1_d          ,
+    input                          virtual_addr  ,
     input                          clk           ,
     input                          reset         ,
     //allowin
@@ -15,11 +22,18 @@ module mem_stage(
     //from data-sram
     input  [31                 :0] data_sram_rdata,
     output [4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
-    output [31:0] MEM_result, //MEM阶段 ms_final_result  
+    output [31:0] MEM_result,   //MEM阶段 ms_final_result  
     input flush, //flush=1时表明需要处理异常
+    input flush_refill,
     output ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
-    output ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    output ms_inst_eret,//MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    output reg ms_ex_rdtlb_refill,
+    output reg ms_ex_rdtlb_invalid,
+    output reg ms_ex_wrtlb_refill,
+    output reg ms_ex_wrtlb_invalid,
+    output reg ms_ex_mod,
+    output reg ms_tlbex
 );
 
 reg         ms_valid;
@@ -51,8 +65,21 @@ wire ms_inst_mtc0;
 wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
+//MEM阶段的tlb指令
+wire ms_inst_tlbp   ;
+wire ms_inst_tlbr   ;  
+wire ms_inst_tlbwi  ;  
+wire ms_inst_tlbwr  ;
 
+wire  ms_inst_tlbp;  
+wire  ms_inst_tlbr; 
+wire  ms_inst_tlbwi; 
+wire  ms_inst_tlbwr;
 assign {
+        ms_inst_tlbp   ,  //168:168
+        ms_inst_tlbr   ,  //167:167
+        ms_inst_tlbwi  ,  //166:166
+        ms_inst_tlbwr  ,  //165:165
         ms_data_sram_addr,//164:133 
         ms_mfc0_rd     ,  //132:128
         ms_ex          ,  //127:127
@@ -75,6 +102,10 @@ wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
+                       ms_inst_tlbp   ,  //123:123
+                       ms_inst_tlbr   ,  //122:122
+                       ms_inst_tlbwi  ,  //121:121
+                       ms_inst_tlbwr  ,  //120:120
                        ms_data_sram_addr,//119:88
                        ms_mfc0_rd     ,  //87:83
                        ms_ex          ,  //82:82
@@ -140,10 +171,44 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_ms_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush||flush_refill   ) //清除流水线
         es_to_ms_bus_r <= 0;
+    else if(flush_refill) begin //清除流水线
+        es_to_ms_bus_r <= 0;
+    end
     else if (es_to_ms_valid && ms_allowin) begin
         es_to_ms_bus_r <= es_to_ms_bus;
+    end
+end
+
+always @(posedge clk) begin
+    if(s1_found==1'b1&&mem_load==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000))begin
+        ms_ex_rdtlb_refill<=1'b1;
+        ms_tlbex<=1'b1;
+    end
+    else if(s1_found==1'b1&&s1_v==1'b0&&mem_load==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
+        ms_ex_rdtlb_invalid<=1'b1;
+        ms_tlbex<=1'b1;
+    end
+    else if(s1_found == 1'b0 && mem_store==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
+        ms_ex_wrtlb_refill<=1'b1;
+        ms_tlbex<=1'b1;
+    end
+    else if(s1_found == 1'b1 && s1_v == 1'b0 && mem_store==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
+        ms_ex_wrtlb_invalid<=1'b1;
+        ms_tlbex<=1'b1;
+    end
+    else if(s1_found == 1'b1 && s1_v == 1'b1 && s1_d == 1'b0 && mem_store==1'b1 && (virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
+        ms_ex_mod<=1'b1;
+        ms_tlbex<=1'b1;
+    end
+    else begin
+        ms_ex_rdtlb_refill<=1'b0;
+        ms_ex_rdtlb_invalid<=1'b0;
+        ms_ex_wrtlb_refill<=1'b0;
+        ms_ex_wrtlb_invalid<=1'b0;
+        ms_ex_mod<=1'b0;
+        ms_tlbex<=1'b0;
     end
 end
 
