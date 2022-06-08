@@ -11,21 +11,19 @@
     //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_MS_BUS_WD 169
-    //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
-    //lab9修改为120(加入data_sram_addr)
-    `define MS_TO_WS_BUS_WD 124
+    `define MS_TO_WS_BUS_WD 103
     `define WS_TO_RF_BUS_WD 38
     //CP0寄存器对应的地址(8位)
+    `define Index_RegAddr    8'h00
+    `define Entrylo0_RegAddr 8'h10
+    `define Entrylo1_RegAddr 8'h18
     `define BadVAddr_RegAddr 8'h40
     `define Count_RegAddr    8'h48
+    `define Entryhi_RegAddr  8'h50
     `define Compare_RegAddr  8'h58
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
-    `define Entryhi_RegAddr  8'h78
-    `define Entrylo0_RegAddr 8'h80
-    `define Entrylo1_RegAddr 8'h88
-    `define Index_RegAddr    8'h90
     //ExcCode编码及其对应例外类型
     `define Int                 5'b00000 //中断
     `define Mod                 5'b00001 // TLB修改例外
