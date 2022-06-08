@@ -1,7 +1,7 @@
 module alu(
     input         clk,
     input         reset,
-    input  [19:0] alu_op,
+    input  [21:0] alu_op, //TODO:alu_op位数改变，加入clo,clz
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
     output [31:0] alu_result,
@@ -33,7 +33,9 @@ wire op_mfhi;  //将HI寄存器的值写入寄存器rd中
 wire op_mflo;  //将LO寄存器的值写入寄存器rd中
 wire op_mthi;  //将寄存器rs的值写入HI寄存器中
 wire op_mtlo;  //将寄存器rs的值写入LO寄存器中
-
+wire op_clo;   //统计32位数第一个0的数之前1的个数
+wire op_clz;   //统计32位数第一个1的数之前0的个数
+wire cloclz_type; //0-clo,1-clz
 
 // control code decomposition
 assign op_add  = alu_op[ 0];
@@ -56,6 +58,8 @@ assign op_mfhi = alu_op[16];
 assign op_mflo = alu_op[17];
 assign op_mthi = alu_op[18];
 assign op_mtlo = alu_op[19];
+assign op_clo  = alu_op[20];
+assign op_clz  = alu_op[21];
 
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result; 
@@ -68,13 +72,13 @@ wire [31:0] lui_result;
 wire [31:0] sll_result; 
 wire [63:0] sr64_result; 
 wire [31:0] sr_result; 
-//lab6增加
 wire [63:0] mult_result   ; 
 wire [63:0] multu_result  ; 
 wire [63:0] div_result    ; 
 wire [63:0] divu_result   ; 
 wire [31:0] mfhi_result   ;
 wire [31:0] mflo_result   ;
+wire [31:0] cloclz_result ;
 
 // 32-bit adder
 wire [31:0] adder_a;
@@ -126,6 +130,12 @@ assign sr_result   = sr64_result[31:0];
 
 assign mult_result=$signed(alu_src1)*$signed(alu_src2);
 assign multu_result=alu_src1*alu_src2;
+
+cloclz_cnt U_cloclz_cnt(
+    .cloclz_in   (alu_src1),
+    .cloclz_type (op_clz),
+    .cloclz_out  (cloclz_result)
+);
 
 //lab添加 HI LO寄存器
 reg [31:0] HI;
@@ -271,6 +281,8 @@ assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_sll       }} & sll_result)
                   | ({32{op_srl|op_sra}} & sr_result)
                   | ({32{op_mfhi      }} & mfhi_result)
-                  | ({32{op_mflo      }} & mflo_result);
+                  | ({32{op_mflo      }} & mflo_result)
+                  | ({32{op_clo       }} & cloclz_result)
+                  | ({32{op_clz       }} & cloclz_result);
 
 endmodule

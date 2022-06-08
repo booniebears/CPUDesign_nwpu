@@ -74,7 +74,7 @@ wire        br_taken;
 wire [31:0] br_target;
 wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
 
-wire [19:0] alu_op; //12条ALU指令
+wire [21:0] alu_op; //22条ALU指令
 wire        load_op;
 wire        src1_is_sa;
 wire        src1_is_pc;
@@ -181,6 +181,9 @@ wire        inst_tlbp;
 wire        inst_tlbr;
 wire        inst_tlbwi;
 wire        inst_tlbwr;
+//clo_clz
+wire        inst_clo;
+wire        inst_clz;
 
 wire        dst_is_r31;  
 wire        dst_is_rt;   
@@ -214,6 +217,7 @@ wire        rsltz;
 
 assign br_bus       = {is_branch,br_stall,br_taken,br_target};
 
+//TODO: 由于alu_op会有比较大的改动，故位数标号并不正确
 assign ds_to_es_bus = {
                        inst_tlbp   ,  //181:181
                        inst_tlbr   ,  //180:180
@@ -357,6 +361,10 @@ assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
 assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
 assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
 
+//clo_clz
+assign inst_clo    = op_d[6'h1c] & func_d[6'h21];
+assign inst_clz    = op_d[6'h1c] & func_d[6'h20];
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -365,7 +373,8 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break|inst_tlbp|inst_tlbr|inst_tlbwi|inst_tlbwr;
+| inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo
+| inst_clz;
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
@@ -484,6 +493,8 @@ assign alu_op[16] = inst_mfhi; //将HI寄存器的值写入寄存器rd中
 assign alu_op[17] = inst_mflo; //将LO寄存器的值写入寄存器rd中
 assign alu_op[18] = inst_mthi; //将寄存器rs的值写入HI寄存器中
 assign alu_op[19] = inst_mtlo; //将寄存器rs的值写入LO寄存器中
+assign alu_op[20] = inst_clo ; 
+assign alu_op[21] = inst_clz ; 
 
 
 //lab6添加
