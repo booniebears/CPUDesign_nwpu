@@ -74,7 +74,7 @@ wire        br_taken;
 wire [31:0] br_target;
 wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
 
-wire [21:0] alu_op; //22条ALU指令
+wire [40:0] alu_op; //22条ALU指令
 wire        load_op;
 wire        src1_is_sa;
 wire        src1_is_pc;
@@ -185,8 +185,31 @@ wire        inst_tlbwr;
 wire        inst_clo;
 wire        inst_clz;
 
+//madd maddu msub msubu
+wire        inst_madd;
+wire        inst_maddu;
+wire        inst_msub;
+wire        inst_msubu;
+wire        inst_mul;
+wire        inst_movn;
+wire        inst_movz;
+
+wire        inst_teq;
+wire        inst_teqi;
+wire        inst_tge;
+wire        inst_tgei;
+wire        inst_tgeiu;
+wire        inst_tgeu;
+wire        inst_tlt;
+wire        inst_tlti;
+wire        inst_tltiu;
+wire        inst_tltu;
+wire        inst_tne;
+wire        inst_tnei;
+
 wire        dst_is_r31;  
 wire        dst_is_rt;   
+
 
 wire [ 4:0] rf_raddr1; //目前是rs
 wire [31:0] rf_rdata1;
@@ -365,6 +388,33 @@ assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
 assign inst_clo    = op_d[6'h1c] & func_d[6'h21];
 assign inst_clz    = op_d[6'h1c] & func_d[6'h20];
 
+//madd maddu msub msubu
+assign inst_madd   = op_d[6'h1c] & func_d[6'h00];
+assign inst_maddu  = op_d[6'h1c] & func_d[6'h01];
+assign inst_msub   = op_d[6'h1c] & func_d[6'h04];
+assign inst_msubu  = op_d[6'h1c] & func_d[6'h05];
+
+//mul
+assign inst_mul    = op_d[6'h1c] & func_d[6'h02];
+
+//movn, movz
+assign inst_movn  = op_d[6'h00] & func_d[6'h0b];
+assign inst_movz  = op_d[6'h00] & func_d[6'h0a];
+
+assign inst_teq   = op_d[6'h00] & func_d[6'h34];
+assign inst_teqi  = op_d[6'h01] & rt_d[5'h0c];
+assign inst_tge   = op_d[6'h00] & func_d[6'h30];
+assign inst_tgei  = op_d[6'h01] & rt_d[5'h08];
+assign inst_tgeiu = op_d[6'h01] & rt_d[5'h09];
+assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
+assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
+assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
+assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
+assign inst_tlu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tne   = op_d[6'h00] & func_d[6'h36];
+assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
+
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -374,7 +424,8 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
 | inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo
-| inst_clz;
+| inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | inst_teq | inst_teqi 
+| inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tlu | inst_tne | inst_tnei;
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
@@ -495,15 +546,33 @@ assign alu_op[18] = inst_mthi; //将寄存器rs的值写入HI寄存器中
 assign alu_op[19] = inst_mtlo; //将寄存器rs的值写入LO寄存器中
 assign alu_op[20] = inst_clo ; 
 assign alu_op[21] = inst_clz ; 
-
+assign alu_op[22] = inst_madd;
+assign alu_op[23] = inst_maddu;
+assign alu_op[24] = inst_msub;
+assign alu_op[25] = inst_msubu;
+assign alu_op[26] = inst_mul;
+assign alu_op[27] = inst_movn;
+assign alu_op[28] = inst_movz;
+assign alu_op[29] = inst_teq;
+assign alu_op[30] = inst_teqi;
+assign alu_op[31] = inst_tge;
+assign alu_op[32] = inst_tgei;
+assign alu_op[33] = inst_tgeiu;
+assign alu_op[34] = inst_tgeu;
+assign alu_op[35] = inst_tlt;
+assign alu_op[36] = inst_tlti;
+assign alu_op[37] = inst_tltiu;
+assign alu_op[38] = inst_tltu;
+assign alu_op[39] = inst_tne;
+assign alu_op[40] = inst_tnei;
 
 //lab6添加
 wire imm_zero_ext; //立即数零扩展
 wire imm_sign_ext; //立即数符号扩展
-assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui;
+assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui | inst_tgeiu | inst_tltiu;
 assign imm_sign_ext  = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu 
                            | inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh 
-                           | inst_lhu | inst_lwl | inst_lwr;
+                           | inst_lhu | inst_lwl | inst_lwr | inst_teqi | inst_tgei | inst_tlti | inst_tnei;
 
 assign load_op      = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr;
 assign src1_is_sa   = inst_sll | inst_srl | inst_sra;

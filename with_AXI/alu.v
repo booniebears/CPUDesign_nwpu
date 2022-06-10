@@ -1,7 +1,7 @@
 module alu(
     input         clk,
     input         reset,
-    input  [21:0] alu_op, //TODO:alu_op位数改变，加入clo,clz
+    input  [40:0] alu_op, //TODO:alu_op位数改变，加入clo,clz
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
     output [31:0] alu_result,
@@ -36,6 +36,25 @@ wire op_mtlo;  //将寄存器rs的值写入LO寄存器中
 wire op_clo;   //统计32位数第一个0的数之前1的个数
 wire op_clz;   //统计32位数第一个1的数之前0的个数
 wire cloclz_type; //0-clo,1-clz
+wire op_madd;
+wire op_maddu;
+wire op_msub;
+wire op_msubu;
+wire op_mul;
+wire op_movn;
+wire op_movz;
+wire op_teq;
+wire op_teqi;
+wire op_tne;
+wire op_tnei;
+wire op_tge;
+wire op_tgei;
+wire op_tgeu;
+wire op_tgeiu;
+wire op_tlt;
+wire op_tlti;
+wire op_tltu;
+wire op_tltiu;
 
 // control code decomposition
 assign op_add  = alu_op[ 0];
@@ -60,6 +79,25 @@ assign op_mthi = alu_op[18];
 assign op_mtlo = alu_op[19];
 assign op_clo  = alu_op[20];
 assign op_clz  = alu_op[21];
+assign op_madd = alu_op[22];
+assign op_maddu= alu_op[23];
+assign op_msub = alu_op[24];
+assign op_msubu= alu_op[25];
+assign op_mul  = alu_op[26];
+assign op_movn = alu_op[27];
+assign op_movz = alu_op[28];
+assign op_teq  = alu_op[29];
+assign op_teqi = alu_op[30];
+assign op_tne  = alu_op[31];
+assign op_tnei = alu_op[32];
+assign op_tge  = alu_op[33];
+assign op_tgei = alu_op[34];
+assign op_tgeu = alu_op[35];
+assign op_tgeiu= alu_op[36];
+assign op_tlt  = alu_op[37];
+assign op_tlti = alu_op[38];
+assign op_tltu = alu_op[39];
+assign op_tltiu= alu_op[40];
 
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result; 
@@ -79,6 +117,16 @@ wire [63:0] divu_result   ;
 wire [31:0] mfhi_result   ;
 wire [31:0] mflo_result   ;
 wire [31:0] cloclz_result ;
+wire [63:0] madd_result   ;
+wire [63:0] maddu_result  ;
+wire [63:0] msub_result   ;
+wire [63:0] msubu_result  ;
+wire [63:0] mul_result    ;
+wire [31:0] movn_result   ;
+wire [31:0] movz_result   ;
+wire        result_out    ;
+
+reg  [3:0]  trap_op       ;
 
 // 32-bit adder
 wire [31:0] adder_a;
@@ -130,6 +178,7 @@ assign sr_result   = sr64_result[31:0];
 
 assign mult_result=$signed(alu_src1)*$signed(alu_src2);
 assign multu_result=alu_src1*alu_src2;
+assign mul_result=alu_src1*alu_src2;
 
 cloclz_cnt U_cloclz_cnt(
     .cloclz_in   (alu_src1),
@@ -137,9 +186,59 @@ cloclz_cnt U_cloclz_cnt(
     .cloclz_out  (cloclz_result)
 );
 
+trap U_trap(
+     .trap_op(trap_op),
+     .trap_src1(alu_src1),
+     .trap_src2(alu_src2),
+     .result_out(result_out)
+);
+
+//always@(*) 
+//begin
+//case(trap_op[3:0])  
+//4'b0001:alu_op[40:29]=12'b000000000001;
+//4'b0010:alu_op[40:29]=12'b000000000010;
+//4'b0011:alu_op[40:29]=12'b000000000100;
+//4'b0100:alu_op[40:29]=12'b000000001000;
+//4'b0101:alu_op[40:29]=12'b000000010000;
+//4'b0110:alu_op[40:29]=12'b000000100000;
+//4'b0111:alu_op[40:29]=12'b000001000000;
+//4'b1000:alu_op[40:29]=12'b000010000000;
+//4'b1001:alu_op[40:29]=12'b000100000000;
+//4'b1010:alu_op[40:29]=12'b001000000000;
+//4'b1011:alu_op[40:29]=12'b010000000000;
+//4'b1100:alu_op[40:29]=12'b100000000000;
+//default alu_op[40:29]=12'b000000000000;
+//endcase
+//end
+
+always@(*) 
+begin
+case(alu_op[40:29]) 
+12'b000000000001:trap_op = 4'b0001;
+12'b000000000010:trap_op = 4'b0010;
+12'b000000000100:trap_op = 4'b0011;
+12'b000000001000:trap_op = 4'b0100;
+12'b000000010000:trap_op = 4'b0101;
+12'b000000100000:trap_op = 4'b0110;
+12'b000001000000:trap_op = 4'b0111;
+12'b000010000000:trap_op = 4'b1000;
+12'b000100000000:trap_op = 4'b1001;
+12'b001000000000:trap_op = 4'b1010;
+12'b010000000000:trap_op = 4'b1011;
+12'b100000000000:trap_op = 4'b1100;
+default:trap_op = 4'b0000;
+endcase
+end
+
 //lab添加 HI LO寄存器
 reg [31:0] HI;
 reg [31:0] LO;
+
+assign madd_result = {HI,LO} + $signed(alu_src1)*$signed(alu_src2);
+assign maddu_result= {HI,LO} + alu_src1*alu_src2;
+assign msub_result = {HI,LO} - $signed(alu_src1)*$signed(alu_src2);
+assign msubu_result= {HI,LO} - alu_src1*alu_src2;
 
 //lab6添加 以下为mydiv模块用到的信号
 //valid信号与ready信号是一对握手信号,同时为1后除法器工作.ready信号周期性出现(变为1),valid信号则可以人为控制
@@ -263,11 +362,31 @@ always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
         else if(op_mtlo) begin
             LO <= alu_src1;
         end
+        else if(op_madd) begin
+            HI <= madd_result[63:32];
+            LO <= madd_result[31:0];
+        end
+        else if(op_maddu) begin
+            HI <= maddu_result[63:32];
+            LO <= maddu_result[31:0];
+        end
+        else if(op_msub) begin
+            HI <= msub_result[63:32];
+            LO <= msub_result[31:0];
+        end
+        else if(op_msubu) begin
+            HI <= msubu_result[63:32];
+            LO <= msubu_result[31:0];
+        end
     end
 end
 
+
 assign mfhi_result=HI;
 assign mflo_result=LO;
+
+assign movn_result =~(alu_src1==0)?alu_src2:32'b0;
+assign movz_result = (alu_src1==0)?alu_src2:32'b0;
 
 // final result mux 这个组合非常巧妙 各个结果用或运算连接 为0的项对于最终结果没有任何影响
 assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
@@ -283,6 +402,9 @@ assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_mfhi      }} & mfhi_result)
                   | ({32{op_mflo      }} & mflo_result)
                   | ({32{op_clo       }} & cloclz_result)
-                  | ({32{op_clz       }} & cloclz_result);
+                  | ({32{op_clz       }} & cloclz_result)
+                  | ({32{op_mul       }} & mul_result[31:0])
+                  | ({32{op_movn      }} & movn_result)
+                  | ({32{op_movz      }} & movz_result);
 
 endmodule
