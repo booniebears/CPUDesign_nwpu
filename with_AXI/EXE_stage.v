@@ -41,7 +41,7 @@ reg         es_valid      ;
 wire        es_ready_go   ;
 
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
-wire [19:0] es_alu_op     ;
+wire [40:0] es_alu_op     ;
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
 wire [ 1:0] es_src2_is_imm; 
