@@ -194,6 +194,7 @@ wire        inst_mul;
 wire        inst_movn;
 wire        inst_movz;
 
+//trap
 wire        inst_teq;
 wire        inst_teqi;
 wire        inst_tge;
@@ -400,7 +401,7 @@ assign inst_mul    = op_d[6'h1c] & func_d[6'h02];
 //movn, movz
 assign inst_movn  = op_d[6'h00] & func_d[6'h0b];
 assign inst_movz  = op_d[6'h00] & func_d[6'h0a];
-
+//trap
 assign inst_teq   = op_d[6'h00] & func_d[6'h34];
 assign inst_teqi  = op_d[6'h01] & rt_d[5'h0c];
 assign inst_tge   = op_d[6'h00] & func_d[6'h30];
