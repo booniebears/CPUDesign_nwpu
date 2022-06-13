@@ -100,16 +100,16 @@ assign op_tltu = alu_op[39];
 assign op_tltiu= alu_op[40];
 
 wire [31:0] add_sub_result; 
-wire [31:0] slt_result; 
-wire [31:0] sltu_result;
-wire [31:0] and_result;
-wire [31:0] nor_result;
-wire [31:0] or_result;
-wire [31:0] xor_result;
-wire [31:0] lui_result;
-wire [31:0] sll_result; 
-wire [63:0] sr64_result; 
-wire [31:0] sr_result; 
+wire [31:0] slt_result    ; 
+wire [31:0] sltu_result   ;
+wire [31:0] and_result    ;
+wire [31:0] nor_result    ;
+wire [31:0] or_result     ;
+wire [31:0] xor_result    ;
+wire [31:0] lui_result    ;
+wire [31:0] sll_result    ; 
+wire [63:0] sr64_result   ; 
+wire [31:0] sr_result     ; 
 wire [63:0] mult_result   ; 
 wire [63:0] multu_result  ; 
 wire [63:0] div_result    ; 
@@ -124,7 +124,7 @@ wire [63:0] msubu_result  ;
 wire [63:0] mul_result    ;
 wire [31:0] movn_result   ;
 wire [31:0] movz_result   ;
-wire        result_out    ;
+wire [31:0] result_out    ;
 
 reg  [3:0]  trap_op       ;
 
@@ -214,21 +214,21 @@ trap U_trap(
 
 always@(*) 
 begin
-case(alu_op[40:29]) 
-12'b000000000001:trap_op = 4'b0001;
-12'b000000000010:trap_op = 4'b0010;
-12'b000000000100:trap_op = 4'b0011;
-12'b000000001000:trap_op = 4'b0100;
-12'b000000010000:trap_op = 4'b0101;
-12'b000000100000:trap_op = 4'b0110;
-12'b000001000000:trap_op = 4'b0111;
-12'b000010000000:trap_op = 4'b1000;
-12'b000100000000:trap_op = 4'b1001;
-12'b001000000000:trap_op = 4'b1010;
-12'b010000000000:trap_op = 4'b1011;
-12'b100000000000:trap_op = 4'b1100;
-default:trap_op = 4'b0000;
-endcase
+    case(alu_op[40:29]) 
+        12'b000000000001:trap_op = 4'b0001;
+        12'b000000000010:trap_op = 4'b0010;
+        12'b000000000100:trap_op = 4'b0011;
+        12'b000000001000:trap_op = 4'b0100;
+        12'b000000010000:trap_op = 4'b0101;
+        12'b000000100000:trap_op = 4'b0110;
+        12'b000001000000:trap_op = 4'b0111;
+        12'b000010000000:trap_op = 4'b1000;
+        12'b000100000000:trap_op = 4'b1001;
+        12'b001000000000:trap_op = 4'b1010;
+        12'b010000000000:trap_op = 4'b1011;
+        12'b100000000000:trap_op = 4'b1100;
+         default:trap_op = 4'b0000;
+    endcase
 end
 
 //labÌí¼Ó HI LO¼Ä´æÆ÷
@@ -405,6 +405,9 @@ assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_clz       }} & cloclz_result)
                   | ({32{op_mul       }} & mul_result[31:0])
                   | ({32{op_movn      }} & movn_result)
-                  | ({32{op_movz      }} & movz_result);
+                  | ({32{op_movz      }} & movz_result)
+                  | ({32{op_teq  | op_teqi | op_tge  | op_tgei | op_tgeiu 
+                       | op_tgeu | op_tlt  | op_tlti |op_tltiu | op_tltiu 
+                       | op_tne  | op_tnei }} & mult_result);
 
 endmodule
