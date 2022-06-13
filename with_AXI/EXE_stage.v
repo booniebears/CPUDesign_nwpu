@@ -11,7 +11,7 @@ module exe_stage(
     input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to ms
     output        es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    output [`ES_TO_MS_BUS_WD -1:0]  es_to_ms_bus,
     output [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output        es_load_op, //EXE阶段 判定是否为load指令

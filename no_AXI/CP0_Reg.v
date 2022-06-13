@@ -24,41 +24,43 @@ module CP0_Reg
     input inst_tlbr,
     input inst_tlbwi,//判断是否为tlbwi指令
     input inst_tlbp,//判断是否为tlbp指令
-    input           tlb_to_cp0_found,//tlb查找是否成功
-    input  [18:0]   tlb_to_cp0_vpn2, //以下为tlb写入的数据
-    input  [7:0]    tlb_to_cp0_asid ,
-    input  [3:0]    tlb_to_cp0_index, 
-    input           tlb_to_cp0_p, //TODO:没用到?
-    input  [19:0]   tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数据
-    input  [2:0]    tlb_to_cp0_c0 ,
-    input           tlb_to_cp0_d0 ,
-    input           tlb_to_cp0_v0 ,
-    input           tlb_to_cp0_g0 ,
-    input  [19:0]   tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数据
-    input  [2:0]    tlb_to_cp0_c1 ,
-    input           tlb_to_cp0_d1 ,
-    input           tlb_to_cp0_v1 ,
-    input           tlb_to_cp0_g1 ,
-    input  [18:0]   virtual_vpn2,
-    output [18:0]   cp0_to_tlb_vpn2, //以下为tlb读出的数据
-    output [7:0]    cp0_to_tlb_asid ,
-    output [19:0]   cp0_to_tlb_pfn0 ,//以下为entrylo0寄存器读出的tlb的数据
-    output [2:0]    cp0_to_tlb_c0 ,
-    output          cp0_to_tlb_d0 ,
-    output          cp0_to_tlb_v0 ,
-    output          cp0_to_tlb_g0 ,
-    output   [19:0] cp0_to_tlb_pfn1,//以下为entrylo1寄存器读出的tlb的数据
-    output   [2:0]  cp0_to_tlb_c1,
-    output          cp0_to_tlb_d1 ,
-    output          cp0_to_tlb_v1 ,
-    output          cp0_to_tlb_g1 ,
-    output   [3:0]  cp0_to_tlb_index,//tlbwr指令的索引值
-    output  reg [31:0] CP0_EPC,
-    output  reg CP0_Status_IE,
-    output  reg CP0_Status_EXL,
-    output  reg [7:0] CP0_Status_IM,
-    output  reg [7:0] CP0_Cause_IP,
-    output  reg CP0_Cause_TI //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input [18:0] tlb_to_cp0_vpn2, //以下为tlb写入的数据
+    input [7:0]  tlb_to_cp0_asid ,
+    input [3:0]  tlb_to_cp0_index, 
+    input        tlb_to_cp0_p, //TODO:没用到?
+    input [19:0] tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c0 ,
+    input        tlb_to_cp0_d0 ,
+    input        tlb_to_cp0_v0 ,
+    input        tlb_to_cp0_g0 ,
+    input [19:0] tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数据
+    input [2:0]  tlb_to_cp0_c1 ,
+    input        tlb_to_cp0_d1 ,
+    input        tlb_to_cp0_v1 ,
+    input        tlb_to_cp0_g1 ,
+    input [18:0] virtual_vpn2,
+    output reg [18:0] cp0_to_tlb_vpn2, //以下为tlb读出的数据
+    output reg [7:0]  cp0_to_tlb_asid ,
+    output reg [19:0] cp0_to_tlb_pfn0 ,//以下为entrylo0寄存器读出的tlb的数据
+    output reg [2:0]  cp0_to_tlb_c0 ,
+    output reg        cp0_to_tlb_d0 ,
+    output reg        cp0_to_tlb_v0 ,
+    output reg        cp0_to_tlb_g0 ,
+    output reg [19:0] cp0_to_tlb_pfn1,//以下为entrylo1寄存器读出的tlb的数据
+    output reg [2:0]  cp0_to_tlb_c1,
+    output reg        cp0_to_tlb_d1 ,
+    output reg        cp0_to_tlb_v1 ,
+    output reg        cp0_to_tlb_g1 ,
+    output      is_found,
+
+   
+    output reg [3:0]  index_tlbr,//tlbwr指令的索引值
+    output reg [31:0] CP0_EPC,
+    output reg CP0_Status_IE,
+    output reg CP0_Status_EXL,
+    output reg [7:0] CP0_Status_IM,
+    output reg [7:0] CP0_Cause_IP,
+    output reg CP0_Cause_TI //TI为1,触发定时中断;我们将该中断标记在ID阶段
 );
 reg [19:0] entrylo0_pfn;//entrylo0寄存器的值
 reg [2:0] entrylo0_c;
@@ -74,6 +76,8 @@ reg [18:0] entryhi_vpn2; //EntryHi寄存器中的VPN2
 reg [7:0]  entryhi_asid; //EntryHi寄存器中的ASID
 
 
+reg found_vindex;//index寄存器P值中判断是否查询到虚地址
+reg tlb_found;
 
 
 wire [7:0] CP0_Addr; //写CP0寄存器组的地址
@@ -208,13 +212,16 @@ end
 reg [31:0] CP0_EntryHi;
 always @(posedge clk) begin
     if(reset) begin
-        CP0_EntryHi <= 32'h0 ;
+        CP0_EntryHi<=32'h0;
     end
     else if(inst_tlbr) begin
-        entryhi_vpn2 <= tlb_to_cp0_vpn2 ;
-        entryhi_asid <= tlb_to_cp0_asid ;
+        entryhi_vpn2 <= cp0_to_tlb_vpn2 ;
+        entryhi_asid <= cp0_to_tlb_asid ;
     end
-
+    else if (inst_tlbwi) begin
+        entryhi_vpn2 <= tlb_to_cp0_vpn2;
+        entryhi_asid <= tlb_to_cp0_asid;
+    end
     else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod) begin
         entryhi_vpn2<=virtual_vpn2;
     end
@@ -229,12 +236,19 @@ always @(posedge clk) begin
     if(reset) begin
         CP0_EntryLo0<=32'h0;
     end
-    else if (inst_tlbr) begin
-        entrylo0_pfn  <= tlb_to_cp0_pfn0;
-        entrylo0_c    <= tlb_to_cp0_c0  ;
-        entrylo0_d    <= tlb_to_cp0_d0  ;
-        entrylo0_v    <= tlb_to_cp0_v0  ;
-        entrylo0_g    <= tlb_to_cp0_g0  ;
+    else if(inst_tlbr) begin
+        cp0_to_tlb_pfn0<=entrylo0_pfn;
+        cp0_to_tlb_c0  <=entrylo0_c;
+        cp0_to_tlb_d0  <=entrylo0_d;
+        cp0_to_tlb_v0  <=entrylo0_v;
+        cp0_to_tlb_g0  <=entrylo0_g;
+    end
+    else if (inst_tlbwi) begin
+        entrylo0_pfn<=tlb_to_cp0_pfn0 [tlb_to_cp0_index];
+        entrylo0_c  <=tlb_to_cp0_c0;
+        entrylo0_d  <=tlb_to_cp0_d0;
+        entrylo0_v  <=tlb_to_cp0_v0;
+        entrylo0_g  <=tlb_to_cp0_g0;
     end
 end
 assign cp0_to_tlb_pfn0 = inst_tlbwi ? entrylo0_pfn  : 20'b0 ;
@@ -248,19 +262,21 @@ always @(posedge clk) begin
     if(reset) begin
         CP0_EntryLo1<=32'h0;
     end
-    else if (inst_tlbr) begin
-        entrylo1_pfn <= tlb_to_cp0_pfn1 ;
-        entrylo1_c   <= tlb_to_cp0_c1   ;
-        entrylo1_d   <= tlb_to_cp0_d1   ;
-        entrylo1_v   <= tlb_to_cp0_v1   ;
-        entrylo1_g   <= tlb_to_cp0_g1   ;
+    else if(inst_tlbr) begin
+        cp0_to_tlb_pfn1<=entrylo1_pfn;
+        cp0_to_tlb_c1<=entrylo1_c;
+        cp0_to_tlb_d1<=entrylo1_d;
+        cp0_to_tlb_v1<=entrylo1_v;
+        cp0_to_tlb_g1<=entrylo1_g;
+    end
+    else if (inst_tlbwi) begin
+        entrylo0_pfn<=tlb_to_cp0_pfn1 ;
+        entrylo0_c<=tlb_to_cp0_c1 ;
+        entrylo0_d<=tlb_to_cp0_d1 ;
+        entrylo0_v<=tlb_to_cp0_v1 ;
+        entrylo0_g<=tlb_to_cp0_g1 ;
     end
 end
-assign cp0_to_tlb_pfn1 = inst_tlbwi ? entrylo1_pfn  : 20'b0 ;
-assign cp0_to_tlb_c1   = inst_tlbwi ? entrylo1_c    : 3'b0  ;
-assign cp0_to_tlb_d1   = inst_tlbwi ? entrylo1_d    : 1'b0  ;
-assign cp0_to_tlb_v1   = inst_tlbwi ? entrylo1_v    : 1'b0  ;
-assign cp0_to_tlb_g1   = inst_tlbwi ? entrylo1_g    : 1'b0  ;
 //9.index寄存器
 reg CP0_Index_P;
 reg [3:0] CP0_Index_Index;
@@ -269,10 +285,10 @@ always @(posedge clk) begin
     if(reset) 
         CP0_Index_P <= 1'b0;
     else if(inst_tlbp) begin
-        if(tlb_to_cp0_found) begin
+        if(found_vindex) begin
             CP0_Index_P <= 1'b1;
         end 
-        else if(!tlb_to_cp0_found) begin
+        else if(!found_vindex) begin
             CP0_Index_P <= 1'b0;
         end
     end
@@ -282,18 +298,19 @@ always @(posedge clk) begin
     if(reset) begin
         CP0_Index_Index <= 4'b0;
     end
-    else if(inst_tlbp&&tlb_to_cp0_found) begin
+    else if(tlb_found) begin
         CP0_Index_Index <= tlb_to_cp0_index;
     end
-    else if(inst_tlbp&&!tlb_to_cp0_found) begin
+    else if(!tlb_found) begin
         CP0_Index_Index <= 4'b0;
     end
     else if(inst_tlbwi) begin
         CP0_Index_Index <= tlb_to_cp0_index;
     end
+    // else if(inst_tlbr)  begin
+    //     index_tlbr <= CP0_Index_Index; 
+    // end
 end
-
-assign cp0_to_tlb_index = (inst_tlbr||inst_tlbwi) ? CP0_Index_Index : 4'b0 ;
 
 //mfc0指令实现:
 assign CP0_data = 
