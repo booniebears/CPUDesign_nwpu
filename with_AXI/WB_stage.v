@@ -31,11 +31,11 @@ wire [31:0] ws_pc;
 
 wire [2:0] ws_sel;
 wire [4:0] ws_mfc0_rd;
-wire ws_inst_mtc0;
+//wire ws_inst_mtc0;
 // wire ws_inst_mfc0; //该信号在模块端口定义
 wire ws_bd; //若指令在延迟槽中,则ws_bd=1'b1
 wire [31:0] CP0_data; //mfc0从CP0中读出的数据
-wire [4:0] ws_ExcCode; //例外的5位编码
+//wire [4:0] ws_ExcCode; //例外的5位编码
 wire [31:0] ws_data_sram_addr;
 
 assign {

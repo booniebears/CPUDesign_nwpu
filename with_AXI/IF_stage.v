@@ -87,7 +87,8 @@ always @(posedge clk) begin
     if (reset) 
         fs_pc <= 32'hbfbffffc;
     //我们认为，在nextpc!=2'b00,必然是出现了ADEL_ex,这个时候fs_pc直接更新,不向Cache发请求,fs_to_ds_valid放行
-    else if ((nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok))  
+    // else if ((nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok))  
+    else if ((flush) | (fs_allowin && inst_data_ok))  
         fs_pc <= nextpc;
 end
 
