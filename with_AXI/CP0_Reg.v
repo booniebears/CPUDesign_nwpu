@@ -12,7 +12,7 @@ module CP0_Reg
     input [31:0]      ms_result,
     input             ms_bd,
     input             ms_ex, //ws阶段 若报出例外,置为1,否则为0
-    input  [31:0]     ms_data_sram_addr, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
+    input  [31:0]     ms_alu_result, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
     input  [ 5:0]     ext_int, //6个外部硬件中断输入
     input  [ 4:0]     ExcCode, //Cause寄存器中 例外的5位编码
     input  [31:0]     ms_pc, //WB阶段的PC值
@@ -189,11 +189,11 @@ reg [31:0]  CP0_BadVAddr;
 always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst_ram)就记录
     if(ms_ex) begin
         if(ExcCode==`AdES)
-            CP0_BadVAddr<=ms_data_sram_addr;
+            CP0_BadVAddr<=ms_alu_result;
         else if(ExcCode==`AdEL)
-            CP0_BadVAddr<=ms_pc[1:0]?ms_pc:ms_data_sram_addr;
+            CP0_BadVAddr<=ms_pc[1:0]?ms_pc:ms_alu_result;
        /* else if(ExcCode==`TLBL||ExcCode==`TLBS ||ExcCode==`Mod)
-            CP0_BadVAddr <= ms_data_sram_addr;*/
+            CP0_BadVAddr <= ms_alu_result;*/
     end
 end
 //6.EntryHi寄存器

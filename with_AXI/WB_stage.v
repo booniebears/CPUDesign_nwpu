@@ -36,10 +36,10 @@ wire [4:0] ws_mfc0_rd;
 wire ws_bd; //若指令在延迟槽中,则ws_bd=1'b1
 wire [31:0] CP0_data; //mfc0从CP0中读出的数据
 //wire [4:0] ws_ExcCode; //例外的5位编码
-wire [31:0] ws_data_sram_addr;
+//wire [31:0] ws_data_sram_addr;
 
 assign {
-        ws_data_sram_addr,//102:71
+        //ws_data_sram_addr,//102:71
         ws_ex          ,  //70:70
         ws_gr_we       ,  //69:69 --写RF使能
         ws_dest        ,  //68:64 --写RF的地址

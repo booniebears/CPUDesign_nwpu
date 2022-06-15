@@ -10,8 +10,8 @@
     `define DS_TO_ES_BUS_WD 203
     //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
     //lab9修改为165(加入data_sram_addr)
-    `define ES_TO_MS_BUS_WD 169
-    `define MS_TO_WS_BUS_WD 103
+    `define ES_TO_MS_BUS_WD 137
+    `define MS_TO_WS_BUS_WD 71
     `define WS_TO_RF_BUS_WD 38
     //CP0寄存器对应的地址(8位)
     `define Index_RegAddr    8'h00

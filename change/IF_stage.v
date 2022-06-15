@@ -11,8 +11,11 @@ module if_stage(
     output reg                     fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
+    // input         flush_refill,
     input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
-    input         ws_inst_eret,
+    input         m1s_inst_eret,
+    // input  [4:0]  tlb_refill_if_ex,
+    // input  [4:0]  tlb_invalid_if_ex,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
     output reg    inst_valid,
     output        inst_op,
@@ -58,15 +61,23 @@ reg npc_block;
 always @(posedge clk)begin
     npc_block <= fs_allowin & inst_addr_ok;
 end
+
+reg flush_r; //Attention:引入flush_r，延长flush作用时间
+always @(posedge clk) begin
+    if(reset) flush_r <= 1'b0;
+    else if(flush & ~m1s_inst_eret) flush_r <= 1'b1;
+    else if(inst_data_ok) flush_r <= 1'b0;
+end
+
 // pre-IF stage
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
 reg [31:0] nextpc_buffer;
 reg [31:0] nextpc_timely;
 always @(*) begin
-    if(ws_inst_eret)
+    if(m1s_inst_eret)
         nextpc_timely <= CP0_EPC;
-    else if(flush)
+    else if(flush | flush_r)
         nextpc_timely <= 32'hbfc00380;
     else if(npc_block)begin
         if(br_taken && ~br_stall && ~mfc0_stall)
@@ -86,7 +97,7 @@ always @(posedge clk) begin
     // else if(npc_block)begin
     //     nextpc_buffer <= nextpc_timely;
     // end
-    if(ws_inst_eret | flush | npc_block)
+    if(m1s_inst_eret | flush | npc_block)
         nextpc_buffer <= nextpc_timely;
 end
 
@@ -98,9 +109,9 @@ end
 
 // assign nextpc = (ws_inst_eret | flush) ? nextpc_timely : npc_block ? nextpc_timely : nextpc_buffer;
 always @(*) begin
-    if(ws_inst_eret)
+    if(m1s_inst_eret)
         nextpc <= nextpc_timely;
-    else if(flush)
+    else if(flush | flush_r)
         nextpc <= nextpc_timely;
     else if(npc_block)begin
         nextpc <= nextpc_timely;
@@ -120,7 +131,9 @@ always @(posedge clk) begin
         fs_to_ds_valid <= 1'b1;
     else
         fs_to_ds_valid <= 1'b0;
+end
 
+always @(posedge clk) begin
     if (reset) 
         fs_pc <= 32'hbfbffffc;
     //我们认为，在nextpc!=2'b00,必然是出现了ADEL_ex,这个时候fs_pc直接更新,不向Cache发请求,fs_to_ds_valid放行

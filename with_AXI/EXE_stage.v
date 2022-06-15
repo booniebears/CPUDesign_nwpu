@@ -133,12 +133,10 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_ms_bus = {
-                      //TODO:es_alu_result目前暂代data_sram_addr
                        es_inst_tlbp   ,  //168:168
                        es_inst_tlbr   ,  //167:167
                        es_inst_tlbwi  ,  //166:166
-                       es_inst_tlbwr  ,  //165:165
-                       es_alu_result  ,  //164:133 --读写sram的地址
+                       es_inst_tlbwr  ,  //165:165                   
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_ExcCode     ,  //126:122 

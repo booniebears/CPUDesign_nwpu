@@ -8,7 +8,7 @@ module if_stage(
     //brbus
     input  [`BR_BUS_WD-1:0] br_bus, 
     //to ds
-    output reg                     fs_to_ds_valid, 
+    output reg                    fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
     // input         flush_refill,

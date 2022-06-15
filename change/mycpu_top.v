@@ -47,42 +47,42 @@ module mycpu_top(
     output [ 4:0]   debug_wb_rf_wnum,
     output [31:0]   debug_wb_rf_wdata
 );
-
+wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
 wire          ds_allowin;
 wire          es_allowin;
-wire          m1_allowin;
+wire          m1s_allowin;
 wire          ms_allowin;
 wire          ws_allowin;
 wire          fs_to_ds_valid;
 wire          ds_to_es_valid;
-wire          es_to_m1_valid;
-wire          m1_to_ms_valid;
+wire          es_to_m1s_valid;
+wire          m1s_to_ms_valid;
 wire          ms_to_ws_valid;
 wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
-wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1_bus;
-wire  [`M1_TO_MS_BUS_WD -1:0] m1_to_ms_bus;
+wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
+wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
 
 wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
-wire  [ 4:0] M1_dest;
+wire  [ 4:0] M1s_dest;
 wire  [ 4:0] MEM_dest; // MEM阶段写RF地址 通过旁路送到ID阶段
 wire  [ 4:0] WB_dest; // WB阶段写RF地址 通过旁路送到ID阶段
 wire  [31:0] EXE_result; //EXE阶段 es_alu_result
-wire  [31:0] M1_result;
+wire  [31:0] M1s_result;
 wire  [31:0] MEM_result; //MEM阶段 ms_final_result 
 wire  [31:0] WB_result; //WB阶段 ws_final_result
 wire         es_load_op; //EXE阶段 判定是否为load指令
-wire         m1_load_op; //M1阶段 判定是否为load指令
+wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
 wire         es_ex; 
-wire         m1_ex;
+wire         m1s_ex;
 wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC;
@@ -92,11 +92,8 @@ wire         CP0_Status_EXL; //EXL=0,没有例外正在处理
 wire  [ 7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
 wire  [ 7:0] CP0_Cause_IP; //待处理中断标识
 wire         es_inst_mfc0;
-wire         m1_inst_mfc0;
-wire         ms_inst_mfc0;//
-wire         m1_inst_eret;
-wire         ms_inst_eret; //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-wire         ws_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
+wire         m1s_inst_mfc0;
+wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 
 //AXI和Cache的交互信号
@@ -150,6 +147,39 @@ wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状
 wire         data_data_ok;
 wire  [31:0] data_rdata;
 
+/********************TLB-CP0交互信号如下********************/
+wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
+wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
+wire           tlb_to_cp0_found; //tlb查找是否成功
+wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
+wire  [7:0]    tlb_to_cp0_asid ;
+wire  [3:0]    tlb_to_cp0_index; 
+wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c0   ;
+wire           tlb_to_cp0_d0   ;
+wire           tlb_to_cp0_v0   ;
+wire           tlb_to_cp0_g0   ;
+wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c1   ;
+wire           tlb_to_cp0_d1   ;
+wire           tlb_to_cp0_v1   ;
+wire           tlb_to_cp0_g1   ;
+wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
+wire  [7:0]    cp0_to_tlb_asid ;
+wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c0   ;
+wire           cp0_to_tlb_d0   ;
+wire           cp0_to_tlb_v0   ;
+wire           cp0_to_tlb_g0   ;
+wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c1   ;
+wire           cp0_to_tlb_d1   ;
+wire           cp0_to_tlb_v1   ;
+wire           cp0_to_tlb_g1   ;
+wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
+/********************TLB-CP0交互信号如上********************/
+
+
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
     .resetn  (aresetn  ),
@@ -195,7 +225,7 @@ AXI_Interface U_AXI_Interface(
     .icache_rd_req    (icache_rd_req    ),
     .icache_rd_addr   (icache_rd_addr   ),
     .icache_rd_rdy    (icache_rd_rdy    ),
-    .icache_ret_valid (icache_ret_valid ),
+    //.icache_ret_valid (icache_ret_valid ),
     .icache_ret_data  (icache_ret_data  ),
 
     .dcache_rd_req    (dcache_rd_req    ),
@@ -209,7 +239,7 @@ AXI_Interface U_AXI_Interface(
     .dcache_wr_data   (dcache_wr_data   ),
     .dcache_wr_rdy    (dcache_wr_rdy    ),
     .udcache_rd_req   (udcache_rd_req   ),
-    .udcache_rd_addr  (udcache_rd_addr  ),
+    //.udcache_rd_addr  (udcache_rd_addr  ),
     .udcache_rd_rdy   (udcache_rd_rdy   ),
     .udcache_ret_valid(udcache_ret_valid),
     .udcache_ret_data (udcache_ret_data ),
@@ -292,7 +322,7 @@ if_stage if_stage(
     .fs_to_ds_bus   (fs_to_ds_bus   ),
     .flush          (flush          ),
     .CP0_EPC        (CP0_EPC        ), 
-    .ws_inst_eret   (ws_inst_eret   ),
+    .m1s_inst_eret  (m1s_inst_eret  ) ,
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
     .inst_index     (inst_index     ),
@@ -321,19 +351,18 @@ id_stage id_stage(
     //to rf: for write back
     .ws_to_rf_bus   (ws_to_rf_bus   ),
     .EXE_dest       (EXE_dest       ),
-    .M1_dest        (M1_dest        ),
+.M1s_dest        (M1s_dest        ),
     .MEM_dest       (MEM_dest       ),
     .WB_dest        (WB_dest        ),
     .EXE_result     (EXE_result     ),
-    .M1_result      (M1_result      ),
+    .M1s_result      (M1s_result      ),
     .MEM_result     (MEM_result     ),
     .WB_result      (WB_result      ),
     .es_load_op     (es_load_op     ),
-    .m1_load_op     (m1_load_op     ),
+    .m1s_load_op    (m1s_load_op     ),
     .flush          (flush          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
-    .m1_inst_mfc0   (m1_inst_mfc0   ),
-    .ms_inst_mfc0   (ms_inst_mfc0   ),
+    .m1s_inst_mfc0  (m1s_inst_mfc0   ),
     .CP0_Status_IE  (CP0_Status_IE  ), 
     .CP0_Status_EXL (CP0_Status_EXL ), 
     .CP0_Status_IM  (CP0_Status_IM  ),
@@ -346,27 +375,23 @@ exe_stage exe_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
-    .ms_allowin     (ms_allowin     ),
+    .m1s_allowin    (m1s_allowin     ),
     .es_allowin     (es_allowin     ),
     //from ds
     .ds_to_es_valid (ds_to_es_valid ),
     .ds_to_es_bus   (ds_to_es_bus   ),
     //to ms
-    .es_to_ms_valid (es_to_m1_valid ),
-    .es_to_ms_bus   (es_to_m1_bus   ),
+    .es_to_m1s_valid (es_to_m1s_valid ),
+    .es_to_m1s_bus   (es_to_m1s_bus   ),
     // data sram interface
     .EXE_dest       (EXE_dest       ),
     .EXE_result     (EXE_result     ),
     .es_load_op     (es_load_op     ),
     .flush          (flush          ),
     .es_ex          (es_ex          ),
-    .m1_ex          (m1_ex          ),
-    .ms_ex          (ms_ex          ),  
-    .ws_ex          (ws_ex          ),
+    .m1s_ex         (m1s_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
-    .m1_inst_eret   (m1_inst_eret   ),
-    .ms_inst_eret   (ms_inst_eret   ),
-    .ws_inst_eret   (ws_inst_eret   ),
+    .m1s_inst_eret  (m1s_inst_eret   ),
     .data_valid     (data_valid     ),
     .data_op        (data_op        ),
     .data_index     (data_index     ),
@@ -379,45 +404,81 @@ exe_stage exe_stage(
 );
 // M1 stage
 m1_stage m1_stage(
+    .ext_int        (ext_int        ),
     .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .ms_allowin     (ms_allowin     ),
-    .m1_allowin     (m1_allowin     ),
+    .m1s_allowin    (m1s_allowin    ),
     //from es
-    .es_to_m1_valid (es_to_m1_valid ),
-    .es_to_m1_bus   (es_to_m1_bus   ),
+    .es_to_m1s_valid(es_to_m1s_valid),
+    .es_to_m1s_bus  (es_to_m1s_bus  ),
     //to ms
-    .m1_to_ms_valid (m1_to_ms_valid ),
-    .m1_to_ms_bus   (m1_to_ms_bus   ),
-    .m1_load_op     (m1_load_op     ),
-    .M1_dest        (M1_dest        ), 
-    .M1_result      (M1_result      ),
+    .m1s_to_ms_valid (m1s_to_ms_valid ),
+    .m1s_to_ms_bus   (m1s_to_ms_bus   ),
+    .m1s_load_op     (m1s_load_op     ),
+    .M1s_dest        (M1s_dest        ), 
+    .M1s_result      (M1s_result      ),
     .flush          (flush          ), 
-    .m1_ex          (m1_ex          ), 
-    .m1_inst_mfc0   (m1_inst_mfc0   ), 
-    .m1_inst_eret   (m1_inst_eret   ) 
+    .m1s_ex          (m1s_ex          ), 
+    .m1s_inst_mfc0   (m1s_inst_mfc0   ), 
+    .m1s_inst_eret   (m1s_inst_eret   ),
+    .CP0_EPC        (CP0_EPC        ),
+    .CP0_Status_IE  (CP0_Status_IE  ),
+    .CP0_Status_EXL (CP0_Status_EXL ),
+    .CP0_Status_IM  (CP0_Status_IM  ),
+    .CP0_Cause_IP   (CP0_Cause_IP   ),
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
+    .m1s_inst_tlbp   (m1s_inst_tlbp   ),
+    .tlb_to_cp0_found (tlb_to_cp0_found ),
+    .tlb_to_cp0_vpn2 (tlb_to_cp0_vpn2 ),
+    .tlb_to_cp0_asid (tlb_to_cp0_asid ),
+    .tlb_to_cp0_index (tlb_to_cp0_index ),
+    .tlb_to_cp0_pfn0 (tlb_to_cp0_pfn0 ),
+    .tlb_to_cp0_c0  (tlb_to_cp0_c0  ),
+    .tlb_to_cp0_d0  (tlb_to_cp0_d0  ),
+    .tlb_to_cp0_v0  (tlb_to_cp0_v0  ),
+    .tlb_to_cp0_g0  (tlb_to_cp0_g0  ),
+    .tlb_to_cp0_pfn1 (tlb_to_cp0_pfn1 ),
+    .tlb_to_cp0_c1  (tlb_to_cp0_c1  ),
+    .tlb_to_cp0_d1  (tlb_to_cp0_d1  ),
+    .tlb_to_cp0_v1  (tlb_to_cp0_v1  ),
+    .tlb_to_cp0_g1  (tlb_to_cp0_g1  ),
+    .cp0_to_tlb_vpn2 (cp0_to_tlb_vpn2 ),
+    .cp0_to_tlb_asid (cp0_to_tlb_asid ),
+    .cp0_to_tlb_pfn0 (cp0_to_tlb_pfn0 ),
+    .cp0_to_tlb_c0  (cp0_to_tlb_c0  ),
+    .cp0_to_tlb_d0  (cp0_to_tlb_d0  ),
+    .cp0_to_tlb_v0  (cp0_to_tlb_v0  ),
+    .cp0_to_tlb_g0  (cp0_to_tlb_g0  ),
+    .cp0_to_tlb_pfn1 (cp0_to_tlb_pfn1 ),
+    .cp0_to_tlb_c1  (cp0_to_tlb_c1  ),
+    .cp0_to_tlb_d1  (cp0_to_tlb_d1  ),
+    .cp0_to_tlb_v1  (cp0_to_tlb_v1  ),
+    .cp0_to_tlb_g1  (cp0_to_tlb_g1  ),
+    .cp0_to_tlb_index (cp0_to_tlb_index )
 );
 // MEM stage
+wire ms_inst_mfc0;
 mem_stage mem_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
     .ws_allowin     (ws_allowin     ),
     .ms_allowin     (ms_allowin     ),
+    .CP0_data       (CP0_data       ),
+    .ms_inst_mfc0   (ms_inst_mfc0   ),
     //from es
-    .m1_to_ms_valid (m1_to_ms_valid ),
-    .m1_to_ms_bus   (m1_to_ms_bus   ),
+    .m1s_to_ms_valid (m1s_to_ms_valid ),
+    .m1s_to_ms_bus   (m1s_to_ms_bus   ),
     //to ws
     .data_rdata     (data_rdata     ),
     .ms_to_ws_valid (ms_to_ws_valid ),
     .ms_to_ws_bus   (ms_to_ws_bus   ),
     .MEM_dest       (MEM_dest       ), 
-    .MEM_result     (MEM_result     ),
-    .flush          (flush          ), 
-    .ms_ex          (ms_ex          ), 
-    .ms_inst_mfc0   (ms_inst_mfc0   ), 
-    .ms_inst_eret   (ms_inst_eret   ) 
+    .MEM_result     (MEM_result     ), 
+    .ms_ex          (ms_ex          )
 );
 // WB stage
 wb_stage wb_stage(
@@ -437,16 +498,7 @@ wb_stage wb_stage(
     .debug_wb_rf_wdata(debug_wb_rf_wdata),
     .WB_dest          (WB_dest          ), 
     .WB_result        (WB_result        ),
-    .flush            (flush            ), 
-    .ws_ex            (ws_ex            ), 
-    .CP0_EPC          (CP0_EPC          ), 
-    .CP0_Status_IE    (CP0_Status_IE    ), 
-    .CP0_Status_EXL   (CP0_Status_EXL   ), 
-    .CP0_Status_IM    (CP0_Status_IM    ),
-    .CP0_Cause_IP     (CP0_Cause_IP     ),
-    .CP0_Cause_TI     (CP0_Cause_TI     ), 
-    .ws_inst_eret     (ws_inst_eret     ), 
-    .ext_int          (ext_int          )
+    .ws_ex            (ws_ex            )
 );
 
 

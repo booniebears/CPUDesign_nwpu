@@ -89,7 +89,7 @@ wire [4:0]  ms_mfc0_rd;
 wire        ms_inst_mtc0;
 wire        ms_bd;
 wire [4:0]  ms_ExcCode;
-wire [31:0] ms_data_sram_addr;
+//wire [31:0] ms_data_sram_addr;
 
 wire        eret_flush;
 
@@ -103,7 +103,7 @@ assign {
         ms_inst_tlbr   ,  //167:167
         ms_inst_tlbwi  ,  //166:166
         ms_inst_tlbwr  ,  //165:165
-        ms_data_sram_addr,//164:133 
+       // ms_data_sram_addr,//164:133 
         ms_mfc0_rd     ,  //132:128
         ms_ex          ,  //127:127
         ms_ExcCode     ,  //126:122 
@@ -125,7 +125,7 @@ wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
-                       ms_data_sram_addr,//102:71
+                       //ms_data_sram_addr,//102:71
                        ms_ex          ,  //70:70
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
@@ -219,7 +219,7 @@ CP0_Reg u_CP0_Reg(
     .ms_result           (ms_alu_result),
     .ms_bd               (ms_bd),
     .ms_ex               (ms_ex),
-    .ms_data_sram_addr   (ms_data_sram_addr),
+    .ms_alu_result       (ms_alu_result),
     .ext_int             (ext_int),
     .ExcCode             (ms_ExcCode),
     .ms_pc               (ms_pc),
