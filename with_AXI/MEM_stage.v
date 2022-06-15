@@ -185,8 +185,8 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_ms_bus_r <= 0;
-    // else if (flush) //清除流水线
-    //     es_to_ms_bus_r <= 0;
+    else if (flush) //清除流水线
+        es_to_ms_bus_r <= 0;
     else if (es_to_ms_valid && ms_allowin) begin
         es_to_ms_bus_r <= es_to_ms_bus;
     end
