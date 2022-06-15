@@ -7,7 +7,7 @@
     //DS_TO_ES_BUS_WD原来是136,lab6修改为137(src2_is_imm变为2位宽),修改为145(加入mf_mt和mult_div)
     //lab7再次修改为157(添加mem_control区别不同的存取数指令),lab8修改为174(加入mfc0,mtc0,eret指令
     //和mfc0_rd,sel段;加入ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
-    `define DS_TO_ES_BUS_WD 182
+    `define DS_TO_ES_BUS_WD 203
     //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_M1_BUS_WD 138
