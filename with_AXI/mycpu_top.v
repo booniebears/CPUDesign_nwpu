@@ -2,7 +2,7 @@
 
 module mycpu_top(
     // 外部中断信号
-    input  [ 5:0]   int, //6个外部硬件中断输入
+    input  [ 5:0]   ext_int, //6个外部硬件中断输入
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -399,7 +399,7 @@ exe_stage exe_stage(
 );
 // MEM stage
 mem_stage mem_stage(
-    .ext_int          (int              ),
+    .ext_int          (ext_int          ),
     .clk              (aclk             ),
     .reset            (reset            ),
     //allowin    

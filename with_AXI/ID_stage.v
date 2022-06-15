@@ -411,7 +411,7 @@ assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
 assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
 assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
 assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
-assign inst_tlu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tltu   = op_d[6'h00] & func_d[6'h33];
 assign inst_tne   = op_d[6'h00] & func_d[6'h36];
 assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
 
@@ -426,7 +426,7 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
 | inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo
 | inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | inst_teq | inst_teqi 
-| inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tlu | inst_tne | inst_tnei;
+| inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
@@ -570,10 +570,10 @@ assign alu_op[40] = inst_tnei;
 //lab6添加
 wire imm_zero_ext; //立即数零扩展
 wire imm_sign_ext; //立即数符号扩展
-assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui | inst_tgeiu | inst_tltiu;
+assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui | inst_teqi | inst_tgei | inst_tlti | inst_tnei;
 assign imm_sign_ext  = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu 
                            | inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh 
-                           | inst_lhu | inst_lwl | inst_lwr | inst_teqi | inst_tgei | inst_tlti | inst_tnei;
+                           | inst_lhu | inst_lwl | inst_lwr | inst_tgeiu | inst_tltiu;
 
 assign load_op      = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr;
 assign src1_is_sa   = inst_sll | inst_srl | inst_sra;

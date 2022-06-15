@@ -61,12 +61,19 @@ reg npc_block;
 always @(posedge clk)begin
     npc_block <= fs_allowin & inst_addr_ok;
 end
+
+reg flush_r; //Attention:引入flush_r，延长flush作用时间
+always @(posedge clk) begin
+    if(reset) flush_r <= 1'b0;
+    else if(flush & ~ms_inst_eret) flush_r <= 1'b1;
+    else if(inst_data_ok) flush_r <= 1'b0;
+end
 // pre-IF stage
 //lab8修改 存在当WB阶段发现例外时,ID阶段发现br_stall的问题;这种情况下例外必然具有最高优先级
 assign seq_pc          = fs_pc + 3'h4;
 assign nextpc          = ms_inst_eret ? CP0_EPC : //eret特权指令 这个具有最高优先级,最先判断
                           // flush_refill ? 32'hbfc00200:
-                         flush ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
+                         flush | flush_r ? 32'hbfc00380 : //flush=1时表明需要处理异常.如果是eret指令,上面会先判断,
                          //然后跳转到CP0_EPC; 否则说明发生异常,此时PC值更新为0xbfc00380
                          npc_block ? ( 
                          br_taken && ~br_stall && ~mfc0_stall? br_target : seq_pc ) : nextpc; //nextpc在branch指令指定的pc和seq_pc中产生

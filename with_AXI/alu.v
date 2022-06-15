@@ -385,7 +385,7 @@ end
 assign mfhi_result=HI;
 assign mflo_result=LO;
 
-assign movn_result =~(alu_src1==0)?alu_src2:32'b0;
+assign movn_result =(~(alu_src1==0))?alu_src2:32'b0;
 assign movz_result = (alu_src1==0)?alu_src2:32'b0;
 
 // final result mux 这个组合非常巧妙 各个结果用或运算连接 为0的项对于最终结果没有任何影响
