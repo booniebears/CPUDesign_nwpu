@@ -1,13 +1,6 @@
 `include "global_defines.vh"
 
 module mem_stage(
-    //tlb
-    input                          s1_found      ,
-    input                          mem_store     ,
-    input                          s1_v          ,
-    input                          mem_load      ,
-    input                          s1_d          ,
-    input                          virtual_addr  ,
     input                          clk           ,
     input                          reset         ,
     //allowin
@@ -27,13 +20,7 @@ module mem_stage(
     input flush_refill,
     output ms_ex, //判定MEM阶段是否有被标记为例外的指令
     output ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
-    output ms_inst_eret,//MEM阶段指令为eret 前递到EXE 控制SRAM读写
-    output reg ms_ex_rdtlb_refill,
-    output reg ms_ex_rdtlb_invalid,
-    output reg ms_ex_wrtlb_refill,
-    output reg ms_ex_wrtlb_invalid,
-    output reg ms_ex_mod,
-    output reg ms_tlbex
+    output ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 );
 
 reg         ms_valid;
@@ -65,11 +52,6 @@ wire ms_inst_mtc0;
 wire ms_bd;
 wire [4:0] ms_ExcCode;
 wire [31:0] ms_data_sram_addr;
-//MEM阶段的tlb指令
-wire ms_inst_tlbp   ;
-wire ms_inst_tlbr   ;  
-wire ms_inst_tlbwi  ;  
-wire ms_inst_tlbwr  ;
 
 wire  ms_inst_tlbp;  
 wire  ms_inst_tlbr; 
@@ -173,42 +155,8 @@ always @(posedge clk ) begin
         es_to_ms_bus_r <= 0;
     else if (flush||flush_refill   ) //清除流水线
         es_to_ms_bus_r <= 0;
-    else if(flush_refill) begin //清除流水线
-        es_to_ms_bus_r <= 0;
-    end
     else if (es_to_ms_valid && ms_allowin) begin
         es_to_ms_bus_r <= es_to_ms_bus;
-    end
-end
-
-always @(posedge clk) begin
-    if(s1_found==1'b1&&mem_load==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000))begin
-        ms_ex_rdtlb_refill<=1'b1;
-        ms_tlbex<=1'b1;
-    end
-    else if(s1_found==1'b1&&s1_v==1'b0&&mem_load==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
-        ms_ex_rdtlb_invalid<=1'b1;
-        ms_tlbex<=1'b1;
-    end
-    else if(s1_found == 1'b0 && mem_store==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
-        ms_ex_wrtlb_refill<=1'b1;
-        ms_tlbex<=1'b1;
-    end
-    else if(s1_found == 1'b1 && s1_v == 1'b0 && mem_store==1'b1&&(virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
-        ms_ex_wrtlb_invalid<=1'b1;
-        ms_tlbex<=1'b1;
-    end
-    else if(s1_found == 1'b1 && s1_v == 1'b1 && s1_d == 1'b0 && mem_store==1'b1 && (virtual_addr>32'hbfffffff||virtual_addr<32'h80000000)) begin
-        ms_ex_mod<=1'b1;
-        ms_tlbex<=1'b1;
-    end
-    else begin
-        ms_ex_rdtlb_refill<=1'b0;
-        ms_ex_rdtlb_invalid<=1'b0;
-        ms_ex_wrtlb_refill<=1'b0;
-        ms_ex_wrtlb_invalid<=1'b0;
-        ms_ex_mod<=1'b0;
-        ms_tlbex<=1'b0;
     end
 end
 

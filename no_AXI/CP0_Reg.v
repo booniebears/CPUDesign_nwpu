@@ -15,10 +15,10 @@ module CP0_Reg
     input [31:0] ws_result,
     input ws_bd,
     input ws_ex, //ws阶段 若报出例外,置为1,否则为0
-    input  [31:0] ws_data_sram_addr, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
-    input  [5:0] ext_int, //6个外部硬件中断输入
-    input  [4:0] ExcCode, //Cause寄存器中 例外的5位编码
-    input  [31:0] ws_pc, //WB阶段的PC值
+    input [31:0] ws_data_sram_addr, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
+    input [5:0] ext_int, //6个外部硬件中断输入
+    input [4:0] ExcCode, //Cause寄存器中 例外的5位编码
+    input [31:0] ws_pc, //WB阶段的PC值
     output [31:0] CP0_data, //mfc0从CP0中读出的数据
     output eret_flush, //ERET指令修改EXL域的使能信号
     input inst_tlbr,
@@ -227,9 +227,6 @@ always @(posedge clk) begin
     end
 end
 
-assign  cp0_to_tlb_vpn2 = inst_tlbwi ? entryhi_vpn2 : 19'b0 ;
-assign  cp0_to_tlb_asid = inst_tlbwi ? entryhi_asid : 8'b0 ;
-
 //7.EntryLo0寄存器
 reg [31:0] CP0_EntryLo0;
 always @(posedge clk) begin
@@ -251,11 +248,6 @@ always @(posedge clk) begin
         entrylo0_g  <=tlb_to_cp0_g0;
     end
 end
-assign cp0_to_tlb_pfn0 = inst_tlbwi ? entrylo0_pfn  : 20'b0 ;
-assign cp0_to_tlb_c0   = inst_tlbwi ? entrylo0_c    : 3'b0  ;
-assign cp0_to_tlb_d0   = inst_tlbwi ? entrylo0_d    : 1'b0  ;
-assign cp0_to_tlb_v0   = inst_tlbwi ? entrylo0_v    : 1'b0  ;
-assign cp0_to_tlb_g0   = inst_tlbwi ? entrylo0_g    : 1'b0  ;
 //8.EntryLo1寄存器，只实现了描述中的功能
 reg [31:0] CP0_EntryLo1;
 always @(posedge clk) begin

@@ -24,7 +24,7 @@ module id_stage(
     input [31:0] WB_result , //WB½×¶Î ws_final_result mfc0¶Á³öµÄÊı¾İÒ²»áÇ°µİµ½ID½×¶Î
     input es_load_op , //EXE½×¶Î ÅĞ¶¨ÊÇ·ñÎªloadÖ¸Áî
     input flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
-    input flush_refill,
+    input flush_refill, //flush_refill=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
     input es_inst_mfc0,
     input ms_inst_mfc0, //ÒÔÉÏÎª´ÓEXE,MEM½×¶Î´«À´µÄmfc0Ö¸ÁîĞÅºÅ
     input CP0_Status_IE, //IE=1,È«¾ÖÖĞ¶ÏÊ¹ÄÜ¿ªÆô
@@ -214,10 +214,10 @@ wire mfc0_stall; //ÓÉÓÚmfc0Ö¸ÁîÔÚEXEºÍMEM½×¶Î,¶øÔÚWB½×¶Î²ÅÄÜ¶Á³öÊı¾İ,¹ÊÈç¹ûID½×¶
 assign br_bus       = {is_branch,br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
-                       inst_tlbp   ,  //181:181
-                       inst_tlbr   ,  //180:180
-                       inst_tlbwi  ,  //179:179
-                       inst_tlbwr  ,  //178:178 
+                       inst_tlbp,     //181:181
+                       inst_tlbr,     //180:180
+                       inst_tlbwi,    //179:179
+                       inst_tlbwr,    //178:178
                        mfc0_rd     ,  //177:173 --mfc0ÖĞµÄrdÓò Ö¸¶¨CP0¼Ä´æÆ÷µÄ¶ÁĞ´µØÖ·
                        Overflow_inst, //172:170 --¿ÉÄÜÉæ¼°ÕûĞÍÒç³öÀıÍâµÄÈıÌõÖ¸Áî:add,addi,sub
                        ds_ex       ,  //169:169 --ID½×¶Î ·¢ÏÖÒì³£ÔòÖÃÎª1
@@ -240,7 +240,7 @@ assign ds_to_es_bus = {
                        imm         ,  //111:96  --16Î»Á¢¼´Êı
                        rs_value    ,  //95 :64  --32Î»rs
                        rt_value    ,  //63 :32  --32Î»rt
-                       ds_pc           //31 :0   --ID½×¶Î PCÖµ
+                       ds_pc          //31 :0   --ID½×¶Î PCÖµ
                       };
 
 assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
@@ -259,8 +259,6 @@ always @(posedge clk) begin
         fs_to_ds_bus_r <= 0;
     else if (flush||flush_refill) //Çå³ıÁ÷Ë®Ïß
         fs_to_ds_bus_r <= 0;
-    else if (flush_refill)
-        fs_to_ds_bus_r <=0;
     else if (fs_to_ds_valid && ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
     end
@@ -351,11 +349,12 @@ assign inst_mfc0   = op_d[6'h10] & rs_d[5'h00];
 assign inst_eret   = op_d[6'h10] & func_d[6'h18];
 assign inst_syscall= op_d[6'h00] & func_d[6'h0c];
 assign inst_break  = op_d[6'h00] & func_d[6'h0d];
-//tlbÌí¼ÓÖ¸Áî£¬Ö¸Áîtlbp,tlbr,tlbwi,tlbwr
-assign inst_tlbp    =op_d[6'h10] & func_d[6'h08];
-assign inst_tlbr    =op_d[6'h10] & func_d[6'h01];
-assign inst_tlbwi   =op_d[6'h10] & func_d[6'h02];
-assign inst_tlbwr   =op_d[6'h00] & func_d[6'h06];
+
+//tlbÌí¼Ó Ìí¼ÓÖ¸ÁîTLBWI,TLBWR,TLBP,TLBR 
+assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
+assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
+assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
+assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
 
 //ÒÑ¾­ÔÚ¸ÃmipsÖ¸Áî¼¯ÖĞ¶¨Òå¹ıµÄÖ¸Áî
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
@@ -365,7 +364,7 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr;
+| inst_eret | inst_syscall | inst_break|inst_tlbp|inst_tlbwi|inst_tlbwr|inst_tlbr;
 
 //lab7Ìí¼Ó
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
