@@ -664,10 +664,7 @@ assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
 assign br_stall   = load_stall & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
-
-                    (rs_wait & (rs == M1s_dest) & m1s_inst_mfc0)  ||
-                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0) ||
-                    (rt_wait & (rt == M1s_dest) & m1s_inst_mfc0) ;
+                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0);
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall; 

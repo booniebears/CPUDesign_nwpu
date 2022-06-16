@@ -161,14 +161,15 @@ assign es_to_m1s_bus = {
 //如果EXE对应一条load指令,那么等待data_data_ok,才能将该指令放行到MEM阶段。在下面的控制逻辑中,data_ok和
 //数据data_rdata要比pc值提前一个时钟周期到达MEM阶段。
 //TODO:如果是store指令,直接放行???(参考《CPU设计实战》P243)
-assign es_ready_go    =  es_ex ? 1'b1 : //出现例外,直接放行
-                         (es_load_op | es_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :
+assign es_ready_go    =  
+                        //  es_ex ? 1'b1 : //出现例外,直接放行
+                        //  (es_load_op | es_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :
                          ((!es_alu_op[12] & ~es_alu_op[13])
                          |(es_alu_op[12] & m_axis_dout_tvalid)
                          |(es_alu_op[13] & m_axis_dout_tvalidu));
 
 assign es_allowin     = !es_valid || es_ready_go && m1s_allowin;
-assign es_to_ms_valid =  es_valid && es_ready_go;
+assign es_to_m1s_valid =  es_valid && es_ready_go;
 
 always @(posedge clk) begin
     if (reset) begin

@@ -155,7 +155,7 @@ assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata;
 //Attention:有异常flush,立即发请求;如果IF_ID寄存器没有阻塞,立即发请求
 
 
-always @(flush ,inst_addr_ok,ds_allowin) begin///CHANGE
+always @(*) begin///CHANGE
     if(flush)
         inst_valid <= 1'b1;
     else if(nextpc[1:0] != 2'b00)
