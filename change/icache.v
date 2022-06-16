@@ -10,7 +10,7 @@ module icache(
     input        flush, //TODO:当流水线flush(出现异常),rdata直接置零
     output addr_ok,
     output reg data_ok,
-    output [31:0] rdata,
+    output reg [31:0] rdata,
 
     //与AXI总线接口的交互接口
     output reg rd_req,
@@ -126,7 +126,6 @@ always @(*) begin
         data_ok <= 0;
     end
 end
-
 always @(posedge clk) begin
     if(reset) CPU_Cache_buffer <= 33'b0;
     else if(c_state == IDLE && valid || c_state == LOOKUP) begin
@@ -188,30 +187,22 @@ always @(posedge clk) begin
         
 end
 
-reg [31:0] rdata_timely;
-reg [31:0] rdata_buffer;
 always @(*) begin
-    if(flush) rdata_timely <= 32'b0; //TODO:当流水线flush(出现异常),rdata直接置零
+    if(flush) rdata <= 32'b0; //TODO:当流水线flush(出现异常),rdata直接置零
     else if(c_state == LOOKUP && CPU_Cache_buffer[32]) begin /// 神之一手！！！
          case (CPU_Cache_buffer[3:2])//offest[3:2]
-            2'd0: rdata_timely <= ({ 32{pre_hit_way[0]} } & way0_block[31:0]) | ({ 32{pre_hit_way[1]} } & way1_block[31:0]);
-            2'd1: rdata_timely <= ({ 32{pre_hit_way[0]} } & way0_block[63:32]) | ({ 32{pre_hit_way[1]} } & way1_block[63:32]);
-            2'd2: rdata_timely <= ({ 32{pre_hit_way[0]} } & way0_block[95:64]) | ({ 32{pre_hit_way[1]} } & way1_block[95:64]);
-            2'd3: rdata_timely <= ({ 32{pre_hit_way[0]} } & way0_block[127:96]) | ({ 32{pre_hit_way[1]} } & way1_block[127:96]);
-            default: rdata_timely <= 32'b0;
+            2'd0: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[31:0]) | ({ 32{pre_hit_way[1]} } & way1_block[31:0]);
+            2'd1: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[63:32]) | ({ 32{pre_hit_way[1]} } & way1_block[63:32]);
+            2'd2: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[95:64]) | ({ 32{pre_hit_way[1]} } & way1_block[95:64]);
+            2'd3: rdata <= ({ 32{pre_hit_way[0]} } & way0_block[127:96]) | ({ 32{pre_hit_way[1]} } & way1_block[127:96]);
+            default: rdata <= 32'b0;
         endcase
     end
     else begin
-        rdata_timely <= 32'b0;
+        rdata <= rdata;
     end
+    
 end
-
-always @(posedge clk) begin
-    if(c_state == LOOKUP && CPU_Cache_buffer[32])
-        rdata_buffer <= rdata_timely;
-end
-
-assign rdata = flush | ( c_state == LOOKUP && CPU_Cache_buffer[32] ) ? rdata_timely : rdata_buffer;
 
 wire [7:0] ram_tag_addr;///CHANGE
 assign ram_tag_addr =CPU_Cache_buffer[11:4];
