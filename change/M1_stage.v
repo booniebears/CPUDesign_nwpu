@@ -59,10 +59,20 @@ module m1_stage(
     output          cp0_to_tlb_d1 ,
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
-    output [3:0]    cp0_to_tlb_index //tlbwr指令的索引值
+    output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
     /********************TLB-CP0交互信号如上********************/
-);
 
+    output reg    data_valid,
+     output        data_op,
+     output [ 7:0] data_index,
+    output [19:0] data_tag,
+    output [ 3:0] data_offset,
+      output [ 3:0] data_wstrb,
+    output [31:0] data_wdata,
+ input         data_data_ok, //
+        input         data_addr_ok
+        
+);
 reg         m1s_valid;
 wire        m1s_ready_go;
 
@@ -96,14 +106,18 @@ wire        eret_flush;
 wire [31:0] CP0_data;
 wire        m1s_inst_tlbr; 
 wire        m1s_inst_tlbwr;
-
+wire        m1s_mem_we;
+wire [3:0]  sram_wen;
+wire[31:0]  sram_wdata;//位数问题！
 assign {
-        m1s_inst_tlbp   ,  //168:168
-        m1s_inst_tlbr   ,  //167:167
-        m1s_inst_tlbwi  ,  //166:166
-        m1s_inst_tlbwr  ,  //165:165
-        m1s_load_op,       //165
-        //m1_data_sram_addr,//164:133 
+        sram_wdata      ,  //174:143
+        sram_wen        ,  //142:139
+        m1s_mem_we      ,  //138:138
+        m1s_inst_tlbp   ,  //137:137
+        m1s_inst_tlbr   ,  //136:136
+        m1s_inst_tlbwi  ,  //135:135
+        m1s_inst_tlbwr  ,  //134:134
+        m1s_load_op,       //133
         m1s_mfc0_rd     ,  //132:128
         m1s_ex          ,  //127:127
         m1s_ExcCode     ,  //126:122 
@@ -175,7 +189,8 @@ assign m1s_to_ms_bus = {
 
 
 
-assign m1s_ready_go    = 1'b1;
+assign m1s_ready_go    =   m1s_ex ? 1'b1 : //出现例外,直接放行
+                         (m1s_load_op | m1s_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :1'b1;
 assign m1s_allowin     = !m1s_valid || m1s_ready_go && ms_allowin;
 assign m1s_to_ms_valid = m1s_valid && m1s_ready_go;
 always @(posedge clk) begin
@@ -207,8 +222,8 @@ end
 // assign ms_final_result = m1s_alu_result;
                                          
 //lab4添加
-assign M1s_dest   = m1s_dest & {5{m1s_to_ms_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
-assign M1s_result = m1s_alu_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
+assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
+assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 
 /******************CP0推到MEM阶段******************/
 CP0_Reg u_CP0_Reg(
@@ -265,6 +280,23 @@ CP0_Reg u_CP0_Reg(
     .CP0_Cause_TI        (CP0_Cause_TI)
 );
 /******************CP0推到MEM阶段******************/
+
+/*******************CPU与DCache的交互信号赋值如下******************/
+always @(*) begin
+    if( m1s_ex | m1s_inst_eret)
+        data_valid <= 1'b0;
+    else if((m1s_load_op | m1s_mem_we) & data_addr_ok & ms_allowin & m1s_valid)
+        data_valid <= 1'b1;
+    else
+        data_valid <= 1'b0;
+end
+
+assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
+assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? m1s_alu_result : {data_tag,data_index,data_offset};
+assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
+                    m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
+assign data_wdata = sram_wdata;
+/*******************CPU与DCache的交互信号赋值如上******************/
 
 
 /******************例外处理部分********************/

@@ -391,16 +391,7 @@ exe_stage exe_stage(
     .es_ex          (es_ex          ),
     .m1s_ex         (m1s_ex          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
-    .m1s_inst_eret  (m1s_inst_eret   ),
-    .data_valid     (data_valid     ),
-    .data_op        (data_op        ),
-    .data_index     (data_index     ),
-    .data_tag       (data_tag       ),
-    .data_offset    (data_offset    ),
-    .data_addr_ok   (data_addr_ok   ),
-    .data_data_ok   (data_data_ok   ),
-    .data_wstrb     (data_wstrb     ),
-    .data_wdata     (data_wdata     )
+    .m1s_inst_eret  (m1s_inst_eret   )
 );
 // M1 stage
 m1_stage m1_stage(
@@ -457,7 +448,16 @@ m1_stage m1_stage(
     .cp0_to_tlb_d1  (cp0_to_tlb_d1  ),
     .cp0_to_tlb_v1  (cp0_to_tlb_v1  ),
     .cp0_to_tlb_g1  (cp0_to_tlb_g1  ),
-    .cp0_to_tlb_index (cp0_to_tlb_index )
+    .cp0_to_tlb_index (cp0_to_tlb_index ),
+    .data_valid     (data_valid     ),
+    .data_op        (data_op        ),
+    .data_index     (data_index     ),
+    .data_tag       (data_tag       ),
+    .data_offset    (data_offset    ),
+    .data_wstrb     (data_wstrb     ),
+    .data_wdata     (data_wdata     ),
+    .data_addr_ok   (data_addr_ok   ),
+    .data_data_ok   (data_data_ok   )
 );
 // MEM stage
 wire ms_inst_mfc0;
