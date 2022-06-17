@@ -3,10 +3,11 @@
 module if_stage(
     input         clk,
     input         reset,
-    output reg [31:0] fs_pc,
+    output [31:0] fs_pc,
     //allowin
     output        fs_allowin, 
     input         ds_allowin, 
+    input [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     //brbus
     input  [`BR_BUS_WD       -1:0] br_bus, 
     input                          fs_bd, 
@@ -31,14 +32,9 @@ wire        fs_ex;
 wire [4:0]  fs_ExcCode;
 wire [31:0] nextpc;
 reg  [`PS_TO_FS_BUS_WD -1:0]   ps_to_fs_bus_r;
-
-
 wire  [31:0] fs_inst;
 
-assign {
-        
-        nextpc
-        } = ps_to_fs_bus_r;
+assign nextpc = ps_to_fs_bus[31:0];
 
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -66,11 +62,12 @@ end
 
 always @(posedge clk) begin
     if (reset) 
-        fs_pc <= 32'hbfbffffc;
+        ps_to_fs_bus_r <= 32'hbfbffffc;
     //我们认为，在nextpc!=2'b00,必然是出现了ADEL_ex,这个时候fs_pc直接更新,不向Cache发请求,fs_to_ds_valid放行
     else if ((nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok))  
-        fs_pc <= nextpc;
+        ps_to_fs_bus_r <= ps_to_fs_bus;
 end
+assign fs_pc = ps_to_fs_bus_r;
 
 //异常的报出和fs_pc同拍,而inst_sram的使能信号则要与nextpc的更新同拍,后者比前者快一拍
 assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0; 

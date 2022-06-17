@@ -341,6 +341,7 @@ if_stage if_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
     .fs_pc          (fs_pc          ),
+    .ps_to_fs_bus   (ps_to_fs_bus   ),
     //allowin
     .fs_allowin     (fs_allowin     ),
     .ds_allowin     (ds_allowin     ),
