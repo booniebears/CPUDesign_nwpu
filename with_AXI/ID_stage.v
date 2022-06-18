@@ -14,19 +14,24 @@ module id_stage(
     output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to fs
     output [`BR_BUS_WD       -1:0] br_bus,
+    output                         is_branch,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
     input [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     input [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
+    input [ 4:0] M1s_dest,
     input [ 4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
     input [31:0] EXE_result, //EXE阶段 es_alu_result
     input [31:0] MEM_result, //MEM阶段 ms_final_result 
+    input [31:0] M1s_result,
     input [31:0] WB_result, //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
     input        es_load_op, //EXE阶段 判定是否为load指令
+    input        m1s_load_op,
     input        flush, //flush=1时表明需要处理异常
-    // input        flush_refill, //flush_refill=1时表明需要处理异常
+    
     input        es_inst_mfc0,
-    input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
+    input        m1s_inst_mfc0,
+  //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
     input        CP0_Status_IE, //IE=1,全局中断使能开启
     input        CP0_Status_EXL, //EXL=0,没有例外正在处理
     input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
@@ -72,9 +77,9 @@ assign {rf_we   ,  //37:37
 
 wire        br_taken;
 wire [31:0] br_target;
-wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
+// wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
 
-wire [21:0] alu_op; //22条ALU指令
+wire [40:0] alu_op; //12条ALU指令
 wire        load_op;
 wire        src1_is_sa;
 wire        src1_is_pc;
@@ -185,6 +190,29 @@ wire        inst_tlbwr;
 wire        inst_clo;
 wire        inst_clz;
 
+//madd maddu msub msubu
+wire        inst_madd;
+wire        inst_maddu;
+wire        inst_msub;
+wire        inst_msubu;
+wire        inst_mul;
+wire        inst_movn;
+wire        inst_movz;
+
+//trap
+wire        inst_teq;
+wire        inst_teqi;
+wire        inst_tge;
+wire        inst_tgei;
+wire        inst_tgeiu;
+wire        inst_tgeu;
+wire        inst_tlt;
+wire        inst_tlti;
+wire        inst_tltiu;
+wire        inst_tltu;
+wire        inst_tne;
+wire        inst_tnei;
+
 wire        dst_is_r31;  
 wire        dst_is_rt;   
 
@@ -215,14 +243,13 @@ wire        rsltz;
 //lab8添加
 // wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
 
-assign br_bus       = {is_branch,br_stall,br_taken,br_target};
+assign br_bus       = {br_stall,br_taken,br_target};
 
-//TODO: 由于alu_op会有比较大的改动，故位数标号并不正确
 assign ds_to_es_bus = {
                        inst_tlbp   ,  //181:181
                        inst_tlbr   ,  //180:180
                        inst_tlbwi  ,  //179:179
-                       inst_tlbwr  ,  //178:178
+                       inst_tlbwr  ,  //178:178                          
                        mfc0_rd     ,  //177:173 --mfc0中的rd域 指定CP0寄存器的读写地址
                        Overflow_inst, //172:170 --可能涉及整型溢出例外的三条指令:add,addi,sub
                        ds_ex       ,  //169:169 --ID阶段 发现异常则置为1
@@ -365,6 +392,32 @@ assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
 assign inst_clo    = op_d[6'h1c] & func_d[6'h21];
 assign inst_clz    = op_d[6'h1c] & func_d[6'h20];
 
+//madd maddu msub msubu
+assign inst_madd   = op_d[6'h1c] & func_d[6'h00];
+assign inst_maddu  = op_d[6'h1c] & func_d[6'h01];
+assign inst_msub   = op_d[6'h1c] & func_d[6'h04];
+assign inst_msubu  = op_d[6'h1c] & func_d[6'h05];
+
+//mul
+assign inst_mul    = op_d[6'h1c] & func_d[6'h02];
+
+//movn, movz
+assign inst_movn  = op_d[6'h00] & func_d[6'h0b];
+assign inst_movz  = op_d[6'h00] & func_d[6'h0a];
+//trap
+assign inst_teq   = op_d[6'h00] & func_d[6'h34];
+assign inst_teqi  = op_d[6'h01] & rt_d[5'h0c];
+assign inst_tge   = op_d[6'h00] & func_d[6'h30];
+assign inst_tgei  = op_d[6'h01] & rt_d[5'h08];
+assign inst_tgeiu = op_d[6'h01] & rt_d[5'h09];
+assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
+assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
+assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
+assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
+assign inst_tltu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tne   = op_d[6'h00] & func_d[6'h36];
+assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
@@ -374,7 +427,9 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
 | inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
 | inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo
-| inst_clz;
+| inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | inst_teq | inst_teqi 
+| inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
+
 
 //lab7添加
 assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
@@ -495,15 +550,33 @@ assign alu_op[18] = inst_mthi; //将寄存器rs的值写入HI寄存器中
 assign alu_op[19] = inst_mtlo; //将寄存器rs的值写入LO寄存器中
 assign alu_op[20] = inst_clo ; 
 assign alu_op[21] = inst_clz ; 
-
+assign alu_op[22] = inst_madd;
+assign alu_op[23] = inst_maddu;
+assign alu_op[24] = inst_msub;
+assign alu_op[25] = inst_msubu;
+assign alu_op[26] = inst_mul;
+assign alu_op[27] = inst_movn;
+assign alu_op[28] = inst_movz;
+assign alu_op[29] = inst_teq;
+assign alu_op[30] = inst_teqi;
+assign alu_op[31] = inst_tge;
+assign alu_op[32] = inst_tgei;
+assign alu_op[33] = inst_tgeiu;
+assign alu_op[34] = inst_tgeu;
+assign alu_op[35] = inst_tlt;
+assign alu_op[36] = inst_tlti;
+assign alu_op[37] = inst_tltiu;
+assign alu_op[38] = inst_tltu;
+assign alu_op[39] = inst_tne;
+assign alu_op[40] = inst_tnei;
 
 //lab6添加
 wire imm_zero_ext; //立即数零扩展
 wire imm_sign_ext; //立即数符号扩展
-assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui;
+assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui | inst_teqi | inst_tgei | inst_tlti | inst_tnei;
 assign imm_sign_ext  = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu 
                            | inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh 
-                           | inst_lhu | inst_lwl | inst_lwr;
+                           | inst_lhu | inst_lwl | inst_lwr | inst_tgeiu | inst_tltiu;
 
 assign load_op      = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr;
 assign src1_is_sa   = inst_sll | inst_srl | inst_sra;
@@ -535,9 +608,11 @@ regfile u_regfile(
     );
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
+                             rs == M1s_dest  ?  M1s_result  :
                              rs == MEM_dest ?  MEM_result : WB_result)
                             : rf_rdata1;
 assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
+                             rt == M1s_dest  ?  M1s_result  :
                              rt == MEM_dest ?  MEM_result : WB_result)
                             : rf_rdata2;
 
@@ -572,9 +647,9 @@ assign src2_no_rt = inst_addiu | load_op | inst_jal | inst_lui | inst_addi | ins
 
 //ID阶段的读RF地址rs,rt和后面阶段的写RF地址rd冲突,则考虑暂停流水线
 assign rs_wait = ~src1_no_rs & (rs!=5'd0) 
-                 & ( (rs==EXE_dest) | (rs==MEM_dest) | (rs==WB_dest) ); 
+                 & ( (rs==EXE_dest) | (rs==M1s_dest) | (rs==MEM_dest) | (rs==WB_dest) ); 
 assign rt_wait = ~src2_no_rt & (rt!=5'd0)
-                 & ( (rt==EXE_dest) | (rt==MEM_dest) | (rt==WB_dest) );
+                 & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
 assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
 | inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret;
@@ -584,13 +659,13 @@ assign dest         = dst_is_r31   ? 5'd31 :
                       inst_no_dest ? 5'd0  : rd;
 
 assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
+                    (rs_wait & (rs == M1s_dest ) & m1s_load_op ) ||
+                    (rt_wait & (rt == M1s_dest ) & m1s_load_op ) ||                   
                     (rt_wait & (rt == EXE_dest) & es_load_op );  
 assign br_stall   = load_stall & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
-                    (rs_wait & (rs == MEM_dest) & ms_inst_mfc0) ||
-                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0) ||
-                    (rt_wait & (rt == MEM_dest) & ms_inst_mfc0) ;
+                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0);
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall; 

@@ -1,17 +1,21 @@
 `ifndef MYCPU_H
     `define MYCPU_H
     //BR_BUS_WD原来是33,lab4之后修改为34(加入了br_stall),lab8修改为35(加入is_branch)
-    `define BR_BUS_WD       35 
+    `define BR_BUS_WD       34 
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
+    `define PS_TO_FS_BUS_WD 32
     `define FS_TO_DS_BUS_WD 71
     //DS_TO_ES_BUS_WD原来是136,lab6修改为137(src2_is_imm变为2位宽),修改为145(加入mf_mt和mult_div)
     //lab7再次修改为157(添加mem_control区别不同的存取数指令),lab8修改为174(加入mfc0,mtc0,eret指令
-    //和mfc0_rd,sel段;加入ds_bd,ds_ex,ds_ExcCode,Overflow_inst;加入clo,clz)
-    `define DS_TO_ES_BUS_WD 184
+    //和mfc0_rd,sel段;加入ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
+    `define DS_TO_ES_BUS_WD 203
     //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
     //lab9修改为165(加入data_sram_addr)
-    `define ES_TO_MS_BUS_WD 169
-    `define MS_TO_WS_BUS_WD 103
+    `define ES_TO_M1_BUS_WD 175
+    `define M1_TO_MS_BUS_WD 161
+    //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
+    //lab9修改为120(加入data_sram_addr)
+    `define MS_TO_WS_BUS_WD 83
     `define WS_TO_RF_BUS_WD 38
     //CP0寄存器对应的地址(8位)
     `define Index_RegAddr    8'h00
@@ -33,10 +37,10 @@
     `define rd_tlb_invalid_mem  5'b00101 //TLB例外(取指或读数据)
     `define wr_tlb_refill_mem   5'b00110 //TLB例外(写数据)
     `define wr_tlb_invalid_mem  5'b00111
-    `define AdEL                5'b01000 //地址错例外(读数据/取指令)
-    `define AdES                5'b01001 //地址错例外(写数据)
-    `define Sys                 5'b01010 //syscall系统调用例外
-    `define Bp                  5'b01011 //break断点例外
-    `define RI                  5'b01100 //保留指令(未定义指令)例外
-    `define Ov                  5'b01101 //算术溢出例外
+    `define AdEL                5'b00100 //地址错例外(读数据/取指令)
+    `define AdES                5'b00101 //地址错例外(写数据)
+    `define Sys                 5'b01000 //syscall系统调用例外
+    `define Bp                  5'b01001 //break断点例外
+    `define RI                  5'b01010 //保留指令(未定义指令)例外
+    `define Ov                  5'b01100 //算术溢出例外
 `endif

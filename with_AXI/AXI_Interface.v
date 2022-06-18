@@ -48,7 +48,7 @@ module AXI_Interface (
     input  [ 3:0] bid,
     input  [ 1:0] bresp,
     input         bvalid,
-    input         bready,
+    output         bready,
 /*******************AXI定义信号如上******************/
 
 /*******************AXI与Cache的交互信号定义如下******************/
@@ -409,7 +409,7 @@ always @(posedge clk) begin //udata_wdata 直接写一个字到远端axi_ram 配合下面的ud
 end
 
 assign udata_araddr  = ff_udata_araddr;
-assign udata_arid    = 4'b0010;
+assign udata_arid    = 4'b0011;
 assign udata_arlen   = 4'b0000; //一次传输
 assign udata_arsize  = 3'b010; //一次4 bytes
 assign udata_arburst = 2'b01;
@@ -420,7 +420,7 @@ assign udata_arprot  = 3'b000;
 assign udata_arvalid = (UD_RD_state == `UD_AR_SHAKE) ? 1'b1 : 1'b0; 
 assign udata_rready  = (UD_RD_state == `UD_R_SHAKE) ? 1'b1 : 1'b0;
 
-assign udata_awid    = 4'b0010;
+assign udata_awid    = 4'b0011;
 assign udata_awlen   = 4'b0000; //一次传输
 assign udata_awsize  = 3'b010; //一次4 bytes
 assign udata_awburst = 2'b01;
@@ -430,7 +430,7 @@ assign udata_awprot  = 3'b000;
 //udata_awvalid比udcache_wr_req晚一周期
 assign udata_awvalid = (UD_WR_state == `UD_AW_SHAKE) ? 1'b1 : 1'b0; 
 
-assign udata_wid     = 4'b0010;
+assign udata_wid     = 4'b0001;
 assign udata_wstrb   = udcache_wr_strb; 
 assign udata_wlast   = (UD_WR_state == `UD_W_SHAKE && udata_wvalid && udata_wready) ? 1'b1 : 1'b0;
 assign udata_wvalid  = (UD_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;

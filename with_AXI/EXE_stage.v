@@ -4,44 +4,33 @@ module exe_stage(
     input         clk ,
     input         reset,
     //allowin
-    input         ms_allowin,
+    input         m1s_allowin,
     output        es_allowin,
     //from ds
     input         ds_to_es_valid,
     input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to ms
-    output        es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    output        es_to_m1s_valid,
+    output [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
     output [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     output [31:0] EXE_result, //EXE阶段 es_alu_result      
     output        es_load_op, //EXE阶段 判定是否为load指令
     input         flush, //flush=1时表明需要处理异常
-    // input     flush_refill,
     output        es_ex, // TODO 没有必要送到myCPU_top里面
-//   //tlb例外
-//     input         tlb_invalid_mem_ex,
-//     input         tlb_refill_mem_ex,
-//     input         tlb_mod_ex,
-    input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
+    //input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
+    input         m1s_ex,
     output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
-    input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    input         m1s_inst_eret
+    //input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    //input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
     //Attention:CPU和DCache的交互信号如下;
-    output reg    data_valid,
-    output        data_op,
-    output [ 7:0] data_index,
-    output [19:0] data_tag,
-    output [ 3:0] data_offset,
-    output [ 3:0] data_wstrb,
-    output [31:0] data_wdata,
-    input         data_addr_ok,
-    input         data_data_ok //
 );
 
 reg         es_valid      ;
 wire        es_ready_go   ;
 
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
-wire [19:0] es_alu_op     ;
+wire [40:0] es_alu_op     ;
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
 wire [ 1:0] es_src2_is_imm; 
@@ -71,6 +60,7 @@ wire Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire ADES_ex; //地址错例外(写数据)
 wire ADEL_ex; //地址错例外(读数据)
+
 wire es_inst_tlbp ;
 wire es_inst_tlbr ;
 wire es_inst_tlbwi;
@@ -131,14 +121,19 @@ assign      inst_is_lh  = es_mem_inst[4];
 assign      inst_is_lhu = es_mem_inst[5];
 assign      inst_is_lw  = es_mem_inst[0];
 
+
 assign es_res_from_mem = es_load_op;
-assign es_to_ms_bus = {
+assign es_to_m1s_bus = {
+                       sram_wdata     ,  //174:143
+                       sram_wen       ,  //142:139
+                       es_mem_we      ,  //138:138
+                       es_inst_tlbp   ,  //137:137
+                       es_inst_tlbr   ,  //136:136
+                       es_inst_tlbwi  ,  //135:135
+                       es_inst_tlbwr  ,  //134:134
                       //TODO:es_alu_result目前暂代data_sram_addr
-                       es_inst_tlbp   ,  //168:168
-                       es_inst_tlbr   ,  //167:167
-                       es_inst_tlbwi  ,  //166:166
-                       es_inst_tlbwr  ,  //165:165
-                       es_alu_result  ,  //164:133 --读写sram的地址
+                       es_load_op     ,  //133:133
+                       //es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_ExcCode     ,  //126:122 
@@ -160,14 +155,13 @@ assign es_to_ms_bus = {
 //如果EXE对应一条load指令,那么等待data_data_ok,才能将该指令放行到MEM阶段。在下面的控制逻辑中,data_ok和
 //数据data_rdata要比pc值提前一个时钟周期到达MEM阶段。
 //TODO:如果是store指令,直接放行???(参考《CPU设计实战》P243)
-assign es_ready_go    =  es_ex ? 1'b1 : //出现例外,直接放行
-                         (es_load_op | es_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :
+assign es_ready_go    =  
                          ((!es_alu_op[12] & ~es_alu_op[13])
                          |(es_alu_op[12] & m_axis_dout_tvalid)
                          |(es_alu_op[13] & m_axis_dout_tvalidu));
 
-assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
-assign es_to_ms_valid =  es_valid && es_ready_go;
+assign es_allowin     = !es_valid || es_ready_go && m1s_allowin;
+assign es_to_m1s_valid =  es_valid && es_ready_go;
 
 always @(posedge clk) begin
     if (reset) begin
@@ -238,7 +232,7 @@ alu u_alu(
     .m_axis_dout_tvalidu(m_axis_dout_tvalidu),
     .Overflow_ex        (Overflow_ex),
     .es_ex              (es_ex),
-    .ms_ex              (ms_ex)
+    .m1s_ex              (m1s_ex)
 );
 
 //lab8添加 当该指令为mtc0 把es_alu_result保存为es_rt_value;否则即为alu运算得到的值
@@ -259,20 +253,20 @@ assign es_ExcCode = Overflow_ex ? `Ov   :
 
 
 /*******************CPU与DCache的交互信号赋值如下******************/
-always @(*) begin
-    if(es_ex | ms_ex | ms_inst_eret)
-        data_valid <= 1'b0;
-    else if((es_load_op | es_mem_we) & data_addr_ok & ms_allowin & es_valid)
-        data_valid <= 1'b1;
-    else
-        data_valid <= 1'b0;
-end
-
-assign data_op    = es_mem_we ? 1'b1 : 1'b0;
-assign {data_tag,data_index,data_offset} = (es_load_op | es_mem_we) ? es_alu_result : {data_tag,data_index,data_offset};
-assign data_wstrb = es_ex | ms_ex | ms_inst_eret ? 4'b0 :
-                    es_mem_we ? sram_wen : 4'h0; //去掉了es_valid
-assign data_wdata = sram_wdata;
+//always @(*) begin
+//    if(es_ex | m1s_ex | m1s_inst_eret )
+//        data_valid <= 1'b0;
+//    else if((es_load_op | es_mem_we) & data_addr_ok & m1s_allowin & es_valid)
+//        data_valid <= 1'b1;
+//    else
+//        data_valid <= 1'b0;
+//end
+//
+//assign data_op    = es_mem_we ? 1'b1 : 1'b0;
+//assign {data_tag,data_index,data_offset} = (es_load_op | es_mem_we) ? es_alu_result : {data_tag,data_index,data_offset};
+//assign data_wstrb = es_ex | m1s_ex | m1s_inst_eret  ? 4'b0 :
+//                    es_mem_we ? sram_wen : 4'h0; //去掉了es_valid
+//assign data_wdata = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 assign EXE_dest   = es_dest & {5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
