@@ -14,6 +14,7 @@ module id_stage(
     output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to fs
     output [`BR_BUS_WD       -1:0] br_bus,
+    output                         is_branch,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
     input [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
@@ -76,7 +77,7 @@ assign {rf_we   ,  //37:37
 
 wire        br_taken;
 wire [31:0] br_target;
-wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
+// wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
 
 wire [40:0] alu_op; //12条ALU指令
 wire        load_op;
@@ -242,7 +243,7 @@ wire        rsltz;
 //lab8添加
 // wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
 
-assign br_bus       = {is_branch,br_stall,br_taken,br_target};
+assign br_bus       = {br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
                        inst_tlbp   ,  //181:181

@@ -48,7 +48,7 @@ module AXI_Interface (
     input  [ 3:0] bid,
     input  [ 1:0] bresp,
     input         bvalid,
-    input         bready,
+    output         bready,
 /*******************AXI定义信号如上******************/
 
 /*******************AXI与Cache的交互信号定义如下******************/

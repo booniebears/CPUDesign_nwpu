@@ -51,6 +51,7 @@ wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
+wire          ps_allowin;
 wire          ds_allowin;
 wire          es_allowin;
 wire          m1s_allowin;
@@ -61,6 +62,7 @@ wire          ds_to_es_valid;
 wire          es_to_m1s_valid;
 wire          m1s_to_ms_valid;
 wire          ms_to_ws_valid;
+wire  [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus;
 wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
@@ -68,6 +70,10 @@ wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
+wire  ps_bd;
+wire  fs_bd;
+wire         is_branch;
+wire  [31:0] fs_pc;
 
 wire  [ 4:0] EXE_dest; // EXE½×¶ÎÐ´RFµØÖ· Í¨¹ýÅÔÂ·ËÍµ½ID½×¶Î
 wire  [ 4:0] M1s_dest;
@@ -308,30 +314,46 @@ dcache dcache(
     
 
 );
-
-// IF stage
-if_stage if_stage(
+//pre_if stage
+pre_if_stage pre_if_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
-    //allowin
-    .ds_allowin     (ds_allowin     ),
-    //brbus
+    .fs_pc          (fs_pc          ),
+    .fs_allowin     (fs_allowin     ),
     .br_bus         (br_bus         ),
-    //outputs
-    .fs_to_ds_valid (fs_to_ds_valid ),
-    .fs_to_ds_bus   (fs_to_ds_bus   ),
+    //.ps_bd          (ps_bd          ),
+    .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
-    .CP0_EPC        (CP0_EPC        ), 
-    .m1s_inst_eret  (m1s_inst_eret  ) ,
+    .CP0_EPC        (CP0_EPC        ),
+    .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
     .inst_index     (inst_index     ),
     .inst_tag       (inst_tag       ),
     .inst_offset    (inst_offset    ),
     .inst_addr_ok   (inst_addr_ok   ),
-    .inst_data_ok   (inst_data_ok   ),
-    .inst_rdata     (inst_rdata     ),
+    .inst_data_ok   (inst_data_ok   ),  
     .mfc0_stall     (mfc0_stall     )
+);
+
+// IF stage
+if_stage if_stage(
+    .clk            (aclk           ),
+    .reset          (reset          ),
+    .fs_pc          (fs_pc          ),
+    .ps_to_fs_bus   (ps_to_fs_bus   ),
+    //allowin
+    .fs_allowin     (fs_allowin     ),
+    .ds_allowin     (ds_allowin     ),
+    //brbus
+    .br_bus         (br_bus         ),
+    .fs_bd          (is_branch      ),
+    //outputs
+    .fs_to_ds_valid (fs_to_ds_valid ),
+    .fs_to_ds_bus   (fs_to_ds_bus   ),
+    .flush          (flush          ),
+    .inst_data_ok   (inst_data_ok   ),
+    .inst_rdata     (inst_rdata     )
 );
 // ID stage
 id_stage id_stage(
@@ -348,6 +370,7 @@ id_stage id_stage(
     .ds_to_es_bus   (ds_to_es_bus   ),
     //to fs
     .br_bus         (br_bus         ),
+    .is_branch      (is_branch      ),
     //to rf: for write back
     .ws_to_rf_bus   (ws_to_rf_bus   ),
     .EXE_dest       (EXE_dest       ),
