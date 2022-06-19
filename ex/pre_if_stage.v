@@ -1,6 +1,6 @@
 `include "global_defines.vh"
 
-module pre_if_stage(
+module Pre_If_stage(
     input         clk,
     input         reset,
     input [31:0]  fs_pc,
@@ -101,7 +101,7 @@ wire  [ 2:0] ITLB_c;
 wire         ITLB_d;
 wire         ITLB_v;
 
-ITLB ITLB(
+ITLB_stage ITLB_stage(
         .ITLB_VAddr     (nextpc         ), 
         .ITLB_RAddr     (ITLB_RAddr     ),
         .ITLB_index     (ITLB_index     ),

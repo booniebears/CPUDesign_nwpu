@@ -273,12 +273,12 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
-    .CP0_EPC             (CP0_EPC),
-    .CP0_Status_IE       (CP0_Status_IE),
-    .CP0_Status_EXL      (CP0_Status_EXL),
-    .CP0_Status_IM       (CP0_Status_IM),
-    .CP0_Cause_IP        (CP0_Cause_IP),
-    .CP0_Cause_TI        (CP0_Cause_TI)
+    .CP0_EPC_out         (CP0_EPC_out),
+    .CP0_Status_IE_out   (CP0_Status_IE_out),
+    .CP0_Status_EXL_out  (CP0_Status_EXL_out),
+    .CP0_Status_IM_out   (CP0_Status_IM_out),
+    .CP0_Cause_IP_out    (CP0_Cause_IP_out),
+    .CP0_Cause_TI_out    (CP0_Cause_TI_out)
 );
 /******************CP0ÍÆµ½MEM½×¶Î******************/
 
@@ -290,7 +290,7 @@ wire  [ 2:0] DTLB_c;
 wire         DTLB_d;
 wire         DTLB_v;
 
-DTLB DTLB(
+DTLB_stage DTLB_stage(
         .DTLB_found     (DTLB_found     ),
         .DTLB_VAddr     (m1s_alu_result ), 
         .DTLB_RAddr     (DTLB_RAddr     ),

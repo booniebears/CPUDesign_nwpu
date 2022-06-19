@@ -323,7 +323,7 @@ dcache dcache(
 
 );
 //pre_if stage
-pre_if_stage pre_if_stage(
+Pre_If_stage Pre_If_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
     .fs_pc          (fs_pc          ),
