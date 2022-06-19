@@ -24,12 +24,12 @@ module m1_stage(
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
     // output flush_refill,
-    output [31:0]   CP0_EPC, //CP0寄存器中,EPC的值
-    output          CP0_Status_IE, //IE=1,全局中断使能开启
-    output          CP0_Status_EXL, //EXL=0,没有例外正在处理
-    output [ 7:0]   CP0_Status_IM, //IM对应各个中断源屏蔽位
-    output [ 7:0]   CP0_Cause_IP, //待处理中断标识
-    output          CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
+    output          CP0_Status_IE_out, //IE=1,全局中断使能开启
+    output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
+    output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
+    output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
+    output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
     output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
@@ -272,12 +272,12 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
-    .CP0_EPC             (CP0_EPC),
-    .CP0_Status_IE       (CP0_Status_IE),
-    .CP0_Status_EXL      (CP0_Status_EXL),
-    .CP0_Status_IM       (CP0_Status_IM),
-    .CP0_Cause_IP        (CP0_Cause_IP),
-    .CP0_Cause_TI        (CP0_Cause_TI)
+    .CP0_EPC_out             (CP0_EPC_out),
+    .CP0_Status_IE_out       (CP0_Status_IE_out),
+    .CP0_Status_EXL_out      (CP0_Status_EXL_out),
+    .CP0_Status_IM_out       (CP0_Status_IM_out),
+    .CP0_Cause_IP_out        (CP0_Cause_IP_out),
+    .CP0_Cause_TI_out        (CP0_Cause_TI_out)
 );
 /******************CP0推到MEM阶段******************/
 
