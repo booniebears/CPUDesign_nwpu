@@ -13,7 +13,7 @@ module pre_if_stage(
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     input         flush, //flush=1时表明需要处理异常
     // input         flush_refill,
-    input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
+    input  [31:0] CP0_EPC_out, //CP0寄存器中,EPC的值
     input         m1s_inst_eret,
     // input  [4:0]  tlb_refill_if_ex,
     // input  [4:0]  tlb_invalid_if_ex,
@@ -68,7 +68,7 @@ reg [31:0] nextpc_buffer;
 reg [31:0] nextpc_timely;
 always @(*) begin
     if(m1s_inst_eret)
-        nextpc_timely <= CP0_EPC;
+        nextpc_timely <= CP0_EPC_out;
     else if(flush | flush_r)
         nextpc_timely <= 32'hbfc00380;
     else if(npc_block)begin

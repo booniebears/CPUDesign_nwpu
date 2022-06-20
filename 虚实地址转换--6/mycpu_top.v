@@ -90,12 +90,12 @@ wire         es_ex;
 wire         m1s_ex;
 wire         ms_ex;
 wire         ws_ex;
-wire  [31:0] CP0_EPC;
-wire         CP0_Cause_TI;
-wire         CP0_Status_IE; //IE=1,全局中断使能开启
-wire         CP0_Status_EXL; //EXL=0,没有例外正在处理
-wire  [ 7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
-wire  [ 7:0] CP0_Cause_IP; //待处理中断标识
+wire  [31:0] CP0_EPC_out;
+wire         CP0_Cause_TI_out;
+wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
+wire         CP0_Status_EXL_out; //EXL=0,没有例外正在处理
+wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
+wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
@@ -341,7 +341,7 @@ pre_if_stage pre_if_stage(
     .br_bus         (br_bus         ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
-    .CP0_EPC        (CP0_EPC        ),
+    .CP0_EPC_out        (CP0_EPC_out        ),
     .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
@@ -410,11 +410,11 @@ id_stage id_stage(
     .flush          (flush          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .m1s_inst_mfc0  (m1s_inst_mfc0   ),
-    .CP0_Status_IE  (CP0_Status_IE  ), 
-    .CP0_Status_EXL (CP0_Status_EXL ), 
-    .CP0_Status_IM  (CP0_Status_IM  ),
-    .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .CP0_Status_IE_out  (CP0_Status_IE_out  ), 
+    .CP0_Status_EXL_out (CP0_Status_EXL_out ), 
+    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
+    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
+    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
@@ -461,12 +461,12 @@ m1_stage m1_stage(
     .m1s_ex          (m1s_ex          ), 
     .m1s_inst_mfc0   (m1s_inst_mfc0   ), 
     .m1s_inst_eret   (m1s_inst_eret   ),
-    .CP0_EPC        (CP0_EPC        ),
-    .CP0_Status_IE  (CP0_Status_IE  ),
-    .CP0_Status_EXL (CP0_Status_EXL ),
-    .CP0_Status_IM  (CP0_Status_IM  ),
-    .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .CP0_EPC_out        (CP0_EPC_out        ),
+    .CP0_Status_IE_out  (CP0_Status_IE_out  ),
+    .CP0_Status_EXL_out (CP0_Status_EXL_out ),
+    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
+    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
+    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
     .m1s_inst_tlbp   (m1s_inst_tlbp   ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),

@@ -1,6 +1,6 @@
 `ifndef MYCPU_H
     `define MYCPU_H
-    //BR_BUS_WD原来是33,lab4之后修改为34(加入了br_stall),lab8修改为35(加入is_branch)
+    //BR_BUS_WD原来是33,lab4之后修改为34(加入了br_stall)
     `define BR_BUS_WD       34 
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 32
@@ -19,8 +19,12 @@
     `define WS_TO_RF_BUS_WD 38
     //CP0寄存器对应的地址(8位)
     `define Index_RegAddr    8'h00
+    `define Random_RegAddr   8'h08
     `define Entrylo0_RegAddr 8'h10
     `define Entrylo1_RegAddr 8'h18
+    `define Context_RegAddr  8'h20
+    `define PageMask_RegAddr 8'h28
+    `define Wired_RegAddr    8'h30
     `define BadVAddr_RegAddr 8'h40
     `define Count_RegAddr    8'h48
     `define Entryhi_RegAddr  8'h50
@@ -28,7 +32,11 @@
     `define Status_RegAddr   8'h60
     `define Cause_RegAddr    8'h68
     `define EPC_RegAddr      8'h70
-    //ExcCode编码及其对应例外类型
+    `define Prid_RegAddr     8'h78
+    `define EBase_RegAddr    8'h79
+    `define Config_RegAddr   8'h80
+    `define Config1_RegAddr  8'h81
+    //ExcCode编码及其对应例外类型 Attention:尚未映射，有误!
     `define Int                 5'b00000 //中断
     `define Mod                 5'b00001 // TLB修改例外
     `define tlb_refill_if       5'b00010 //TLB例外(取指或读数据)
