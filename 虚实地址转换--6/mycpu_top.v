@@ -70,7 +70,6 @@ wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
-wire  ps_bd;
 wire  fs_bd;
 wire         is_branch;
 wire  [31:0] fs_pc;
@@ -91,16 +90,22 @@ wire         es_ex;
 wire         m1s_ex;
 wire         ms_ex;
 wire         ws_ex;
-wire  [31:0] CP0_EPC_out;
-wire         CP0_Cause_TI_out;
-wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
-wire         CP0_Status_EXL_out; //EXL=0,没有例外正在处理
-wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
-wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
+wire  [31:0] CP0_EPC;
+wire         CP0_Cause_TI;
+wire         CP0_Status_IE; //IE=1,全局中断使能开启
+wire         CP0_Status_EXL; //EXL=0,没有例外正在处理
+wire  [ 7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
+wire  [ 7:0] CP0_Cause_IP; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+wire         ITLB_found;
+wire  [ 3:0] ITLB_index;
+wire  [19:0] ITLB_pfn;
+wire  [ 2:0] ITLB_c;
+wire         ITLB_d;
+wire         ITLB_v;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -152,7 +157,14 @@ wire  [31:0] data_wdata;
 wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状态机)
 wire         data_data_ok;
 wire  [31:0] data_rdata;
+wire  isUncache;
+/********************TLB与ITLB交互信号如下******************/
 
+/********************TLB与ITLB交互信号如上******************/
+
+/********************TLB与DTLB交互信号如下******************/
+
+/********************TLB与DTLB交互信号如上******************/
 /********************TLB-CP0交互信号如下********************/
 wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
 wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
@@ -184,18 +196,13 @@ wire           cp0_to_tlb_v1   ;
 wire           cp0_to_tlb_g1   ;
 wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
 wire  [31:0]   m1s_alu_result  ;
+wire           DTLB_found        ;
+wire  [3:0]    DTLB_index     ;
+wire  [19:0]   DTLB_pfn       ;
+wire  [2:0]    DTLB_c         ;
+wire           DTLB_d         ;
+wire           DTLB_v         ;
 /********************TLB-CP0交互信号如上********************/
-
-wire  [ 3:0]   ITLB_index;  
-wire  [19:0]   ITLB_pfn  ;   
-wire  [ 2:0]   ITLB_c    ;   
-wire           ITLB_d    ;    
-wire           ITLB_v    ;   
-wire  [ 3:0]   DTLB_index;
-wire  [19:0]   DTLB_pfn  ;
-wire  [ 2:0]   DTLB_c    ;
-wire           DTLB_d    ;
-wire           DTLB_v    ;
 
 
 AXI_Interface U_AXI_Interface(
@@ -322,9 +329,8 @@ dcache dcache(
     .ud_wr_addr     (udcache_wr_addr   ),
     .ud_wr_strb     (udcache_wr_strb   ),
     .ud_wr_data     (udcache_wr_data   ),
-    .ud_wr_rdy      (udcache_wr_rdy    )
-    
-
+    .ud_wr_rdy      (udcache_wr_rdy    ),
+    .isUncache      (isUncache)
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
@@ -333,10 +339,9 @@ pre_if_stage pre_if_stage(
     .fs_pc          (fs_pc          ),
     .fs_allowin     (fs_allowin     ),
     .br_bus         (br_bus         ),
-  //.ps_bd          (ps_bd          ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
-    .CP0_EPC_out    (CP0_EPC_out    ),
+    .CP0_EPC        (CP0_EPC        ),
     .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
@@ -346,11 +351,13 @@ pre_if_stage pre_if_stage(
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),  
     .mfc0_stall     (mfc0_stall     ),
+    .ITLB_found     (ITLB_found     ),
     .ITLB_index     (ITLB_index     ),
     .ITLB_pfn       (ITLB_pfn       ),
     .ITLB_c         (ITLB_c         ),
     .ITLB_d         (ITLB_d         ),
-    .ITLB_v         (ITLB_v         )
+    .ITLB_v         (ITLB_v         ),
+    .ITLB_asid      (cp0_to_tlb_asid)
 );
 
 // IF stage
@@ -403,11 +410,11 @@ id_stage id_stage(
     .flush          (flush          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .m1s_inst_mfc0  (m1s_inst_mfc0   ),
-    .CP0_Status_IE_out  (CP0_Status_IE_out  ), 
-    .CP0_Status_EXL_out (CP0_Status_EXL_out ), 
-    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
-    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
-    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .CP0_Status_IE  (CP0_Status_IE  ), 
+    .CP0_Status_EXL (CP0_Status_EXL ), 
+    .CP0_Status_IM  (CP0_Status_IM  ),
+    .CP0_Cause_IP   (CP0_Cause_IP   ),
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
     .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
@@ -454,12 +461,12 @@ m1_stage m1_stage(
     .m1s_ex          (m1s_ex          ), 
     .m1s_inst_mfc0   (m1s_inst_mfc0   ), 
     .m1s_inst_eret   (m1s_inst_eret   ),
-    .CP0_EPC_out        (CP0_EPC_out        ),
-    .CP0_Status_IE_out  (CP0_Status_IE_out  ),
-    .CP0_Status_EXL_out (CP0_Status_EXL_out ),
-    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
-    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
-    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .CP0_EPC        (CP0_EPC        ),
+    .CP0_Status_IE  (CP0_Status_IE  ),
+    .CP0_Status_EXL (CP0_Status_EXL ),
+    .CP0_Status_IM  (CP0_Status_IM  ),
+    .CP0_Cause_IP   (CP0_Cause_IP   ),
+    .CP0_Cause_TI   (CP0_Cause_TI   ),
     .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
     .m1s_inst_tlbp   (m1s_inst_tlbp   ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),
@@ -489,6 +496,7 @@ m1_stage m1_stage(
     .cp0_to_tlb_v1  (cp0_to_tlb_v1  ),
     .cp0_to_tlb_g1  (cp0_to_tlb_g1  ),
     .cp0_to_tlb_index (cp0_to_tlb_index ),
+    .m1s_alu_result (m1s_alu_result ),
     .data_valid     (data_valid     ),
     .data_op        (data_op        ),
     .data_index     (data_index     ),
@@ -498,12 +506,13 @@ m1_stage m1_stage(
     .data_wdata     (data_wdata     ),
     .data_addr_ok   (data_addr_ok   ),
     .data_data_ok   (data_data_ok   ),
-    .m1s_alu_result(m1s_alu_result),
-    .DTLB_index     (DTLB_index),
-    .DTLB_pfn       (DTLB_pfn),
-    .DTLB_c         (DTLB_c),
-    .DTLB_d         (DTLB_d),
-    .DTLB_v         (DTLB_v)
+    .DTLB_found     (DTLB_found     ),
+    .DTLB_index     (DTLB_index     ),
+    .DTLB_pfn       (DTLB_pfn       ),
+    .DTLB_c         (DTLB_c         ),
+    .DTLB_d         (DTLB_d         ),
+    .DTLB_v         (DTLB_v         ),
+    .isUncache      (isUncache      )
 );
 // MEM stage
 wire ms_inst_mfc0;
@@ -553,21 +562,21 @@ tlb tlb_stage(
     .s0_vpn2          (m1s_alu_result[31:13]),
     .s0_odd_page      (m1s_alu_result[12]),
     .s0_asid          (cp0_to_tlb_asid  ),
-    .s0_found         (tlb_to_cp0_found ),
-    .s0_index         (                 ),
-    .s0_pfn           (tlb_to_cp0_pfn0  ),
-    .s0_c             (tlb_to_cp0_c0    ),
-    .s0_d             (tlb_to_cp0_d0    ),
-    .s0_v             (tlb_to_cp0_v0    ),
+    .s0_found         (DTLB_found       ),
+    .s0_index         (DTLB_index       ),
+    .s0_pfn           (DTLB_pfn         ),
+    .s0_c             (DTLB_c           ),
+    .s0_d             (DTLB_d           ),
+    .s0_v             (DTLB_v           ),
     .s1_vpn2          (ps_to_fs_bus[31:13]),
-    .s1_odd_page      (ps_to_fs_bus[12]   ),
-    .s1_asid          (cp0_to_tlb_asid  ),
-    .s1_found         (tlb_to_cp0_found ),
-    .s1_index         (                 ),
-    .s1_pfn           (tlb_to_cp0_pfn1  ),
-    .s1_c             (tlb_to_cp0_c1    ),
-    .s1_d             (tlb_to_cp0_d1    ),
-    .s1_v             (tlb_to_cp0_v1    ),
+    .s1_odd_page      (ps_to_fs_bus[12]  ),
+    .s1_asid          (cp0_to_tlb_asid  ),        
+    .s1_found         (ITLB_found       ),
+    .s1_index         (ITLB_index       ),
+    .s1_pfn           (ITLB_pfn         ),
+    .s1_c             (ITLB_c           ),
+    .s1_d             (ITLB_d           ),
+    .s1_v             (ITLB_v           ),
     .inst_tlbwi       (m1s_inst_tlbwi   ),
     .inst_tlbp        (m1s_inst_tlbp    ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),

@@ -24,12 +24,12 @@ module m1_stage(
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
     // output flush_refill,
-    output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
-    output          CP0_Status_IE_out, //IE=1,全局中断使能开启
-    output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
-    output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
-    output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
-    output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [31:0]   CP0_EPC, //CP0寄存器中,EPC的值
+    output          CP0_Status_IE, //IE=1,全局中断使能开启
+    output          CP0_Status_EXL, //EXL=0,没有例外正在处理
+    output [ 7:0]   CP0_Status_IM, //IM对应各个中断源屏蔽位
+    output [ 7:0]   CP0_Cause_IP, //待处理中断标识
+    output          CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
     output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
@@ -60,6 +60,7 @@ module m1_stage(
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
     output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
+    output [31:0]   m1s_alu_result,
     /********************TLB-CP0交互信号如上********************/
 
     output reg    data_valid,
@@ -71,15 +72,15 @@ module m1_stage(
     output [31:0] data_wdata,
     input         data_data_ok, //
     input         data_addr_ok,
-   // wire         DTLB_found;
-    output     [31:0] m1s_alu_result,
-    input      [ 3:0] DTLB_index,
-    input      [19:0] DTLB_pfn,
-    input      [ 2:0] DTLB_c,
-    input             DTLB_d,
-    input             DTLB_v
+    input         DTLB_found,
+    input  [ 3:0] DTLB_index,
+    input  [19:0] DTLB_pfn,
+    input  [ 2:0] DTLB_c,
+    input         DTLB_d, 
+    input         DTLB_v,
+    output        isUncache
 );
-    
+
 reg         m1s_valid;
 wire        m1s_ready_go;
 
@@ -159,6 +160,40 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                         } ;               
 
+//lab7添加
+//TODO:data_rdata换成从DCache读回来的数据rdata
+// assign load_sign_lb         = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
+//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15] :
+//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23] :
+//                                                              data_rdata[31];                                                  
+// assign mem_result_lb[ 7:0]  = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7:0 ] :
+//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15:8 ] :
+//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23:16] :
+//                                                              data_rdata[31:24];
+// assign mem_result_lb[31:8]  = {24{load_sign_lb}};
+// assign mem_result_lbu       = {24'd0, mem_result_lb[7:0]};
+
+
+// //lh/lhu
+// assign load_sign_lh         = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15]   :
+//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31]   : 1'b0;                                                   
+// assign mem_result_lh[15:0]  = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15:0] : 
+//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31:16]: 16'd0;
+// assign mem_result_lh[31:16] = {16{load_sign_lh}};
+// assign mem_result_lhu       = {16'd0, mem_result_lh[15:0]};
+
+// //lwl
+// assign mem_result_lwl       = (m1s_alu_result[1:0] == 2'd0) ? {data_rdata[ 7:0], m1_rt_value[23:0]} :
+//                               (m1s_alu_result[1:0] == 2'd1) ? {data_rdata[15:0], m1_rt_value[15:0]} :
+//                               (m1s_alu_result[1:0] == 2'd2) ? {data_rdata[23:0], m1_rt_value[7 :0]} :
+//                                                               data_rdata[31:0];
+
+// //lwr
+// assign mem_result_lwr       = (m1s_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]                       :
+//                               (m1s_alu_result[1:0] == 2'd1) ? {m1_rt_value[31:24], data_rdata[31: 8]} :
+//                               (m1s_alu_result[1:0] == 2'd2) ? {m1_rt_value[31:16], data_rdata[31:16]} :
+//                                                              {m1_rt_value[31: 8], data_rdata[31:24]} ;
+
 
 
 
@@ -185,6 +220,14 @@ always @(posedge clk ) begin
     end
 end
 
+// assign mem_data = (m1s_mem_inst[2]) ? mem_result_lb  :
+//                   (m1s_mem_inst[3]) ? mem_result_lbu :
+//                   (m1s_mem_inst[4]) ? mem_result_lh  :
+//                   (m1s_mem_inst[5]) ? mem_result_lhu : 
+//                   (m1s_mem_inst[6]) ? mem_result_lwl :
+//                   (m1s_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
+
+// assign ms_final_result = m1s_alu_result;
                                          
 //lab4添加
 assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
@@ -237,27 +280,29 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
-    .CP0_EPC_out             (CP0_EPC_out),
-    .CP0_Status_IE_out       (CP0_Status_IE_out),
-    .CP0_Status_EXL_out      (CP0_Status_EXL_out),
-    .CP0_Status_IM_out       (CP0_Status_IM_out),
-    .CP0_Cause_IP_out        (CP0_Cause_IP_out),
-    .CP0_Cause_TI_out        (CP0_Cause_TI_out)
+    .CP0_EPC             (CP0_EPC),
+    .CP0_Status_IE       (CP0_Status_IE),
+    .CP0_Status_EXL      (CP0_Status_EXL),
+    .CP0_Status_IM       (CP0_Status_IM),
+    .CP0_Cause_IP        (CP0_Cause_IP),
+    .CP0_Cause_TI        (CP0_Cause_TI)
 );
-/******************CP0推到MEM阶段******************/
-reg [31:0] DTLB_RAddr; //实地址
-DTLB_stage DTLB_stage(
-       // .DTLB_found     (DTLB_found     ),
+/**** **************CP0推到MEM阶段******************/
+
+
+wire  [31:0]  DTLB_RAddr;//实地址
+DTLB_stage DTLB(
+        .DTLB_found     (DTLB_found     ),
         .DTLB_VAddr     (m1s_alu_result ), 
+        .DTLB_asid      (cp0_to_tlb_asid ),
         .DTLB_RAddr     (DTLB_RAddr     ),
         .DTLB_index     (DTLB_index     ),
         .DTLB_pfn       (DTLB_pfn       ),
         .DTLB_c         (DTLB_c         ),
         .DTLB_d         (DTLB_d         ),
-        .DTLB_v         (DTLB_v         )
+        .DTLB_v         (DTLB_v         ),
+        .isUncache      (isUncache      )
 );
-
-
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin
@@ -271,7 +316,6 @@ end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
 assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : {data_tag,data_index,data_offset};
-
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;
@@ -281,5 +325,6 @@ assign data_wdata = sram_wdata;
 /******************例外处理部分********************/
 assign flush = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 /******************例外处理部分********************/
+
 
 endmodule

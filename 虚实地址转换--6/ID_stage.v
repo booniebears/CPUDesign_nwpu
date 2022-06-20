@@ -32,11 +32,11 @@ module id_stage(
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
   //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
-    input        CP0_Status_IE_out, //IE=1,全局中断使能开启
-    input        CP0_Status_EXL_out, //EXL=0,没有例外正在处理
-    input [ 7:0] CP0_Status_IM_out, //IM对应各个中断源屏蔽位
-    input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
-    input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input        CP0_Status_IE, //IE=1,全局中断使能开启
+    input        CP0_Status_EXL, //EXL=0,没有例外正在处理
+    input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
+    input [ 7:0] CP0_Cause_IP, //待处理中断标识
+    input        CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     output       mfc0_stall   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
 );
 
@@ -439,7 +439,7 @@ assign rsltz=(rs_value[31]==1'b1&&rs_value!=32'b0); //<0
 
 //lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
 wire has_int; //判定是否接收到中断 需要满足下面的条件
-assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
+assign has_int = ((CP0_Cause_IP & CP0_Status_IM) != 0) && CP0_Status_IE && !CP0_Status_EXL;
 
 reg Time_int; //定时中断信号
 reg Soft_int; //软件中断信号
@@ -450,7 +450,7 @@ reg [1:0] Time_state,Time_next_state;
 always @(*) begin //该状态机同时处理next_state和Time_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI_out&&has_int && ds_valid) begin
+            if(CP0_Cause_TI&&has_int && ds_valid) begin
                 Time_next_state<=Time_Start;
                 Time_int<=1'b1;
             end
@@ -459,7 +459,7 @@ always @(*) begin //该状态机同时处理next_state和Time_int
                 Time_int<=1'b0;
             end
         Time_Start: 
-            if(!CP0_Cause_TI_out&&!has_int) begin
+            if(!CP0_Cause_TI&&!has_int) begin
                 Time_next_state<=Time_Idle;
                 Time_int<=1'b0;
             end
@@ -486,7 +486,7 @@ reg [1:0] Soft_state,Soft_next_state;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP_out[1:0]!=0&&has_int && ds_valid) begin
+            if(CP0_Cause_IP[1:0]!=0&&has_int && ds_valid) begin
                 Soft_next_state<=Soft_Start;
                 Soft_int<=1'b1;
             end
@@ -495,7 +495,7 @@ always @(*) begin //该状态机同时处理next_state和Soft_int
                 Soft_int<=1'b0;
             end
         Soft_Start:
-            if(CP0_Cause_IP_out[1:0]==0&&!has_int) begin
+            if(CP0_Cause_IP[1:0]==0&&!has_int) begin
                 Soft_next_state<=Soft_Idle;
                 Soft_int<=1'b0;
             end

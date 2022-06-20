@@ -1,10 +1,12 @@
 `include "global_defines.vh"
 
 module ITLB_stage(
+    input             ITLB_found,
     input      [31:0] ITLB_VAddr, //–Èµÿ÷∑
     output reg [31:0] ITLB_RAddr, // µµÿ÷∑
     input      [ 3:0] ITLB_index,
     input      [19:0] ITLB_pfn,
+    input      [3:0]  ITLB_asid, //ASID
     input      [ 2:0] ITLB_c,
     input             ITLB_d,
     input             ITLB_v

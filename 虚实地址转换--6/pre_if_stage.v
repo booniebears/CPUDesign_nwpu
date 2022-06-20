@@ -13,7 +13,7 @@ module pre_if_stage(
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     input         flush, //flush=1时表明需要处理异常
     // input         flush_refill,
-    input  [31:0] CP0_EPC_out, //CP0寄存器中,EPC的值
+    input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
     input         m1s_inst_eret,
     // input  [4:0]  tlb_refill_if_ex,
     // input  [4:0]  tlb_invalid_if_ex,
@@ -25,14 +25,15 @@ module pre_if_stage(
     output [ 3:0] inst_offset,
     input         inst_addr_ok,
     input         inst_data_ok,
-    input         mfc0_stall,//TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    input      [ 3:0] ITLB_index,
-    input      [19:0] ITLB_pfn,
-    input      [ 2:0] ITLB_c,
-    input             ITLB_d,
-    input             ITLB_v
+    input         mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    input         ITLB_found,
+    input  [ 3:0] ITLB_index,
+    input  [19:0] ITLB_pfn,
+    input  [ 2:0] ITLB_c,
+    input         ITLB_d,
+    input         ITLB_v,
+    input  [3:0]  ITLB_asid
 );
-
 //wire        ps_allowin; //仅在IF阶段中作用 fs_allowin=1,IF阶段允许指令流入 是fs_valid fs_pc inst_sram_en的控制信号
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
@@ -67,7 +68,7 @@ reg [31:0] nextpc_buffer;
 reg [31:0] nextpc_timely;
 always @(*) begin
     if(m1s_inst_eret)
-        nextpc_timely <= CP0_EPC_out;
+        nextpc_timely <= CP0_EPC;
     else if(flush | flush_r)
         nextpc_timely <= 32'hbfc00380;
     else if(npc_block)begin
@@ -99,6 +100,20 @@ always @(*) begin
         nextpc <= nextpc_buffer;
 end
 
+wire  [31:0] ITLB_RAddr; //实地址
+
+
+ITLB_stage ITLB(
+        .ITLB_found     (ITLB_found     ),
+        .ITLB_VAddr     (ps_to_fs_bus   ), 
+        .ITLB_RAddr     (ITLB_RAddr     ),
+        .ITLB_index     (ITLB_index     ),
+        .ITLB_pfn       (ITLB_pfn       ),
+        .ITLB_asid      (ITLB_asid      ),
+        .ITLB_c         (ITLB_c         ),
+        .ITLB_d         (ITLB_d         ),
+        .ITLB_v         (ITLB_v         )
+);
 always @(*) begin///CHANGE
     if(flush)
         inst_valid <= 1'b1;
@@ -109,23 +124,9 @@ always @(*) begin///CHANGE
     else
         inst_valid <= 1'b0;
 end
-//todo
-
-wire [31:0] ITLB_RAddr; //实地址
-ITLB_stage ITLB_stage(
-        .ITLB_VAddr     (nextpc         ), 
-        .ITLB_RAddr     (ITLB_RAddr     ),
-        .ITLB_index     (ITLB_index     ),
-        .ITLB_pfn       (ITLB_pfn       ),
-        .ITLB_c         (ITLB_c         ),
-        .ITLB_d         (ITLB_d         ),
-        .ITLB_v         (ITLB_v         )
-);
 
 assign inst_op    = 1'b0; //读
 assign {inst_tag,inst_index,inst_offset} = ITLB_RAddr;
-
-
 
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule

@@ -37,7 +37,8 @@ module dcache (
     output reg ud_wr_req,
     input ud_wr_rdy,
     output [31:0] ud_wr_addr,
-    output [31:0] ud_wr_data
+    output [31:0] ud_wr_data,
+    input  isUncache
 );
 parameter   IDLE = 3'd0,
             LOOKUP = 3'd1,
@@ -57,7 +58,7 @@ wire        d_hit;
 wire [19:0] d_way0_tag;
 wire [19:0] d_way1_tag;
 
-wire [31:0] RAddr;
+//wire [31:0] RAddr;
 reg  [ 1:0] d_count;
 
 reg [31:0] uncache_data;
@@ -80,7 +81,7 @@ wire [127:0] d_way0_block;
 wire [127:0] d_way1_block;
 
 //ADD???
-wire isUncache;
+
 wire d_way0_v;
 wire d_way1_v;
 
@@ -351,11 +352,11 @@ always @(posedge clk) begin
         uncache_data <= ud_ret_data;
 end
 
-assign d_rd_addr  = {RAddr[31:4],4'b0};
-assign ud_rd_addr = RAddr;
+assign d_rd_addr  = {dcache_CPU2Cache_buffer[67:40],4'b0};
+assign ud_rd_addr = dcache_CPU2Cache_buffer[67:36];
 
 assign ud_wr_strb = dcache_CPU2Cache_buffer[35:32];
-assign ud_wr_addr = RAddr;
+assign ud_wr_addr = dcache_CPU2Cache_buffer[67:36];
 assign ud_wr_data = dcache_CPU2Cache_buffer[31:0];
 
 always @(posedge clk)begin
@@ -368,8 +369,8 @@ always @(posedge clk)begin
     end
 end
 
-assign d_hit_way[0] = (d_way0_tag == RAddr[31:12] ) && d_way0_v;
-assign d_hit_way[1] = (d_way1_tag == RAddr[31:12] ) && d_way1_v;
+assign d_hit_way[0] = (d_way0_tag == dcache_CPU2Cache_buffer[67:48]) && d_way0_v;
+assign d_hit_way[1] = (d_way1_tag == dcache_CPU2Cache_buffer[67:48] ) && d_way1_v;
 
 assign d_hit = d_hit_way[0] || d_hit_way[1] ;//第一个时钟沿发来请求，下个时钟沿一定准确
 
@@ -500,18 +501,18 @@ always @(*) begin
     end
 end
 
-V2RConvert U_DCache_V2RConvert(
-    .VAddr(dcache_CPU2Cache_buffer[67:36]),
-    .RAddr(RAddr),
-    .isUncache(isUncache)
-);
+//V2RConvert U_DCache_V2RConvert(
+//    .VAddr(dcache_CPU2Cache_buffer[67:36]),
+//    .RAddr(RAddr),
+//    .isUncache(isUncache)
+//);
 
 ram_tag dcache_way0_tagv(
     .clka(clk),
     .ena(1'b1),
     .wea(d_wr0_en[0] || d_wr0_en[1] || d_wr0_en[2] || d_wr0_en[3]),
     .addra(dcache_CPU2Cache_buffer[47:40]),//index
-    .dina({RAddr[31:12],1'b1 } ),
+    .dina({dcache_CPU2Cache_buffer[67:48],1'b1 } ),
     .douta({d_way0_tag,d_way0_v})
 );
 
@@ -520,7 +521,7 @@ ram_tag dcache_way1_tagv(
     .ena(1'b1),
     .wea(d_wr1_en[0] || d_wr1_en[1] || d_wr1_en[2] || d_wr1_en[3]),
     .addra(dcache_CPU2Cache_buffer[47:40]),//index
-    .dina({RAddr[31:12],1'b1 }),
+    .dina({dcache_CPU2Cache_buffer[67:48],1'b1 }),
     .douta({d_way1_tag,d_way1_v})
 );
 
