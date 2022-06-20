@@ -69,10 +69,17 @@ module m1_stage(
     output [ 3:0] data_offset,
       output [ 3:0] data_wstrb,
     output [31:0] data_wdata,
- input         data_data_ok, //
-        input         data_addr_ok
-        
+    input         data_data_ok, //
+    input         data_addr_ok,
+   // wire         DTLB_found;
+    output     [31:0] m1s_alu_result,
+    input      [ 3:0] DTLB_index,
+    input      [19:0] DTLB_pfn,
+    input      [ 2:0] DTLB_c,
+    input             DTLB_d,
+    input             DTLB_v
 );
+    
 reg         m1s_valid;
 wire        m1s_ready_go;
 
@@ -80,7 +87,7 @@ reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
 wire        m1s_res_from_mem;
 wire        m1s_gr_we;
 wire [ 4:0] m1s_dest;
-wire [31:0] m1s_alu_result;
+
 wire [31:0] m1s_pc;
 //lab7添加
 wire [11:0] m1s_mem_inst;//直接传走
@@ -152,40 +159,6 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                         } ;               
 
-//lab7添加
-//TODO:data_rdata换成从DCache读回来的数据rdata
-// assign load_sign_lb         = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
-//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15] :
-//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23] :
-//                                                              data_rdata[31];                                                  
-// assign mem_result_lb[ 7:0]  = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7:0 ] :
-//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15:8 ] :
-//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23:16] :
-//                                                              data_rdata[31:24];
-// assign mem_result_lb[31:8]  = {24{load_sign_lb}};
-// assign mem_result_lbu       = {24'd0, mem_result_lb[7:0]};
-
-
-// //lh/lhu
-// assign load_sign_lh         = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15]   :
-//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31]   : 1'b0;                                                   
-// assign mem_result_lh[15:0]  = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15:0] : 
-//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31:16]: 16'd0;
-// assign mem_result_lh[31:16] = {16{load_sign_lh}};
-// assign mem_result_lhu       = {16'd0, mem_result_lh[15:0]};
-
-// //lwl
-// assign mem_result_lwl       = (m1s_alu_result[1:0] == 2'd0) ? {data_rdata[ 7:0], m1_rt_value[23:0]} :
-//                               (m1s_alu_result[1:0] == 2'd1) ? {data_rdata[15:0], m1_rt_value[15:0]} :
-//                               (m1s_alu_result[1:0] == 2'd2) ? {data_rdata[23:0], m1_rt_value[7 :0]} :
-//                                                               data_rdata[31:0];
-
-// //lwr
-// assign mem_result_lwr       = (m1s_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]                       :
-//                               (m1s_alu_result[1:0] == 2'd1) ? {m1_rt_value[31:24], data_rdata[31: 8]} :
-//                               (m1s_alu_result[1:0] == 2'd2) ? {m1_rt_value[31:16], data_rdata[31:16]} :
-//                                                              {m1_rt_value[31: 8], data_rdata[31:24]} ;
-
 
 
 
@@ -212,14 +185,6 @@ always @(posedge clk ) begin
     end
 end
 
-// assign mem_data = (m1s_mem_inst[2]) ? mem_result_lb  :
-//                   (m1s_mem_inst[3]) ? mem_result_lbu :
-//                   (m1s_mem_inst[4]) ? mem_result_lh  :
-//                   (m1s_mem_inst[5]) ? mem_result_lhu : 
-//                   (m1s_mem_inst[6]) ? mem_result_lwl :
-//                   (m1s_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
-
-// assign ms_final_result = m1s_alu_result;
                                          
 //lab4添加
 assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
@@ -280,6 +245,19 @@ CP0_Reg u_CP0_Reg(
     .CP0_Cause_TI_out        (CP0_Cause_TI_out)
 );
 /******************CP0推到MEM阶段******************/
+reg [31:0] DTLB_RAddr; //实地址
+DTLB_stage DTLB_stage(
+       // .DTLB_found     (DTLB_found     ),
+        .DTLB_VAddr     (m1s_alu_result ), 
+        .DTLB_RAddr     (DTLB_RAddr     ),
+        .DTLB_index     (DTLB_index     ),
+        .DTLB_pfn       (DTLB_pfn       ),
+        .DTLB_c         (DTLB_c         ),
+        .DTLB_d         (DTLB_d         ),
+        .DTLB_v         (DTLB_v         )
+);
+
+
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin
@@ -292,7 +270,8 @@ always @(*) begin
 end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
-assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? m1s_alu_result : {data_tag,data_index,data_offset};
+assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : {data_tag,data_index,data_offset};
+
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;

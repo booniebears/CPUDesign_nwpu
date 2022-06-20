@@ -183,7 +183,19 @@ wire           cp0_to_tlb_d1   ;
 wire           cp0_to_tlb_v1   ;
 wire           cp0_to_tlb_g1   ;
 wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
+wire  [31:0]   m1s_alu_result  ;
 /********************TLB-CP0交互信号如上********************/
+
+wire  [ 3:0]   ITLB_index;  
+wire  [19:0]   ITLB_pfn  ;   
+wire  [ 2:0]   ITLB_c    ;   
+wire           ITLB_d    ;    
+wire           ITLB_v    ;   
+wire  [ 3:0]   DTLB_index;
+wire  [19:0]   DTLB_pfn  ;
+wire  [ 2:0]   DTLB_c    ;
+wire           DTLB_d    ;
+wire           DTLB_v    ;
 
 
 AXI_Interface U_AXI_Interface(
@@ -321,10 +333,10 @@ pre_if_stage pre_if_stage(
     .fs_pc          (fs_pc          ),
     .fs_allowin     (fs_allowin     ),
     .br_bus         (br_bus         ),
-    //.ps_bd          (ps_bd          ),
+  //.ps_bd          (ps_bd          ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
-    .CP0_EPC_out        (CP0_EPC_out        ),
+    .CP0_EPC_out    (CP0_EPC_out    ),
     .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
@@ -333,7 +345,12 @@ pre_if_stage pre_if_stage(
     .inst_offset    (inst_offset    ),
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),  
-    .mfc0_stall     (mfc0_stall     )
+    .mfc0_stall     (mfc0_stall     ),
+    .ITLB_index     (ITLB_index     ),
+    .ITLB_pfn       (ITLB_pfn       ),
+    .ITLB_c         (ITLB_c         ),
+    .ITLB_d         (ITLB_d         ),
+    .ITLB_v         (ITLB_v         )
 );
 
 // IF stage
@@ -480,7 +497,13 @@ m1_stage m1_stage(
     .data_wstrb     (data_wstrb     ),
     .data_wdata     (data_wdata     ),
     .data_addr_ok   (data_addr_ok   ),
-    .data_data_ok   (data_data_ok   )
+    .data_data_ok   (data_data_ok   ),
+    .m1s_alu_result(m1s_alu_result),
+    .DTLB_index     (DTLB_index),
+    .DTLB_pfn       (DTLB_pfn),
+    .DTLB_c         (DTLB_c),
+    .DTLB_d         (DTLB_d),
+    .DTLB_v         (DTLB_v)
 );
 // MEM stage
 wire ms_inst_mfc0;
@@ -527,26 +550,26 @@ wb_stage wb_stage(
 tlb tlb_stage(
     //TODO: add more signals
     .clk              (aclk             ),
-    .s0_vpn2          (0                ),
-    .s0_odd_page      (0                ),
-    .s0_asid          (0                ),
-    .s0_found         (                 ),
+    .s0_vpn2          (m1s_alu_result[31:13]),
+    .s0_odd_page      (m1s_alu_result[12]),
+    .s0_asid          (cp0_to_tlb_asid  ),
+    .s0_found         (tlb_to_cp0_found ),
     .s0_index         (                 ),
-    .s0_pfn           (                 ),
-    .s0_c             (                 ),
-    .s0_d             (                 ),
-    .s0_v             (                 ),
-    .s1_vpn2          (0                ),
-    .s1_odd_page      (0                ),
-    .s1_asid          (0                ),
-    .s1_found         (                 ),
+    .s0_pfn           (tlb_to_cp0_pfn0  ),
+    .s0_c             (tlb_to_cp0_c0    ),
+    .s0_d             (tlb_to_cp0_d0    ),
+    .s0_v             (tlb_to_cp0_v0    ),
+    .s1_vpn2          (ps_to_fs_bus[31:13]),
+    .s1_odd_page      (ps_to_fs_bus[12]   ),
+    .s1_asid          (cp0_to_tlb_asid  ),
+    .s1_found         (tlb_to_cp0_found ),
     .s1_index         (                 ),
-    .s1_pfn           (                 ),
-    .s1_c             (                 ),
-    .s1_d             (                 ),
-    .s1_v             (                 ),
-    .inst_tlbwi       (ms_inst_tlbwi    ),
-    .inst_tlbp        (ms_inst_tlbp     ),
+    .s1_pfn           (tlb_to_cp0_pfn1  ),
+    .s1_c             (tlb_to_cp0_c1    ),
+    .s1_d             (tlb_to_cp0_d1    ),
+    .s1_v             (tlb_to_cp0_v1    ),
+    .inst_tlbwi       (m1s_inst_tlbwi   ),
+    .inst_tlbp        (m1s_inst_tlbp    ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),
     .tlb_to_cp0_vpn2  (tlb_to_cp0_vpn2  ),
     .tlb_to_cp0_asid  (tlb_to_cp0_asid  ),
