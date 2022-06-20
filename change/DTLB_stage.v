@@ -10,7 +10,14 @@ module DTLB_stage(
     input      [ 2:0] DTLB_c,
     input             DTLB_d,
     input             DTLB_v,
-    output  reg       isUncache
+    output reg        isUncache,
+    input             DTLB_read,   
+    input             DTLB_store,   
+    output reg        DTLB_EX_RD_Refill,
+    output reg        DTLB_EX_WR_Refill,
+    output reg        DTLB_EX_RD_Invalid,
+    output reg        DTLB_EX_WR_Invalid,
+    output reg        DTLB_EX_Modified
 );
 
 
@@ -28,6 +35,41 @@ always @(*) begin //TODO:目前比较简化,没有考虑TLB.kseg1固定为uncache,kseg0先认为
         isUncache <= 1'b1;
     else
         isUncache <= 1'b0;
+end
+
+always @(*) begin
+    if(~DTLB_found && (DTLB_VAddr[31:28] <= 4'h7 || DTLB_VAddr[31:28] >= 4'hC) && DTLB_read)
+        DTLB_EX_RD_Refill <= 1'b1;
+    else
+        DTLB_EX_RD_Refill <= 1'b0;
+end
+
+always @(*) begin
+    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && ~DTLB_v && DTLB_read)
+        DTLB_EX_RD_Invalid <= 1'b1;
+    else
+        DTLB_EX_RD_Invalid <= 1'b0;    
+end
+
+always @(*) begin
+    if(~DTLB_found && (DTLB_VAddr[31:28] <= 4'h7 || DTLB_VAddr[31:28] >= 4'hC) && DTLB_store)
+        DTLB_EX_WR_Refill <= 1'b1;
+    else
+        DTLB_EX_WR_Refill <= 1'b0;
+end
+
+always @(*) begin
+    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && ~DTLB_v && DTLB_store)
+        DTLB_EX_WR_Invalid <= 1'b1;
+    else
+        DTLB_EX_WR_Invalid <= 1'b0;    
+end
+
+always @(*) begin
+    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && DTLB_v  && ~DTLB_d  && DTLB_store)
+       DTLB_EX_Modified <= 1'b1;
+    else
+       DTLB_EX_Modified <= 1'b0;
 end
 
 

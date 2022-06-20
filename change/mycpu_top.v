@@ -90,12 +90,12 @@ wire         es_ex;
 wire         m1s_ex;
 wire         ms_ex;
 wire         ws_ex;
-wire  [31:0] CP0_EPC;
-wire         CP0_Cause_TI;
-wire         CP0_Status_IE; //IE=1,全局中断使能开启
-wire         CP0_Status_EXL; //EXL=0,没有例外正在处理
-wire  [ 7:0] CP0_Status_IM; //IM对应各个中断源屏蔽位
-wire  [ 7:0] CP0_Cause_IP; //待处理中断标识
+wire  [31:0] CP0_EPC_out;
+wire         CP0_Cause_TI_out;
+wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
+wire         CP0_Status_EXL_out; //EXL=0,没有例外正在处理
+wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
+wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
@@ -106,6 +106,7 @@ wire  [19:0] ITLB_pfn;
 wire  [ 2:0] ITLB_c;
 wire         ITLB_d;
 wire         ITLB_v;
+wire  [31:0] nextpc;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -341,7 +342,7 @@ pre_if_stage pre_if_stage(
     .br_bus         (br_bus         ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
-    .CP0_EPC        (CP0_EPC        ),
+    .CP0_EPC_out        (CP0_EPC_out        ),
     .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
     .inst_op        (inst_op        ),
@@ -357,13 +358,15 @@ pre_if_stage pre_if_stage(
     .ITLB_c         (ITLB_c         ),
     .ITLB_d         (ITLB_d         ),
     .ITLB_v         (ITLB_v         ),
-    .ITLB_asid      (cp0_to_tlb_asid)
+    .ITLB_asid      (cp0_to_tlb_asid),
+    .nextpc         (nextpc         )
 );
 
 // IF stage
 if_stage if_stage(
     .clk            (aclk           ),
     .reset          (reset          ),
+    .ps_to_fs_nextpc(nextpc         ),
     .fs_pc          (fs_pc          ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     //allowin
@@ -410,11 +413,11 @@ id_stage id_stage(
     .flush          (flush          ),
     .es_inst_mfc0   (es_inst_mfc0   ),
     .m1s_inst_mfc0  (m1s_inst_mfc0   ),
-    .CP0_Status_IE  (CP0_Status_IE  ), 
-    .CP0_Status_EXL (CP0_Status_EXL ), 
-    .CP0_Status_IM  (CP0_Status_IM  ),
-    .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .CP0_Status_IE_out  (CP0_Status_IE_out  ), 
+    .CP0_Status_EXL_out (CP0_Status_EXL_out ), 
+    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
+    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
+    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .mfc0_stall     (mfc0_stall     )
 );
 // EXE stage
@@ -461,12 +464,12 @@ m1_stage m1_stage(
     .m1s_ex          (m1s_ex          ), 
     .m1s_inst_mfc0   (m1s_inst_mfc0   ), 
     .m1s_inst_eret   (m1s_inst_eret   ),
-    .CP0_EPC        (CP0_EPC        ),
-    .CP0_Status_IE  (CP0_Status_IE  ),
-    .CP0_Status_EXL (CP0_Status_EXL ),
-    .CP0_Status_IM  (CP0_Status_IM  ),
-    .CP0_Cause_IP   (CP0_Cause_IP   ),
-    .CP0_Cause_TI   (CP0_Cause_TI   ),
+    .CP0_EPC_out        (CP0_EPC_out        ),
+    .CP0_Status_IE_out  (CP0_Status_IE_out  ),
+    .CP0_Status_EXL_out (CP0_Status_EXL_out ),
+    .CP0_Status_IM_out  (CP0_Status_IM_out  ),
+    .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
+    .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
     .m1s_inst_tlbp   (m1s_inst_tlbp   ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),
@@ -559,24 +562,24 @@ wb_stage wb_stage(
 tlb tlb_stage(
     //TODO: add more signals
     .clk              (aclk             ),
-    .s0_vpn2          (m1s_alu_result[31:13]),
-    .s0_odd_page      (m1s_alu_result[12]),
-    .s0_asid          (cp0_to_tlb_asid  ),
-    .s0_found         (DTLB_found       ),
-    .s0_index         (DTLB_index       ),
-    .s0_pfn           (DTLB_pfn         ),
-    .s0_c             (DTLB_c           ),
-    .s0_d             (DTLB_d           ),
-    .s0_v             (DTLB_v           ),
-    .s1_vpn2          (ps_to_fs_bus[31:13]),
-    .s1_odd_page      (ps_to_fs_bus[12]  ),
-    .s1_asid          (cp0_to_tlb_asid  ),        
-    .s1_found         (ITLB_found       ),
-    .s1_index         (ITLB_index       ),
-    .s1_pfn           (ITLB_pfn         ),
-    .s1_c             (ITLB_c           ),
-    .s1_d             (ITLB_d           ),
-    .s1_v             (ITLB_v           ),
+    .s0_vpn2          (nextpc           ),
+    .s0_odd_page      (nextpc           ),
+    .s0_asid          (cp0_to_tlb_asid  ),        
+    .s0_found         (ITLB_found       ),
+    .s0_index         (ITLB_index       ),
+    .s0_pfn           (ITLB_pfn         ),
+    .s0_c             (ITLB_c           ),
+    .s0_d             (ITLB_d           ),
+    .s0_v             (ITLB_v           ),
+    .s1_vpn2          (m1s_alu_result[31:13]),
+    .s1_odd_page      (m1s_alu_result[12]),
+    .s1_asid          (cp0_to_tlb_asid  ),
+    .s1_found         (DTLB_found       ),
+    .s1_index         (DTLB_index       ),
+    .s1_pfn           (DTLB_pfn         ),
+    .s1_c             (DTLB_c           ),
+    .s1_d             (DTLB_d           ),
+    .s1_v             (DTLB_v           ),
     .inst_tlbwi       (m1s_inst_tlbwi   ),
     .inst_tlbp        (m1s_inst_tlbp    ),
     .tlb_to_cp0_found (tlb_to_cp0_found ),

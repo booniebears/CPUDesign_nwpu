@@ -13,32 +13,40 @@ module pre_if_stage(
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     input         flush, //flush=1时表明需要处理异常
     // input         flush_refill,
-    input  [31:0] CP0_EPC, //CP0寄存器中,EPC的值
+    input  [31:0] CP0_EPC_out, //CP0寄存器中,EPC的值
     input         m1s_inst_eret,
     // input  [4:0]  tlb_refill_if_ex,
     // input  [4:0]  tlb_invalid_if_ex,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
-    output reg    inst_valid,
-    output        inst_op,
-    output [ 7:0] inst_index,
-    output [19:0] inst_tag,
-    output [ 3:0] inst_offset,
-    input         inst_addr_ok,
-    input         inst_data_ok,
-    input         mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    input         ITLB_found,
-    input  [ 3:0] ITLB_index,
-    input  [19:0] ITLB_pfn,
-    input  [ 2:0] ITLB_c,
-    input         ITLB_d,
-    input         ITLB_v,
-    input  [3:0]  ITLB_asid
+    output reg        inst_valid,
+    output            inst_op,
+    output     [ 7:0] inst_index,
+    output     [19:0] inst_tag,
+    output     [ 3:0] inst_offset,
+    input             inst_addr_ok,
+    input             inst_data_ok,
+    input             mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    input             ITLB_found,
+    input      [ 3:0] ITLB_index,
+    input      [19:0] ITLB_pfn,
+    input      [ 2:0] ITLB_c,
+    input             ITLB_d,
+    input             ITLB_v,
+    input      [3:0]  ITLB_asid,
+    output reg [31:0] nextpc
 );
+
+wire [31:0] ITLB_RAddr; //实地址
+wire        ps_ex;
+wire        ITLB_EX_Refill;
+wire        ITLB_EX_Invalid;
+wire [4:0]  ps_Exctype;
+
 //wire        ps_allowin; //仅在IF阶段中作用 fs_allowin=1,IF阶段允许指令流入 是fs_valid fs_pc inst_sram_en的控制信号
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
 wire [31:0] seq_pc;
-reg [31:0] nextpc;
+
 
 wire         br_taken;
 wire [ 31:0] br_target;
@@ -46,7 +54,8 @@ assign {br_stall,br_taken,br_target} = br_bus;
 
 //wire  [31:0] fs_inst;
 assign ps_to_fs_bus = {
-                       nextpc    
+                       ps_ex,      //5:5
+                       ps_Exctype  //4:0
                        };
 
 reg npc_block;
@@ -68,7 +77,7 @@ reg [31:0] nextpc_buffer;
 reg [31:0] nextpc_timely;
 always @(*) begin
     if(m1s_inst_eret)
-        nextpc_timely <= CP0_EPC;
+        nextpc_timely <= CP0_EPC_out;
     else if(flush | flush_r)
         nextpc_timely <= 32'hbfc00380;
     else if(npc_block)begin
@@ -100,20 +109,26 @@ always @(*) begin
         nextpc <= nextpc_buffer;
 end
 
-wire  [31:0] ITLB_RAddr; //实地址
-
 
 ITLB_stage ITLB(
-        .ITLB_found     (ITLB_found     ),
-        .ITLB_VAddr     (ps_to_fs_bus   ), 
-        .ITLB_RAddr     (ITLB_RAddr     ),
-        .ITLB_index     (ITLB_index     ),
-        .ITLB_pfn       (ITLB_pfn       ),
-        .ITLB_asid      (ITLB_asid      ),
-        .ITLB_c         (ITLB_c         ),
-        .ITLB_d         (ITLB_d         ),
-        .ITLB_v         (ITLB_v         )
+        .ITLB_found        (ITLB_found        ),
+        .ITLB_VAddr        (ps_to_fs_bus      ), 
+        .ITLB_RAddr        (ITLB_RAddr        ),
+        .ITLB_index        (ITLB_index        ),
+        .ITLB_pfn          (ITLB_pfn          ),
+        .ITLB_asid         (ITLB_asid         ),
+        .ITLB_c            (ITLB_c            ),
+        .ITLB_d            (ITLB_d            ),
+        .ITLB_v            (ITLB_v            ),
+        .ITLB_EX_Refill    (ITLB_EX_Refill    ),
+        .ITLB_EX_Invalid   (ITLB_EX_Invalid   )
 );
+assign ps_ex = ITLB_EX_Refill | ITLB_EX_Invalid;
+assign ps_Exctype = ITLB_EX_Refill  ? `ITLB_EX_Refill : 
+                    ITLB_EX_Invalid ? `ITLB_EX_Invalid : `NO_EX;
+
+
+
 always @(*) begin///CHANGE
     if(flush)
         inst_valid <= 1'b1;

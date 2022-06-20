@@ -24,12 +24,12 @@ module m1_stage(
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
     // output flush_refill,
-    output [31:0]   CP0_EPC, //CP0寄存器中,EPC的值
-    output          CP0_Status_IE, //IE=1,全局中断使能开启
-    output          CP0_Status_EXL, //EXL=0,没有例外正在处理
-    output [ 7:0]   CP0_Status_IM, //IM对应各个中断源屏蔽位
-    output [ 7:0]   CP0_Cause_IP, //待处理中断标识
-    output          CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
+    output          CP0_Status_IE_out, //IE=1,全局中断使能开启
+    output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
+    output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
+    output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
+    output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
     output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
@@ -80,19 +80,19 @@ module m1_stage(
     input         DTLB_v,
     output        isUncache
 );
-
-reg         m1s_valid;
-wire        m1s_ready_go;
-
+wire  [31:0]  DTLB_RAddr;//实地址
+reg           m1s_valid;
+wire          m1s_ready_go;
+  
 reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
-wire        m1s_res_from_mem;
-wire        m1s_gr_we;
-wire [ 4:0] m1s_dest;
-
-wire [31:0] m1s_pc;
-//lab7添加
-wire [11:0] m1s_mem_inst;//直接传走
-wire [31:0] m1s_rt_value;
+wire          m1s_res_from_mem;
+wire          m1s_gr_we;
+wire [ 4:0]   m1s_dest;
+  
+wire [31:0]   m1s_pc;
+//lab7添加  
+wire [11:0]   m1s_mem_inst;//直接传走
+wire [31:0]   m1s_rt_value;
 // wire 		load_sign_lb;
 // wire 		load_sign_lh;
 // wire [31:0] mem_result_lb;
@@ -106,7 +106,7 @@ wire [2:0] m1s_sel;
 wire [4:0] m1s_mfc0_rd; 
 wire m1s_inst_mtc0;
 wire m1s_bd;
-wire [4:0] m1s_ExcCode;
+wire [4:0] temp_m1s_Exctype;
 //wire [31:0] m1s_data_sram_addr;
 
 wire        eret_flush;
@@ -117,6 +117,7 @@ wire        m1s_inst_tlbwr;
 wire        m1s_mem_we;
 wire [3:0]  sram_wen;
 wire[31:0]  sram_wdata;//位数问题！
+wire        temp_m1s_ex;
 assign {
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
@@ -125,10 +126,10 @@ assign {
         m1s_inst_tlbr   ,  //136:136
         m1s_inst_tlbwi  ,  //135:135
         m1s_inst_tlbwr  ,  //134:134
-        m1s_load_op,       //133
+        m1s_load_op     ,  //133
         m1s_mfc0_rd     ,  //132:128
-        m1s_ex          ,  //127:127
-        m1s_ExcCode     ,  //126:122 
+        temp_m1s_ex     ,  //127:127
+        temp_m1s_Exctype,  //126:122 
         m1s_bd          ,  //121:121
         m1s_inst_eret   ,  //120:120
         m1s_sel         ,  //119:117 
@@ -247,8 +248,8 @@ CP0_Reg u_CP0_Reg(
     .m1s_ex              (m1s_ex),
     .m1s_alu_result      (m1s_alu_result),
     .ext_int             (ext_int),
-    .ExcCode             (m1s_ExcCode),
-    .m1s_pc               (m1s_pc),
+    .Exctype             (m1s_Exctype),
+    .m1s_pc              (m1s_pc),
     .CP0_data            (CP0_data),
     .eret_flush          (eret_flush),
     .inst_tlbr           (m1s_inst_tlbr),
@@ -280,28 +281,38 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
-    .CP0_EPC             (CP0_EPC),
-    .CP0_Status_IE       (CP0_Status_IE),
-    .CP0_Status_EXL      (CP0_Status_EXL),
-    .CP0_Status_IM       (CP0_Status_IM),
-    .CP0_Cause_IP        (CP0_Cause_IP),
-    .CP0_Cause_TI        (CP0_Cause_TI)
+    .CP0_EPC_out         (CP0_EPC_out),
+    .CP0_Status_IE_out   (CP0_Status_IE_out),
+    .CP0_Status_EXL_out  (CP0_Status_EXL_out),
+    .CP0_Status_IM_out   (CP0_Status_IM_out),
+    .CP0_Cause_IP_out    (CP0_Cause_IP_out),
+    .CP0_Cause_TI_out    (CP0_Cause_TI_out)
 );
 /**** **************CP0推到MEM阶段******************/
 
-
-wire  [31:0]  DTLB_RAddr;//实地址
+wire DTLB_EX_RD_Refill   ;
+wire DTLB_EX_WR_Refill   ;
+wire DTLB_EX_RD_Invalid  ;
+wire DTLB_EX_WR_Invalid  ;
+wire DTLB_EX_Modified    ;
 DTLB_stage DTLB(
-        .DTLB_found     (DTLB_found     ),
-        .DTLB_VAddr     (m1s_alu_result ), 
-        .DTLB_asid      (cp0_to_tlb_asid ),
-        .DTLB_RAddr     (DTLB_RAddr     ),
-        .DTLB_index     (DTLB_index     ),
-        .DTLB_pfn       (DTLB_pfn       ),
-        .DTLB_c         (DTLB_c         ),
-        .DTLB_d         (DTLB_d         ),
-        .DTLB_v         (DTLB_v         ),
-        .isUncache      (isUncache      )
+        .DTLB_found          (DTLB_found          ),
+        .DTLB_VAddr          (m1s_alu_result      ), 
+        .DTLB_asid           (cp0_to_tlb_asid     ),
+        .DTLB_RAddr          (DTLB_RAddr          ),
+        .DTLB_index          (DTLB_index          ),
+        .DTLB_pfn            (DTLB_pfn            ),
+        .DTLB_c              (DTLB_c              ),
+        .DTLB_d              (DTLB_d              ),
+        .DTLB_v              (DTLB_v              ),
+        .isUncache           (isUncache           ),
+        .DTLB_read           (m1s_load_op         ),
+        .DTLB_store          (m1s_mem_we          ),
+        .DTLB_EX_RD_Refill   (DTLB_EX_RD_Refill   ),
+        .DTLB_EX_WR_Refill   (DTLB_EX_WR_Refill   ),
+        .DTLB_EX_RD_Invalid  (DTLB_EX_RD_Invalid  ),
+        .DTLB_EX_WR_Invalid  (DTLB_EX_WR_Invalid  ),
+        .DTLB_EX_Modified    (DTLB_EX_Modified    )
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
@@ -324,7 +335,13 @@ assign data_wdata = sram_wdata;
 
 /******************例外处理部分********************/
 assign flush = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
-/******************例外处理部分********************/
+assign m1s_ex = temp_m1s_ex | DTLB_EX_RD_Refill | DTLB_EX_WR_Refill | DTLB_EX_RD_Invalid | DTLB_EX_WR_Invalid | DTLB_EX_Modified;
 
+assign m1s_Exctype = DTLB_EX_RD_Refill  ? `DTLB_EX_RD_Refill  :
+                     DTLB_EX_WR_Refill  ? `DTLB_EX_WR_Refill  :
+                     DTLB_EX_RD_Invalid ? `DTLB_EX_RD_Invalid :
+                     DTLB_EX_WR_Invalid ? `DTLB_EX_WR_Invalid :
+                     DTLB_EX_Modified   ? `DTLB_EX_Modified   : temp_m1s_Exctype;    
+/******************例外处理部分********************/
 
 endmodule

@@ -9,7 +9,10 @@ module ITLB_stage(
     input      [3:0]  ITLB_asid, //ASID
     input      [ 2:0] ITLB_c,
     input             ITLB_d,
-    input             ITLB_v
+    input             ITLB_v,
+    output     reg    ITLB_EX_Refill,
+    output     reg    ITLB_EX_Invalid
+    
 );
 
 
@@ -22,5 +25,19 @@ always @(*) begin
         ITLB_RAddr <= {ITLB_pfn,ITLB_VAddr[11:0]};
 end
 
+always @(*) begin
+    if(~ITLB_found && (ITLB_VAddr[31:28] <= 4'h7 || ITLB_VAddr[31:28] >= 4'hC))
+        ITLB_EX_Refill <= 1'b1;
+    else
+        ITLB_EX_Refill <= 1'b0;
+
+end
+
+always @(*) begin
+    if(ITLB_found && (ITLB_VAddr[31:28] > 4'h7 && ITLB_VAddr[31:28] < 4'hC) && ~ITLB_v)
+        ITLB_EX_Invalid <= 1'b1;
+    else
+        ITLB_EX_Invalid <= 1'b0;
+end
 
 endmodule
