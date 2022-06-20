@@ -60,6 +60,7 @@ module m1_stage(
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
     output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
+    output [31:0]   m1s_alu_result,
     /********************TLB-CP0交互信号如上********************/
 
     output reg    data_valid,
@@ -69,10 +70,17 @@ module m1_stage(
     output [ 3:0] data_offset,
       output [ 3:0] data_wstrb,
     output [31:0] data_wdata,
- input         data_data_ok, //
-        input         data_addr_ok
-        
+    input         data_data_ok, //
+    input         data_addr_ok,
+    input         DTLB_found,
+    input  [ 3:0] DTLB_index,
+    input  [19:0] DTLB_pfn,
+    input  [ 2:0] DTLB_c,
+    input         DTLB_d, 
+    input         DTLB_v,
+    output        isUncache
 );
+
 reg         m1s_valid;
 wire        m1s_ready_go;
 
@@ -80,7 +88,7 @@ reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
 wire        m1s_res_from_mem;
 wire        m1s_gr_we;
 wire [ 4:0] m1s_dest;
-wire [31:0] m1s_alu_result;
+
 wire [31:0] m1s_pc;
 //lab7添加
 wire [11:0] m1s_mem_inst;//直接传走
@@ -279,7 +287,22 @@ CP0_Reg u_CP0_Reg(
     .CP0_Cause_IP        (CP0_Cause_IP),
     .CP0_Cause_TI        (CP0_Cause_TI)
 );
-/******************CP0推到MEM阶段******************/
+/**** **************CP0推到MEM阶段******************/
+
+
+wire  [31:0]  DTLB_RAddr;//实地址
+DTLB_stage DTLB(
+        .DTLB_found     (DTLB_found     ),
+        .DTLB_VAddr     (m1s_alu_result ), 
+        .DTLB_asid      (cp0_to_tlb_asid ),
+        .DTLB_RAddr     (DTLB_RAddr     ),
+        .DTLB_index     (DTLB_index     ),
+        .DTLB_pfn       (DTLB_pfn       ),
+        .DTLB_c         (DTLB_c         ),
+        .DTLB_d         (DTLB_d         ),
+        .DTLB_v         (DTLB_v         ),
+        .isUncache      (isUncache      )
+);
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin
@@ -292,7 +315,7 @@ always @(*) begin
 end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
-assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? m1s_alu_result : {data_tag,data_index,data_offset};
+assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : {data_tag,data_index,data_offset};
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;
@@ -302,5 +325,6 @@ assign data_wdata = sram_wdata;
 /******************例外处理部分********************/
 assign flush = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 /******************例外处理部分********************/
+
 
 endmodule

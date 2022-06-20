@@ -25,9 +25,15 @@ module pre_if_stage(
     output [ 3:0] inst_offset,
     input         inst_addr_ok,
     input         inst_data_ok,
-    input         mfc0_stall //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    input         mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    input         ITLB_found,
+    input  [ 3:0] ITLB_index,
+    input  [19:0] ITLB_pfn,
+    input  [ 2:0] ITLB_c,
+    input         ITLB_d,
+    input         ITLB_v,
+    input  [3:0]  ITLB_asid
 );
-
 //wire        ps_allowin; //仅在IF阶段中作用 fs_allowin=1,IF阶段允许指令流入 是fs_valid fs_pc inst_sram_en的控制信号
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
@@ -94,6 +100,20 @@ always @(*) begin
         nextpc <= nextpc_buffer;
 end
 
+wire  [31:0] ITLB_RAddr; //实地址
+
+
+ITLB_stage ITLB(
+        .ITLB_found     (ITLB_found     ),
+        .ITLB_VAddr     (ps_to_fs_bus   ), 
+        .ITLB_RAddr     (ITLB_RAddr     ),
+        .ITLB_index     (ITLB_index     ),
+        .ITLB_pfn       (ITLB_pfn       ),
+        .ITLB_asid      (ITLB_asid      ),
+        .ITLB_c         (ITLB_c         ),
+        .ITLB_d         (ITLB_d         ),
+        .ITLB_v         (ITLB_v         )
+);
 always @(*) begin///CHANGE
     if(flush)
         inst_valid <= 1'b1;
@@ -106,7 +126,7 @@ always @(*) begin///CHANGE
 end
 
 assign inst_op    = 1'b0; //读
-assign {inst_tag,inst_index,inst_offset} = nextpc;
+assign {inst_tag,inst_index,inst_offset} = ITLB_RAddr;
 
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule
