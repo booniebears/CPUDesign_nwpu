@@ -2,7 +2,7 @@
 //第65个测试点失败原因：1.exccode未作对应2.必须引入flush-r，延长flush作用时间，3.mfc0记录旁路
 module mycpu_top(
     // 外部中断信号
-    input  [ 5:0]   ext_int, //6个外部硬件中断输入
+    input  [ 5:0]   int, //6个外部硬件中断输入
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -86,6 +86,7 @@ wire         es_load_op; //EXE阶段 判定是否为load指令
 wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
+wire         flush_refill;
 wire         es_ex; 
 wire         m1s_ex;
 wire         ms_ex;
@@ -342,6 +343,7 @@ pre_if_stage pre_if_stage(
     .br_bus         (br_bus         ),
     .ps_to_fs_bus   (ps_to_fs_bus   ),
     .flush          (flush          ),
+    .flush_refill  (flush_refill   ),
     .CP0_EPC_out        (CP0_EPC_out        ),
     .m1s_inst_eret  (m1s_inst_eret  ),
     .inst_valid     (inst_valid     ),
@@ -445,7 +447,7 @@ exe_stage exe_stage(
 );
 // M1 stage
 m1_stage m1_stage(
-    .ext_int        (ext_int        ),
+    .ext_int        (int        ),
     .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
@@ -461,6 +463,7 @@ m1_stage m1_stage(
     .M1s_dest        (M1s_dest        ), 
     .M1s_result      (M1s_result      ),
     .flush          (flush          ), 
+    .flush_refill  (flush_refill   ),
     .m1s_ex          (m1s_ex          ), 
     .m1s_inst_mfc0   (m1s_inst_mfc0   ), 
     .m1s_inst_eret   (m1s_inst_eret   ),

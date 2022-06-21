@@ -28,7 +28,6 @@ module id_stage(
     input        es_load_op, //EXE阶段 判定是否为load指令
     input        m1s_load_op,
     input        flush, //flush=1时表明需要处理异常
-    
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
   //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号

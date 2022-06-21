@@ -12,7 +12,7 @@ module pre_if_stage(
     //to ds
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     input         flush, //flush=1时表明需要处理异常
-    // input         flush_refill,
+    input         flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
     input  [31:0] CP0_EPC_out, //CP0寄存器中,EPC的值
     input         m1s_inst_eret,
     // input  [4:0]  tlb_refill_if_ex,
@@ -78,8 +78,10 @@ reg [31:0] nextpc_timely;
 always @(*) begin
     if(m1s_inst_eret)
         nextpc_timely <= CP0_EPC_out;
-    else if(flush | flush_r)
-        nextpc_timely <= 32'hbfc00380;
+    else if(flush | flush_r) begin
+        if(flush_refill) nextpc_timely <= 32'hbfc00200;
+        else nextpc_timely <= 32'hbfc00380;
+    end
     else if(npc_block)begin
         if(br_taken && ~br_stall && ~mfc0_stall)
             nextpc_timely <= br_target;
@@ -109,7 +111,6 @@ always @(*) begin
         nextpc <= nextpc_buffer;
 end
 
-
 ITLB_stage ITLB(
         .ITLB_found        (ITLB_found        ),
         .ITLB_VAddr        (nextpc            ), 
@@ -126,8 +127,6 @@ ITLB_stage ITLB(
 assign ps_ex = ITLB_EX_Refill | ITLB_EX_Invalid;
 assign ps_Exctype = ITLB_EX_Refill  ? `ITLB_EX_Refill : 
                     ITLB_EX_Invalid ? `ITLB_EX_Invalid : `NO_EX;
-
-
 
 always @(*) begin///CHANGE
     if(flush)

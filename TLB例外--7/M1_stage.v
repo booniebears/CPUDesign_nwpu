@@ -23,7 +23,7 @@ module m1_stage(
     output        m1s_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
-    // output flush_refill,
+    output flush_refill,
     output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
     output          CP0_Status_IE_out, //IE=1,全局中断使能开启
     output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
@@ -214,7 +214,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_m1s_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush | flush_refill) //清除流水线
         es_to_m1s_bus_r <= 0;
     else if (es_to_m1s_valid && m1s_allowin) begin
         es_to_m1s_bus_r <= es_to_m1s_bus;
@@ -334,8 +334,10 @@ assign data_wdata = sram_wdata;
 
 
 /******************例外处理部分********************/
-assign flush = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
-assign m1s_ex = temp_m1s_ex | DTLB_EX_RD_Refill | DTLB_EX_WR_Refill | DTLB_EX_RD_Invalid | DTLB_EX_WR_Invalid | DTLB_EX_Modified;
+assign flush        = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
+assign flush_refill = DTLB_EX_RD_Refill | DTLB_EX_WR_Refill | (temp_m1s_Exctype == `ITLB_EX_Refill); //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
+assign m1s_ex       = temp_m1s_ex | DTLB_EX_RD_Refill | DTLB_EX_WR_Refill | DTLB_EX_RD_Invalid 
+                      | DTLB_EX_WR_Invalid | DTLB_EX_Modified;
 
 assign m1s_Exctype = DTLB_EX_RD_Refill  ? `DTLB_EX_RD_Refill  :
                      DTLB_EX_WR_Refill  ? `DTLB_EX_WR_Refill  :
