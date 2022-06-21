@@ -562,8 +562,8 @@ wb_stage wb_stage(
 tlb tlb_stage(
     //TODO: add more signals
     .clk              (aclk             ),
-    .s0_vpn2          (nextpc           ),
-    .s0_odd_page      (nextpc           ),
+    .s0_vpn2          (nextpc[31:13]    ),
+    .s0_odd_page      (nextpc[12]       ),
     .s0_asid          (cp0_to_tlb_asid  ),        
     .s0_found         (ITLB_found       ),
     .s0_index         (ITLB_index       ),

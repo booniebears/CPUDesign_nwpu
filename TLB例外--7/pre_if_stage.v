@@ -112,7 +112,7 @@ end
 
 ITLB_stage ITLB(
         .ITLB_found        (ITLB_found        ),
-        .ITLB_VAddr        (ps_to_fs_bus      ), 
+        .ITLB_VAddr        (nextpc            ), 
         .ITLB_RAddr        (ITLB_RAddr        ),
         .ITLB_index        (ITLB_index        ),
         .ITLB_pfn          (ITLB_pfn          ),
