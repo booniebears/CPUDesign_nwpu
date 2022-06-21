@@ -34,7 +34,7 @@ always @(*) begin
 end
 
 always @(*) begin
-    if(ITLB_found && (ITLB_VAddr[31:28] > 4'h7 && ITLB_VAddr[31:28] < 4'hC) && ~ITLB_v)
+    if(ITLB_found && (ITLB_VAddr[31:28] <= 4'h7 || ITLB_VAddr[31:28] >= 4'hC) && ~ITLB_v)
         ITLB_EX_Invalid <= 1'b1;
     else
         ITLB_EX_Invalid <= 1'b0;

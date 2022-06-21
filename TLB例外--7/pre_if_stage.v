@@ -11,10 +11,12 @@ module pre_if_stage(
     //input                          ps_bd,
     //to ds
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
-    input         flush, //flush=1时表明需要处理异常
-    input         flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
-    input  [31:0] CP0_EPC_out, //CP0寄存器中,EPC的值
-    input         m1s_inst_eret,
+
+    input             flush, //flush=1时表明需要处理异常
+    output reg        flush_r, //flush=1时表明需要处理异常
+    input             flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
+    input  [31:0]     CP0_EPC_out, //CP0寄存器中,EPC的值
+    input             m1s_inst_eret,
     // input  [4:0]  tlb_refill_if_ex,
     // input  [4:0]  tlb_invalid_if_ex,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
@@ -63,11 +65,17 @@ always @(posedge clk)begin
     npc_block <= fs_allowin & inst_addr_ok;
 end
 
-reg flush_r; //Attention:引入flush_r，延长flush作用时间
 always @(posedge clk) begin
     if(reset) flush_r <= 1'b0;
     else if(flush & ~m1s_inst_eret) flush_r <= 1'b1;
     else if(inst_data_ok) flush_r <= 1'b0;
+end
+
+reg flush_refill_r; //Attention:引入flush_r，延长flush作用时间
+always @(posedge clk) begin
+    if(reset) flush_refill_r <= 1'b0;
+    else if(flush_refill & ~m1s_inst_eret) flush_refill_r <= 1'b1;
+    else if(inst_data_ok) flush_refill_r <= 1'b0;
 end
 
 // pre-IF stage
@@ -79,7 +87,7 @@ always @(*) begin
     if(m1s_inst_eret)
         nextpc_timely <= CP0_EPC_out;
     else if(flush | flush_r) begin
-        if(flush_refill) nextpc_timely <= 32'hbfc00200;
+        if(flush_refill | flush_refill_r) nextpc_timely <= 32'hbfc00200;
         else nextpc_timely <= 32'hbfc00380;
     end
     else if(npc_block)begin

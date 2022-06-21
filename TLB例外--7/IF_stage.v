@@ -16,6 +16,7 @@ module if_stage(
     output reg                     fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
+    input         flush_r, //flush=1时表明需要处理异常
    // output [19:0] inst_tag,
    // output [ 3:0] inst_offset,
     input         inst_data_ok,
@@ -87,6 +88,6 @@ assign fs_Exctype = ADEL_ex ? `AdEL : ps_Exctype;
 
 //TODO:flush情况下,为了防止可能被错误读进来的跳转指令,强行设置为0
 //TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
-assign fs_inst         = (flush | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
+assign fs_inst         = (flush | flush_r | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
 
 endmodule

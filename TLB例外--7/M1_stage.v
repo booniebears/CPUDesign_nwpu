@@ -107,6 +107,7 @@ wire [4:0] m1s_mfc0_rd;
 wire m1s_inst_mtc0;
 wire m1s_bd;
 wire [4:0] temp_m1s_Exctype;
+wire [4:0] m1s_Exctype;
 //wire [31:0] m1s_data_sram_addr;
 
 wire        eret_flush;

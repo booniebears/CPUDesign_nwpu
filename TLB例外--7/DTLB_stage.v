@@ -45,7 +45,7 @@ always @(*) begin
 end
 
 always @(*) begin
-    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && ~DTLB_v && DTLB_read)
+    if(DTLB_found && (DTLB_VAddr[31:28] <= 4'h7 || DTLB_VAddr[31:28] >= 4'hC) && ~DTLB_v && DTLB_read)
         DTLB_EX_RD_Invalid <= 1'b1;
     else
         DTLB_EX_RD_Invalid <= 1'b0;    
@@ -59,14 +59,14 @@ always @(*) begin
 end
 
 always @(*) begin
-    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && ~DTLB_v && DTLB_store)
+    if(DTLB_found && (DTLB_VAddr[31:28] <= 4'h7 || DTLB_VAddr[31:28] >= 4'hC) && ~DTLB_v && DTLB_store)
         DTLB_EX_WR_Invalid <= 1'b1;
     else
         DTLB_EX_WR_Invalid <= 1'b0;    
 end
 
 always @(*) begin
-    if(DTLB_found && (DTLB_VAddr[31:28] > 4'h7 && DTLB_VAddr[31:28] < 4'hC) && DTLB_v  && ~DTLB_d  && DTLB_store)
+    if(DTLB_found && (DTLB_VAddr[31:28] <= 4'h7 || DTLB_VAddr[31:28] >= 4'hC) && DTLB_v  && ~DTLB_d  && DTLB_store)
        DTLB_EX_Modified <= 1'b1;
     else
        DTLB_EX_Modified <= 1'b0;
