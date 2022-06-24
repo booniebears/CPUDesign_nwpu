@@ -20,15 +20,16 @@ module if_stage(
    // output [19:0] inst_tag,
    // output [ 3:0] inst_offset,
     input         inst_data_ok,
-    input  [31:0] inst_rdata
-   // input         mfc0_stall //TODO: 临时把mfc0_stall信号送到IF阶段,确保ps_to_fs_nextpc跳转的正确性
+    input  [31:0] inst_rdata,
+    input             ds_ex,
+    input             es_ex,
+    input             m1s_ex
 );
 
 /*
     TODO: 如果使用fs_pc请求icache，同时将返回的指令送到id阶段，则也许可能不需要考虑ps_to_fs_nextpc的阻塞，后期可以尝试一下
 */
 
-//wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 wire                           ADEL_ex;//处理取指令地址错例外ADEL
 wire                           fs_ex;
 wire [4:0]                     fs_Exctype;
@@ -45,7 +46,7 @@ assign {
 always @(posedge clk) begin
     if(reset)
         ps_to_fs_bus_r <= 6'b0;
-    else if((ps_to_fs_nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok)) 
+    else if(((ps_to_fs_nextpc[1:0] != 2'b00 | ds_ex | es_ex | m1s_ex) && fs_allowin) | (fs_allowin && inst_data_ok) ) 
         ps_to_fs_bus_r <= ps_to_fs_bus;
 end
 
@@ -64,7 +65,7 @@ always @(posedge clk) begin
         fs_to_ds_valid <= 1'b0;
     else if(~ds_allowin) 
         fs_to_ds_valid <= fs_to_ds_valid; 
-    else if(inst_data_ok | (ps_to_fs_nextpc[1:0] != 2'b00))
+    else if(inst_data_ok | (ps_to_fs_nextpc[1:0] != 2'b00 | ds_ex | es_ex | m1s_ex))
         fs_to_ds_valid <= 1'b1;
     else
         fs_to_ds_valid <= 1'b0;
@@ -74,20 +75,17 @@ always @(posedge clk) begin
     if (reset) 
         fs_pc <= 32'hbfbffffc;
     //我们认为，在ps_to_fs_nextpc!=2'b00,必然是出现了ADEL_ex,这个时候fs_pc直接更新,不向Cache发请求,fs_to_ds_valid放行
-    else if ((ps_to_fs_nextpc[1:0] != 2'b00 && fs_allowin) | (fs_allowin && inst_data_ok))  
+    else if (((ps_to_fs_nextpc[1:0] != 2'b00 | ds_ex | es_ex | m1s_ex) && fs_allowin) | (fs_allowin && inst_data_ok))  
         fs_pc <= ps_to_fs_nextpc;
 end
-// assign fs_pc = ps_to_fs_bus_r;
 
 //异常的报出和fs_pc同拍,而inst_sram的使能信号则要与ps_to_fs_nextpc的更新同拍,后者比前者快一拍
 assign ADEL_ex    = fs_pc[1:0] ? 1'b1 : 1'b0; 
 assign fs_ex      = ADEL_ex | ps_ex;
 assign fs_Exctype = ADEL_ex ? `AdEL : ps_Exctype;
 
-                    //TODO:全1目前代表无异常
-
 //TODO:flush情况下,为了防止可能被错误读进来的跳转指令,强行设置为0
 //TODO:fs_pc==2'b00情况下,为了防止可能被错误读进来的rdata,强行设置为0
-assign fs_inst         = (flush | flush_r | fs_pc[1:0] != 2'b00) ? 32'b0 : inst_rdata; 
+assign fs_inst         = (flush | flush_r | fs_ex | ds_ex | es_ex) ? 32'b0 : inst_rdata; 
 
 endmodule

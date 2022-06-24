@@ -2,7 +2,7 @@
 //第65个测试点失败原因：1.exccode未作对应2.必须引入flush-r，延长flush作用时间，3.mfc0记录旁路
 module mycpu_top(
     // 外部中断信号
-    input  [ 5:0]   int, //6个外部硬件中断输入
+    input  [ 5:0]   ext_int, //6个外部硬件中断输入
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -51,7 +51,6 @@ wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
-wire          ps_allowin;
 wire          ds_allowin;
 wire          es_allowin;
 wire          m1s_allowin;
@@ -70,7 +69,6 @@ wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
-wire  fs_bd;
 wire         is_branch;
 wire  [31:0] fs_pc;
 
@@ -88,6 +86,7 @@ wire         m1s_load_op; //M1阶段 判定是否为load指令
 wire         flush;
 wire         flush_r;
 wire         flush_refill;
+wire         ds_ex; 
 wire         es_ex; 
 wire         m1s_ex;
 wire         ms_ex;
@@ -102,12 +101,12 @@ wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-wire         ITLB_found;
-wire  [ 3:0] ITLB_index;
-wire  [19:0] ITLB_pfn;
-wire  [ 2:0] ITLB_c;
-wire         ITLB_d;
-wire         ITLB_v;
+// wire         ITLB_found;
+// wire  [ 3:0] ITLB_index;
+// wire  [19:0] ITLB_pfn;
+// wire  [ 2:0] ITLB_c;
+// wire         ITLB_d;
+// wire         ITLB_v;
 wire  [31:0] nextpc;
 
 //AXI和Cache的交互信号
@@ -123,9 +122,9 @@ wire         dcache_ret_valid; //传输完成后ret_valid置1
 wire [127:0] dcache_ret_data; 
 wire         dcache_wr_req;
 wire  [31:0] dcache_wr_addr;     
-wire  [ 3:0] dcache_wr_strb; //TODO:目前没用到,不过Uncache会用到
 wire [127:0] dcache_wr_data; //一次写一个cache line的数据
 wire         dcache_wr_rdy;
+wire         dcache_wr_valid;
 
 //AXI和Uncache(DCache)的交互信号
 wire         udcache_rd_req; 
@@ -138,6 +137,7 @@ wire  [31:0] udcache_wr_addr;
 wire  [ 3:0] udcache_wr_strb; 
 wire  [31:0] udcache_wr_data; //一次一个字
 wire         udcache_wr_rdy; 
+wire         udcache_wr_valid; 
 
 //CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
 wire         inst_valid;
@@ -161,50 +161,44 @@ wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状
 wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire  isUncache;
-/********************TLB与ITLB交互信号如下******************/
 
-/********************TLB与ITLB交互信号如上******************/
-
-/********************TLB与DTLB交互信号如下******************/
-
-/********************TLB与DTLB交互信号如上******************/
 /********************TLB-CP0交互信号如下********************/
-wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
-wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
-wire           tlb_to_cp0_found; //tlb查找是否成功
-wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
-wire  [7:0]    tlb_to_cp0_asid ;
-wire  [3:0]    tlb_to_cp0_index; 
-wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c0   ;
-wire           tlb_to_cp0_d0   ;
-wire           tlb_to_cp0_v0   ;
-wire           tlb_to_cp0_g0   ;
-wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c1   ;
-wire           tlb_to_cp0_d1   ;
-wire           tlb_to_cp0_v1   ;
-wire           tlb_to_cp0_g1   ;
-wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
-wire  [7:0]    cp0_to_tlb_asid ;
-wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c0   ;
-wire           cp0_to_tlb_d0   ;
-wire           cp0_to_tlb_v0   ;
-wire           cp0_to_tlb_g0   ;
-wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c1   ;
-wire           cp0_to_tlb_d1   ;
-wire           cp0_to_tlb_v1   ;
-wire           cp0_to_tlb_g1   ;
-wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
-wire  [31:0]   m1s_alu_result  ;
-wire           DTLB_found        ;
-wire  [3:0]    DTLB_index     ;
-wire  [19:0]   DTLB_pfn       ;
-wire  [2:0]    DTLB_c         ;
-wire           DTLB_d         ;
-wire           DTLB_v         ;
+// wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
+// wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
+// wire           tlb_to_cp0_found; //tlb查找是否成功
+// wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
+// wire  [7:0]    tlb_to_cp0_asid ;
+// wire  [3:0]    tlb_to_cp0_index; 
+// wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
+// wire  [2:0]    tlb_to_cp0_c0   ;
+// wire           tlb_to_cp0_d0   ;
+// wire           tlb_to_cp0_v0   ;
+// wire           tlb_to_cp0_g0   ;
+// wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
+// wire  [2:0]    tlb_to_cp0_c1   ;
+// wire           tlb_to_cp0_d1   ;
+// wire           tlb_to_cp0_v1   ;
+// wire           tlb_to_cp0_g1   ;
+// wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
+// wire  [7:0]    cp0_to_tlb_asid ;
+// wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
+// wire  [2:0]    cp0_to_tlb_c0   ;
+// wire           cp0_to_tlb_d0   ;
+// wire           cp0_to_tlb_v0   ;
+// wire           cp0_to_tlb_g0   ;
+// wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
+// wire  [2:0]    cp0_to_tlb_c1   ;
+// wire           cp0_to_tlb_d1   ;
+// wire           cp0_to_tlb_v1   ;
+// wire           cp0_to_tlb_g1   ;
+// wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
+// wire  [31:0]   m1s_alu_result  ;
+// wire           DTLB_found        ;
+// wire  [3:0]    DTLB_index     ;
+// wire  [19:0]   DTLB_pfn       ;
+// wire  [2:0]    DTLB_c         ;
+// wire           DTLB_d         ;
+// wire           DTLB_v         ;
 /********************TLB-CP0交互信号如上********************/
 
 
@@ -266,6 +260,7 @@ AXI_Interface U_AXI_Interface(
     // .dcache_wr_strb   (dcache_wr_strb ),
     .dcache_wr_data   (dcache_wr_data   ),
     .dcache_wr_rdy    (dcache_wr_rdy    ),
+    .dcache_wr_valid  (dcache_wr_valid  ),
     .udcache_rd_req   (udcache_rd_req   ),
     .udcache_rd_addr  (udcache_rd_addr  ),
     .udcache_rd_rdy   (udcache_rd_rdy   ),
@@ -275,7 +270,8 @@ AXI_Interface U_AXI_Interface(
     .udcache_wr_addr  (udcache_wr_addr  ),
     .udcache_wr_strb  (udcache_wr_strb  ),
     .udcache_wr_data  (udcache_wr_data  ),
-    .udcache_wr_rdy   (udcache_wr_rdy   )
+    .udcache_wr_rdy   (udcache_wr_rdy   ),
+    .udcache_wr_valid (udcache_wr_valid )
 );
 
 icache icache(
@@ -322,6 +318,7 @@ dcache dcache(
     // .d_wr_strb      (dcache_wr_strb   ),
     .d_wr_data      (dcache_wr_data   ),
     .d_wr_rdy       (dcache_wr_rdy    ),
+    .d_wr_valid     (dcache_wr_valid  ),
 
     .ud_rd_req      (udcache_rd_req    ),
     .ud_rd_addr     (udcache_rd_addr   ),
@@ -333,7 +330,8 @@ dcache dcache(
     .ud_wr_strb     (udcache_wr_strb   ),
     .ud_wr_data     (udcache_wr_data   ),
     .ud_wr_rdy      (udcache_wr_rdy    ),
-    .isUncache      (isUncache)
+    .ud_wr_valid    (udcache_wr_valid  ),
+    .isUncache      (isUncache         ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
@@ -356,14 +354,17 @@ pre_if_stage pre_if_stage(
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),  
     .mfc0_stall     (mfc0_stall     ),
-    .ITLB_found     (ITLB_found     ),
-    .ITLB_index     (ITLB_index     ),
-    .ITLB_pfn       (ITLB_pfn       ),
-    .ITLB_c         (ITLB_c         ),
-    .ITLB_d         (ITLB_d         ),
-    .ITLB_v         (ITLB_v         ),
-    .ITLB_asid      (cp0_to_tlb_asid),
-    .nextpc         (nextpc         )
+    // .ITLB_found     (ITLB_found     ),
+    // .ITLB_index     (ITLB_index     ),
+    // .ITLB_pfn       (ITLB_pfn       ),
+    // .ITLB_c         (ITLB_c         ),
+    // .ITLB_d         (ITLB_d         ),
+    // .ITLB_v         (ITLB_v         ),
+    // .ITLB_asid      (cp0_to_tlb_asid),
+    .nextpc         (nextpc         ),
+    .ds_ex          (ds_ex          ),
+    .es_ex          (es_ex          ),
+    .m1s_ex         (m1s_ex         )
 );
 
 // IF stage
@@ -385,7 +386,10 @@ if_stage if_stage(
     .flush          (flush          ),
     .flush_r        (flush_r        ),
     .inst_data_ok   (inst_data_ok   ),
-    .inst_rdata     (inst_rdata     )
+    .inst_rdata     (inst_rdata     ),
+    .ds_ex          (ds_ex          ),
+    .es_ex          (es_ex          ),
+    .m1s_ex         (m1s_ex         )
 );
 // ID stage
 id_stage id_stage(
@@ -423,7 +427,8 @@ id_stage id_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
-    .mfc0_stall     (mfc0_stall     )
+    .mfc0_stall     (mfc0_stall     ),
+    .ds_ex          (ds_ex          )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -450,7 +455,7 @@ exe_stage exe_stage(
 );
 // M1 stage
 m1_stage m1_stage(
-    .ext_int        (int        ),
+    .ext_int        (ext_int        ),
     .clk            (aclk           ),
     .reset          (reset          ),
     //allowin
@@ -476,35 +481,35 @@ m1_stage m1_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
-    .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
-    .m1s_inst_tlbp   (m1s_inst_tlbp   ),
-    .tlb_to_cp0_found (tlb_to_cp0_found ),
-    .tlb_to_cp0_vpn2 (tlb_to_cp0_vpn2 ),
-    .tlb_to_cp0_asid (tlb_to_cp0_asid ),
-    .tlb_to_cp0_index (tlb_to_cp0_index ),
-    .tlb_to_cp0_pfn0 (tlb_to_cp0_pfn0 ),
-    .tlb_to_cp0_c0  (tlb_to_cp0_c0  ),
-    .tlb_to_cp0_d0  (tlb_to_cp0_d0  ),
-    .tlb_to_cp0_v0  (tlb_to_cp0_v0  ),
-    .tlb_to_cp0_g0  (tlb_to_cp0_g0  ),
-    .tlb_to_cp0_pfn1 (tlb_to_cp0_pfn1 ),
-    .tlb_to_cp0_c1  (tlb_to_cp0_c1  ),
-    .tlb_to_cp0_d1  (tlb_to_cp0_d1  ),
-    .tlb_to_cp0_v1  (tlb_to_cp0_v1  ),
-    .tlb_to_cp0_g1  (tlb_to_cp0_g1  ),
-    .cp0_to_tlb_vpn2 (cp0_to_tlb_vpn2 ),
-    .cp0_to_tlb_asid (cp0_to_tlb_asid ),
-    .cp0_to_tlb_pfn0 (cp0_to_tlb_pfn0 ),
-    .cp0_to_tlb_c0  (cp0_to_tlb_c0  ),
-    .cp0_to_tlb_d0  (cp0_to_tlb_d0  ),
-    .cp0_to_tlb_v0  (cp0_to_tlb_v0  ),
-    .cp0_to_tlb_g0  (cp0_to_tlb_g0  ),
-    .cp0_to_tlb_pfn1 (cp0_to_tlb_pfn1 ),
-    .cp0_to_tlb_c1  (cp0_to_tlb_c1  ),
-    .cp0_to_tlb_d1  (cp0_to_tlb_d1  ),
-    .cp0_to_tlb_v1  (cp0_to_tlb_v1  ),
-    .cp0_to_tlb_g1  (cp0_to_tlb_g1  ),
-    .cp0_to_tlb_index (cp0_to_tlb_index ),
+    // .m1s_inst_tlbwi  (m1s_inst_tlbwi  ),
+    // .m1s_inst_tlbp   (m1s_inst_tlbp   ),
+    // .tlb_to_cp0_found (tlb_to_cp0_found ),
+    // .tlb_to_cp0_vpn2 (tlb_to_cp0_vpn2 ),
+    // .tlb_to_cp0_asid (tlb_to_cp0_asid ),
+    // .tlb_to_cp0_index (tlb_to_cp0_index ),
+    // .tlb_to_cp0_pfn0 (tlb_to_cp0_pfn0 ),
+    // .tlb_to_cp0_c0  (tlb_to_cp0_c0  ),
+    // .tlb_to_cp0_d0  (tlb_to_cp0_d0  ),
+    // .tlb_to_cp0_v0  (tlb_to_cp0_v0  ),
+    // .tlb_to_cp0_g0  (tlb_to_cp0_g0  ),
+    // .tlb_to_cp0_pfn1 (tlb_to_cp0_pfn1 ),
+    // .tlb_to_cp0_c1  (tlb_to_cp0_c1  ),
+    // .tlb_to_cp0_d1  (tlb_to_cp0_d1  ),
+    // .tlb_to_cp0_v1  (tlb_to_cp0_v1  ),
+    // .tlb_to_cp0_g1  (tlb_to_cp0_g1  ),
+    // .cp0_to_tlb_vpn2 (cp0_to_tlb_vpn2 ),
+    // .cp0_to_tlb_asid (cp0_to_tlb_asid ),
+    // .cp0_to_tlb_pfn0 (cp0_to_tlb_pfn0 ),
+    // .cp0_to_tlb_c0  (cp0_to_tlb_c0  ),
+    // .cp0_to_tlb_d0  (cp0_to_tlb_d0  ),
+    // .cp0_to_tlb_v0  (cp0_to_tlb_v0  ),
+    // .cp0_to_tlb_g0  (cp0_to_tlb_g0  ),
+    // .cp0_to_tlb_pfn1 (cp0_to_tlb_pfn1 ),
+    // .cp0_to_tlb_c1  (cp0_to_tlb_c1  ),
+    // .cp0_to_tlb_d1  (cp0_to_tlb_d1  ),
+    // .cp0_to_tlb_v1  (cp0_to_tlb_v1  ),
+    // .cp0_to_tlb_g1  (cp0_to_tlb_g1  ),
+    // .cp0_to_tlb_index (cp0_to_tlb_index ),
     .m1s_alu_result (m1s_alu_result ),
     .data_valid     (data_valid     ),
     .data_op        (data_op        ),
@@ -515,12 +520,12 @@ m1_stage m1_stage(
     .data_wdata     (data_wdata     ),
     .data_addr_ok   (data_addr_ok   ),
     .data_data_ok   (data_data_ok   ),
-    .DTLB_found     (DTLB_found     ),
-    .DTLB_index     (DTLB_index     ),
-    .DTLB_pfn       (DTLB_pfn       ),
-    .DTLB_c         (DTLB_c         ),
-    .DTLB_d         (DTLB_d         ),
-    .DTLB_v         (DTLB_v         ),
+    // .DTLB_found     (DTLB_found     ),
+    // .DTLB_index     (DTLB_index     ),
+    // .DTLB_pfn       (DTLB_pfn       ),
+    // .DTLB_c         (DTLB_c         ),
+    // .DTLB_d         (DTLB_d         ),
+    // .DTLB_v         (DTLB_v         ),
     .isUncache      (isUncache      )
 );
 // MEM stage
@@ -565,56 +570,57 @@ wb_stage wb_stage(
     .ws_ex            (ws_ex            )
 );
 
-tlb tlb_stage(
-    //TODO: add more signals
-    .clk              (aclk             ),
-    .s0_vpn2          (nextpc[31:13]    ),
-    .s0_odd_page      (nextpc[12]       ),
-    .s0_asid          (cp0_to_tlb_asid  ),        
-    .s0_found         (ITLB_found       ),
-    .s0_index         (ITLB_index       ),
-    .s0_pfn           (ITLB_pfn         ),
-    .s0_c             (ITLB_c           ),
-    .s0_d             (ITLB_d           ),
-    .s0_v             (ITLB_v           ),
-    .s1_vpn2          (m1s_alu_result[31:13]),
-    .s1_odd_page      (m1s_alu_result[12]),
-    .s1_asid          (cp0_to_tlb_asid  ),
-    .s1_found         (DTLB_found       ),
-    .s1_index         (DTLB_index       ),
-    .s1_pfn           (DTLB_pfn         ),
-    .s1_c             (DTLB_c           ),
-    .s1_d             (DTLB_d           ),
-    .s1_v             (DTLB_v           ),
-    .inst_tlbwi       (m1s_inst_tlbwi   ),
-    .inst_tlbp        (m1s_inst_tlbp    ),
-    .tlb_to_cp0_found (tlb_to_cp0_found ),
-    .tlb_to_cp0_vpn2  (tlb_to_cp0_vpn2  ),
-    .tlb_to_cp0_asid  (tlb_to_cp0_asid  ),
-    .tlb_to_cp0_index (tlb_to_cp0_index ),
-    .tlb_to_cp0_pfn0  (tlb_to_cp0_pfn0  ),
-    .tlb_to_cp0_c0    (tlb_to_cp0_c0    ),
-    .tlb_to_cp0_d0    (tlb_to_cp0_d0    ),
-    .tlb_to_cp0_v0    (tlb_to_cp0_v0    ),
-    .tlb_to_cp0_g0    (tlb_to_cp0_g0    ),
-    .tlb_to_cp0_pfn1  (tlb_to_cp0_pfn1  ),
-    .tlb_to_cp0_c1    (tlb_to_cp0_c1    ),
-    .tlb_to_cp0_d1    (tlb_to_cp0_d1    ),
-    .tlb_to_cp0_v1    (tlb_to_cp0_v1    ),
-    .tlb_to_cp0_g1    (tlb_to_cp0_g1    ),
-    .cp0_to_tlb_vpn2  (cp0_to_tlb_vpn2  ),
-    .cp0_to_tlb_asid  (cp0_to_tlb_asid  ),
-    .cp0_to_tlb_pfn0  (cp0_to_tlb_pfn0  ),
-    .cp0_to_tlb_c0    (cp0_to_tlb_c0    ),
-    .cp0_to_tlb_d0    (cp0_to_tlb_d0    ),
-    .cp0_to_tlb_v0    (cp0_to_tlb_v0    ),
-    .cp0_to_tlb_g0    (cp0_to_tlb_g0    ),
-    .cp0_to_tlb_pfn1  (cp0_to_tlb_pfn1  ),
-    .cp0_to_tlb_c1    (cp0_to_tlb_c1    ),
-    .cp0_to_tlb_d1    (cp0_to_tlb_d1    ),
-    .cp0_to_tlb_v1    (cp0_to_tlb_v1    ),
-    .cp0_to_tlb_g1    (cp0_to_tlb_g1    ),
-    .cp0_to_tlb_index (cp0_to_tlb_index )
-);
+// tlb tlb_stage(
+//     //TODO: add more signals
+//     .clk              (aclk             ),
+//     .reset            (reset            ),
+//     .s0_vpn2          (nextpc[31:13]    ),
+//     .s0_odd_page      (nextpc[12]       ),
+//     .s0_asid          (cp0_to_tlb_asid  ),        
+//     .s0_found         (ITLB_found       ),
+//     .s0_index         (ITLB_index       ),
+//     .s0_pfn           (ITLB_pfn         ),
+//     .s0_c             (ITLB_c           ),
+//     .s0_d             (ITLB_d           ),
+//     .s0_v             (ITLB_v           ),
+//     .s1_vpn2          (m1s_alu_result[31:13]),
+//     .s1_odd_page      (m1s_alu_result[12]),
+//     .s1_asid          (cp0_to_tlb_asid  ),
+//     .s1_found         (DTLB_found       ),
+//     .s1_index         (DTLB_index       ),
+//     .s1_pfn           (DTLB_pfn         ),
+//     .s1_c             (DTLB_c           ),
+//     .s1_d             (DTLB_d           ),
+//     .s1_v             (DTLB_v           ),
+//     .inst_tlbwi       (m1s_inst_tlbwi   ),
+//     .inst_tlbp        (m1s_inst_tlbp    ),
+//     .tlb_to_cp0_found (tlb_to_cp0_found ),
+//     .tlb_to_cp0_vpn2  (tlb_to_cp0_vpn2  ),
+//     .tlb_to_cp0_asid  (tlb_to_cp0_asid  ),
+//     .tlb_to_cp0_index (tlb_to_cp0_index ),
+//     .tlb_to_cp0_pfn0  (tlb_to_cp0_pfn0  ),
+//     .tlb_to_cp0_c0    (tlb_to_cp0_c0    ),
+//     .tlb_to_cp0_d0    (tlb_to_cp0_d0    ),
+//     .tlb_to_cp0_v0    (tlb_to_cp0_v0    ),
+//     .tlb_to_cp0_g0    (tlb_to_cp0_g0    ),
+//     .tlb_to_cp0_pfn1  (tlb_to_cp0_pfn1  ),
+//     .tlb_to_cp0_c1    (tlb_to_cp0_c1    ),
+//     .tlb_to_cp0_d1    (tlb_to_cp0_d1    ),
+//     .tlb_to_cp0_v1    (tlb_to_cp0_v1    ),
+//     .tlb_to_cp0_g1    (tlb_to_cp0_g1    ),
+//     .cp0_to_tlb_vpn2  (cp0_to_tlb_vpn2  ),
+//     .cp0_to_tlb_asid  (cp0_to_tlb_asid  ),
+//     .cp0_to_tlb_pfn0  (cp0_to_tlb_pfn0  ),
+//     .cp0_to_tlb_c0    (cp0_to_tlb_c0    ),
+//     .cp0_to_tlb_d0    (cp0_to_tlb_d0    ),
+//     .cp0_to_tlb_v0    (cp0_to_tlb_v0    ),
+//     .cp0_to_tlb_g0    (cp0_to_tlb_g0    ),
+//     .cp0_to_tlb_pfn1  (cp0_to_tlb_pfn1  ),
+//     .cp0_to_tlb_c1    (cp0_to_tlb_c1    ),
+//     .cp0_to_tlb_d1    (cp0_to_tlb_d1    ),
+//     .cp0_to_tlb_v1    (cp0_to_tlb_v1    ),
+//     .cp0_to_tlb_g1    (cp0_to_tlb_g1    ),
+//     .cp0_to_tlb_index (cp0_to_tlb_index )
+// );
 
 endmodule

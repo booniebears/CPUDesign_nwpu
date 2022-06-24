@@ -28,14 +28,17 @@ module pre_if_stage(
     input             inst_addr_ok,
     input             inst_data_ok,
     input             mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    input             ITLB_found,
-    input      [ 3:0] ITLB_index,
-    input      [19:0] ITLB_pfn,
-    input      [ 2:0] ITLB_c,
-    input             ITLB_d,
-    input             ITLB_v,
-    input      [3:0]  ITLB_asid,
-    output reg [31:0] nextpc
+    // input             ITLB_found,
+    // input      [ 3:0] ITLB_index,
+    // input      [19:0] ITLB_pfn,
+    // input      [ 2:0] ITLB_c,
+    // input             ITLB_d,
+    // input             ITLB_v,
+    // input      [3:0]  ITLB_asid,
+    output reg [31:0] nextpc,
+    input             ds_ex,
+    input             es_ex,
+    input             m1s_ex
 );
 
 wire [31:0] ITLB_RAddr; //实地址
@@ -60,10 +63,14 @@ assign ps_to_fs_bus = {
                        ps_Exctype  //4:0
                        };
 
-reg npc_block;
+reg npc_flow;//npc是否可以继续更新
 always @(posedge clk)begin
-    npc_block <= fs_allowin & inst_addr_ok;
+    if(reset)
+        npc_flow <= 0;
+    else
+        npc_flow <= fs_allowin & inst_addr_ok;
 end
+
 
 always @(posedge clk) begin
     if(reset) flush_r <= 1'b0;
@@ -90,7 +97,7 @@ always @(*) begin
         if(flush_refill | flush_refill_r) nextpc_timely <= 32'hbfc00200;
         else nextpc_timely <= 32'hbfc00380;
     end
-    else if(npc_block)begin
+    else if(npc_flow)begin
         if(br_taken && ~br_stall && ~mfc0_stall)
             nextpc_timely <= br_target;
         else
@@ -103,7 +110,7 @@ end
 always @(posedge clk) begin
     if(reset)
         nextpc_buffer <= 32'b0;
-    else if(m1s_inst_eret | flush | npc_block)
+    else if(m1s_inst_eret | flush | npc_flow)
         nextpc_buffer <= nextpc_timely;
 end
 
@@ -112,7 +119,7 @@ always @(*) begin
         nextpc <= nextpc_timely;
     else if(flush | flush_r)
         nextpc <= nextpc_timely;
-    else if(npc_block)begin
+    else if(npc_flow)begin
         nextpc <= nextpc_timely;
     end
     else
@@ -120,26 +127,27 @@ always @(*) begin
 end
 
 ITLB_stage ITLB(
-        .ITLB_found        (ITLB_found        ),
+        // .ITLB_found        (ITLB_found        ),
         .ITLB_VAddr        (nextpc            ), 
         .ITLB_RAddr        (ITLB_RAddr        ),
-        .ITLB_index        (ITLB_index        ),
-        .ITLB_pfn          (ITLB_pfn          ),
-        .ITLB_asid         (ITLB_asid         ),
-        .ITLB_c            (ITLB_c            ),
-        .ITLB_d            (ITLB_d            ),
-        .ITLB_v            (ITLB_v            ),
+        // .ITLB_index        (ITLB_index        ),
+        // .ITLB_pfn          (ITLB_pfn          ),
+        // .ITLB_asid         (ITLB_asid         ),
+        // .ITLB_c            (ITLB_c            ),
+        // .ITLB_d            (ITLB_d            ),
+        // .ITLB_v            (ITLB_v            ),
         .ITLB_EX_Refill    (ITLB_EX_Refill    ),
         .ITLB_EX_Invalid   (ITLB_EX_Invalid   )
 );
-assign ps_ex = ITLB_EX_Refill | ITLB_EX_Invalid;
+
+assign ps_ex      = ITLB_EX_Refill | ITLB_EX_Invalid;
 assign ps_Exctype = ITLB_EX_Refill  ? `ITLB_EX_Refill : 
                     ITLB_EX_Invalid ? `ITLB_EX_Invalid : `NO_EX;
 
 always @(*) begin///CHANGE
     if(flush)
         inst_valid <= 1'b1;
-    else if(nextpc[1:0] != 2'b00)
+    else if(nextpc[1:0] != 2'b00 | ds_ex | es_ex | m1s_ex)
         inst_valid <= 1'b0;
     else if(inst_addr_ok & fs_allowin) 
         inst_valid <= 1'b1;

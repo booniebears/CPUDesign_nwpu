@@ -4,6 +4,7 @@ module tlb
 )
 (
     input                             clk,
+    input                             reset,
     //ICache search
     //用于取指的虚实指令转换
     input        [18:0]               s0_vpn2,
@@ -79,8 +80,24 @@ module tlb
     wire [TLBNUM-1:0]                 match0;
     wire [TLBNUM-1:0]                 match1;
 
+    integer i;
     //write port
     always @(posedge clk) begin
+        if(reset) begin
+            for(i = 0; i < TLBNUM; i = i + 1) begin
+                tlb_vpn2[i]  <= 0;
+                tlb_asid[i]  <= 0;
+                tlb_g   [i]  <= 0;
+                tlb_pfn0[i]  <= 0;
+                tlb_c0  [i]  <= 0;
+                tlb_d0  [i]  <= 0;
+                tlb_v0  [i]  <= 0;
+                tlb_pfn1[i]  <= 0;
+                tlb_c1  [i]  <= 0;
+                tlb_d1  [i]  <= 0;
+                tlb_v1  [i]  <= 0;
+            end
+        end
         if(inst_tlbwi) begin
             tlb_vpn2[cp0_to_tlb_index] <= cp0_to_tlb_vpn2;
             tlb_asid[cp0_to_tlb_index] <= cp0_to_tlb_asid;

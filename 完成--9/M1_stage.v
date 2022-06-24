@@ -1,7 +1,7 @@
 `include "global_defines.vh"
 
 module m1_stage(
-    input  [ 5:0]   ext_int, //6个外部硬件中断输入
+    input  [ 5:0] ext_int, //6个外部硬件中断输入
     input         clk,
     input         reset,
     //allowin
@@ -31,53 +31,52 @@ module m1_stage(
     output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     /********************TLB-CP0交互信号如下********************/
-    output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
-    output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
-    input           tlb_to_cp0_found,//tlb查找是否成功
-    input  [18:0]   tlb_to_cp0_vpn2, //以下为tlb写入的数据
-    input  [7:0]    tlb_to_cp0_asid ,
-    input  [3:0]    tlb_to_cp0_index, 
-    input  [19:0]   tlb_to_cp0_pfn0 , //以下为entrylo0寄存器写入tlb的数据
-    input  [2:0]    tlb_to_cp0_c0 ,
-    input           tlb_to_cp0_d0 ,
-    input           tlb_to_cp0_v0 ,
-    input           tlb_to_cp0_g0 ,
-    input  [19:0]   tlb_to_cp0_pfn1 , //以下为entrylo1寄存器写入tlb的数据
-    input  [2:0]    tlb_to_cp0_c1 ,
-    input           tlb_to_cp0_d1 ,
-    input           tlb_to_cp0_v1 ,
-    input           tlb_to_cp0_g1 ,
-    output [18:0]   cp0_to_tlb_vpn2,  //以下为tlb读出的数据
-    output [7:0]    cp0_to_tlb_asid ,
-    output [19:0]   cp0_to_tlb_pfn0 , //以下为entrylo0寄存器读出的tlb的数据
-    output [2:0]    cp0_to_tlb_c0 ,
-    output          cp0_to_tlb_d0 ,
-    output          cp0_to_tlb_v0 ,
-    output          cp0_to_tlb_g0 ,
-    output [19:0]   cp0_to_tlb_pfn1, //以下为entrylo1寄存器读出的tlb的数据
-    output [2:0]    cp0_to_tlb_c1,
-    output          cp0_to_tlb_d1 ,
-    output          cp0_to_tlb_v1 ,
-    output          cp0_to_tlb_g1 ,
-    output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
+    // output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
+    // output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
+    // input           tlb_to_cp0_found,//tlb查找是否成功
+    // input  [18:0]   tlb_to_cp0_vpn2, //以下为tlb写入的数据
+    // input  [7:0]    tlb_to_cp0_asid ,
+    // input  [3:0]    tlb_to_cp0_index, 
+    // input  [19:0]   tlb_to_cp0_pfn0 , //以下为entrylo0寄存器写入tlb的数据
+    // input  [2:0]    tlb_to_cp0_c0 ,
+    // input           tlb_to_cp0_d0 ,
+    // input           tlb_to_cp0_v0 ,
+    // input           tlb_to_cp0_g0 ,
+    // input  [19:0]   tlb_to_cp0_pfn1 , //以下为entrylo1寄存器写入tlb的数据
+    // input  [2:0]    tlb_to_cp0_c1 ,
+    // input           tlb_to_cp0_d1 ,
+    // input           tlb_to_cp0_v1 ,
+    // input           tlb_to_cp0_g1 ,
+    // output [18:0]   cp0_to_tlb_vpn2,  //以下为tlb读出的数据
+    // output [7:0]    cp0_to_tlb_asid ,
+    // output [19:0]   cp0_to_tlb_pfn0 , //以下为entrylo0寄存器读出的tlb的数据
+    // output [2:0]    cp0_to_tlb_c0 ,
+    // output          cp0_to_tlb_d0 ,
+    // output          cp0_to_tlb_v0 ,
+    // output          cp0_to_tlb_g0 ,
+    // output [19:0]   cp0_to_tlb_pfn1, //以下为entrylo1寄存器读出的tlb的数据
+    // output [2:0]    cp0_to_tlb_c1,
+    // output          cp0_to_tlb_d1 ,
+    // output          cp0_to_tlb_v1 ,
+    // output          cp0_to_tlb_g1 ,
+    // output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
     output [31:0]   m1s_alu_result,
     /********************TLB-CP0交互信号如上********************/
-
     output reg    data_valid,
-     output        data_op,
-     output [ 7:0] data_index,
+    output        data_op,
+    output [ 7:0] data_index,
     output [19:0] data_tag,
     output [ 3:0] data_offset,
-      output [ 3:0] data_wstrb,
+    output [ 3:0] data_wstrb,
     output [31:0] data_wdata,
     input         data_data_ok, //
     input         data_addr_ok,
-    input         DTLB_found,
-    input  [ 3:0] DTLB_index,
-    input  [19:0] DTLB_pfn,
-    input  [ 2:0] DTLB_c,
-    input         DTLB_d, 
-    input         DTLB_v,
+    // input         DTLB_found,
+    // input  [ 3:0] DTLB_index,
+    // input  [19:0] DTLB_pfn,
+    // input  [ 2:0] DTLB_c,
+    // input         DTLB_d, 
+    // input         DTLB_v,
     output        isUncache
 );
 wire  [31:0]  DTLB_RAddr;//实地址
@@ -119,6 +118,9 @@ wire        m1s_mem_we;
 wire [3:0]  sram_wen;
 wire[31:0]  sram_wdata;//位数问题！
 wire        temp_m1s_ex;
+wire        m1s_inst_tlbp;
+wire        m1s_inst_tlbwi;
+
 assign {
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
@@ -162,43 +164,6 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                         } ;               
 
-//lab7添加
-//TODO:data_rdata换成从DCache读回来的数据rdata
-// assign load_sign_lb         = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
-//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15] :
-//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23] :
-//                                                              data_rdata[31];                                                  
-// assign mem_result_lb[ 7:0]  = (m1s_alu_result[1:0] == 2'd0) ? data_rdata[ 7:0 ] :
-//                               (m1s_alu_result[1:0] == 2'd1) ? data_rdata[15:8 ] :
-//                               (m1s_alu_result[1:0] == 2'd2) ? data_rdata[23:16] :
-//                                                              data_rdata[31:24];
-// assign mem_result_lb[31:8]  = {24{load_sign_lb}};
-// assign mem_result_lbu       = {24'd0, mem_result_lb[7:0]};
-
-
-// //lh/lhu
-// assign load_sign_lh         = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15]   :
-//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31]   : 1'b0;                                                   
-// assign mem_result_lh[15:0]  = (m1s_alu_result[1:0] == 2'b00) ? data_rdata[15:0] : 
-//                               (m1s_alu_result[1:0] == 2'b10) ? data_rdata[31:16]: 16'd0;
-// assign mem_result_lh[31:16] = {16{load_sign_lh}};
-// assign mem_result_lhu       = {16'd0, mem_result_lh[15:0]};
-
-// //lwl
-// assign mem_result_lwl       = (m1s_alu_result[1:0] == 2'd0) ? {data_rdata[ 7:0], m1_rt_value[23:0]} :
-//                               (m1s_alu_result[1:0] == 2'd1) ? {data_rdata[15:0], m1_rt_value[15:0]} :
-//                               (m1s_alu_result[1:0] == 2'd2) ? {data_rdata[23:0], m1_rt_value[7 :0]} :
-//                                                               data_rdata[31:0];
-
-// //lwr
-// assign mem_result_lwr       = (m1s_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]                       :
-//                               (m1s_alu_result[1:0] == 2'd1) ? {m1_rt_value[31:24], data_rdata[31: 8]} :
-//                               (m1s_alu_result[1:0] == 2'd2) ? {m1_rt_value[31:16], data_rdata[31:16]} :
-//                                                              {m1_rt_value[31: 8], data_rdata[31:24]} ;
-
-
-
-
 assign m1s_ready_go    =   m1s_ex ? 1'b1 : //出现例外,直接放行
                          (m1s_load_op | m1s_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :1'b1;
 assign m1s_allowin     = !m1s_valid || m1s_ready_go && ms_allowin;
@@ -222,15 +187,6 @@ always @(posedge clk ) begin
     end
 end
 
-// assign mem_data = (m1s_mem_inst[2]) ? mem_result_lb  :
-//                   (m1s_mem_inst[3]) ? mem_result_lbu :
-//                   (m1s_mem_inst[4]) ? mem_result_lh  :
-//                   (m1s_mem_inst[5]) ? mem_result_lhu : 
-//                   (m1s_mem_inst[6]) ? mem_result_lwl :
-//                   (m1s_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
-
-// assign ms_final_result = m1s_alu_result;
-                                         
 //lab4添加
 assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
@@ -255,33 +211,33 @@ CP0_Reg u_CP0_Reg(
     .eret_flush          (eret_flush),
     .inst_tlbr           (m1s_inst_tlbr),
     .inst_tlbp           (m1s_inst_tlbp),
-    .tlb_to_cp0_found    (tlb_to_cp0_found),
-    .tlb_to_cp0_vpn2     (tlb_to_cp0_vpn2),
-    .tlb_to_cp0_asid     (tlb_to_cp0_asid),
-    .tlb_to_cp0_index    (tlb_to_cp0_index),
-    .tlb_to_cp0_pfn0     (tlb_to_cp0_pfn0),
-    .tlb_to_cp0_c0       (tlb_to_cp0_c0),
-    .tlb_to_cp0_d0       (tlb_to_cp0_d0),
-    .tlb_to_cp0_v0       (tlb_to_cp0_v0),
-    .tlb_to_cp0_g0       (tlb_to_cp0_g0),
-    .tlb_to_cp0_pfn1     (tlb_to_cp0_pfn1),
-    .tlb_to_cp0_c1       (tlb_to_cp0_c1),
-    .tlb_to_cp0_d1       (tlb_to_cp0_d1),
-    .tlb_to_cp0_v1       (tlb_to_cp0_v1),
-    .tlb_to_cp0_g1       (tlb_to_cp0_g1),
-    .cp0_to_tlb_vpn2     (cp0_to_tlb_vpn2),
-    .cp0_to_tlb_asid     (cp0_to_tlb_asid),
-    .cp0_to_tlb_pfn0     (cp0_to_tlb_pfn0),
-    .cp0_to_tlb_c0       (cp0_to_tlb_c0),
-    .cp0_to_tlb_d0       (cp0_to_tlb_d0),
-    .cp0_to_tlb_v0       (cp0_to_tlb_v0),
-    .cp0_to_tlb_g0       (cp0_to_tlb_g0),
-    .cp0_to_tlb_pfn1     (cp0_to_tlb_pfn1),
-    .cp0_to_tlb_c1       (cp0_to_tlb_c1),
-    .cp0_to_tlb_d1       (cp0_to_tlb_d1),
-    .cp0_to_tlb_v1       (cp0_to_tlb_v1),
-    .cp0_to_tlb_g1       (cp0_to_tlb_g1),
-    .cp0_to_tlb_index    (cp0_to_tlb_index),
+    // .tlb_to_cp0_found    (tlb_to_cp0_found),
+    // .tlb_to_cp0_vpn2     (tlb_to_cp0_vpn2),
+    // .tlb_to_cp0_asid     (tlb_to_cp0_asid),
+    // .tlb_to_cp0_index    (tlb_to_cp0_index),
+    // .tlb_to_cp0_pfn0     (tlb_to_cp0_pfn0),
+    // .tlb_to_cp0_c0       (tlb_to_cp0_c0),
+    // .tlb_to_cp0_d0       (tlb_to_cp0_d0),
+    // .tlb_to_cp0_v0       (tlb_to_cp0_v0),
+    // .tlb_to_cp0_g0       (tlb_to_cp0_g0),
+    // .tlb_to_cp0_pfn1     (tlb_to_cp0_pfn1),
+    // .tlb_to_cp0_c1       (tlb_to_cp0_c1),
+    // .tlb_to_cp0_d1       (tlb_to_cp0_d1),
+    // .tlb_to_cp0_v1       (tlb_to_cp0_v1),
+    // .tlb_to_cp0_g1       (tlb_to_cp0_g1),
+    // .cp0_to_tlb_vpn2     (cp0_to_tlb_vpn2),
+    // .cp0_to_tlb_asid     (cp0_to_tlb_asid),
+    // .cp0_to_tlb_pfn0     (cp0_to_tlb_pfn0),
+    // .cp0_to_tlb_c0       (cp0_to_tlb_c0),
+    // .cp0_to_tlb_d0       (cp0_to_tlb_d0),
+    // .cp0_to_tlb_v0       (cp0_to_tlb_v0),
+    // .cp0_to_tlb_g0       (cp0_to_tlb_g0),
+    // .cp0_to_tlb_pfn1     (cp0_to_tlb_pfn1),
+    // .cp0_to_tlb_c1       (cp0_to_tlb_c1),
+    // .cp0_to_tlb_d1       (cp0_to_tlb_d1),
+    // .cp0_to_tlb_v1       (cp0_to_tlb_v1),
+    // .cp0_to_tlb_g1       (cp0_to_tlb_g1),
+    // .cp0_to_tlb_index    (cp0_to_tlb_index),
     .CP0_EPC_out         (CP0_EPC_out),
     .CP0_Status_IE_out   (CP0_Status_IE_out),
     .CP0_Status_EXL_out  (CP0_Status_EXL_out),
@@ -297,18 +253,18 @@ wire DTLB_EX_RD_Invalid  ;
 wire DTLB_EX_WR_Invalid  ;
 wire DTLB_EX_Modified    ;
 DTLB_stage DTLB(
-        .DTLB_found          (DTLB_found          ),
+        // .DTLB_found          (DTLB_found          ),
         .DTLB_VAddr          (m1s_alu_result      ), 
-        .DTLB_asid           (cp0_to_tlb_asid     ),
+        // .DTLB_asid           (cp0_to_tlb_asid     ),
         .DTLB_RAddr          (DTLB_RAddr          ),
-        .DTLB_index          (DTLB_index          ),
-        .DTLB_pfn            (DTLB_pfn            ),
-        .DTLB_c              (DTLB_c              ),
-        .DTLB_d              (DTLB_d              ),
-        .DTLB_v              (DTLB_v              ),
+        // .DTLB_index          (DTLB_index          ),
+        // .DTLB_pfn            (DTLB_pfn            ),
+        // .DTLB_c              (DTLB_c              ),
+        // .DTLB_d              (DTLB_d              ),
+        // .DTLB_v              (DTLB_v              ),
         .isUncache           (isUncache           ),
-        .DTLB_read           (m1s_load_op         ),
-        .DTLB_store          (m1s_mem_we          ),
+        // .DTLB_read           (m1s_load_op         ),
+        // .DTLB_store          (m1s_mem_we          ),
         .DTLB_EX_RD_Refill   (DTLB_EX_RD_Refill   ),
         .DTLB_EX_WR_Refill   (DTLB_EX_WR_Refill   ),
         .DTLB_EX_RD_Invalid  (DTLB_EX_RD_Invalid  ),
@@ -317,6 +273,23 @@ DTLB_stage DTLB(
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
+reg [31:0] cache_req_buffer;
+reg [31:0] cache_req_timely;
+
+always @(*) begin
+    if(m1s_load_op | m1s_mem_we)
+        cache_req_timely <= DTLB_RAddr;
+    else
+        cache_req_timely <= 0;
+end
+
+always @(posedge clk) begin
+    if(reset)
+        cache_req_buffer <= 0;
+    else if(m1s_load_op | m1s_mem_we)
+        cache_req_buffer <= cache_req_timely;
+end
+
 always @(*) begin
     if( m1s_ex | m1s_inst_eret)
         data_valid <= 1'b0;
@@ -327,7 +300,8 @@ always @(*) begin
 end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
-assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : {data_tag,data_index,data_offset};
+// assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : cache_req_buffer;
+assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? cache_req_timely : cache_req_buffer;
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;
