@@ -55,7 +55,7 @@ wire es_bd;
 wire temp_ex; //临时用来承接来自ID的ds_ex信号
 wire [4:0] temp_ExcCode; //临时用来承接来自ID的ds_ExcCode信号
 // wire es_ex;
-wire [4:0] es_ExcCode;
+wire [4:0] es_Exctype;
 wire Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire ADES_ex; //地址错例外(写数据)
@@ -136,7 +136,7 @@ assign es_to_m1s_bus = {
                        //es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
-                       es_ExcCode     ,  //126:122 
+                       es_Exctype     ,  //126:122 
                        es_bd          ,  //121:121
                        es_inst_eret   ,  //120:120
                        es_sel         ,  //119:117 
@@ -175,7 +175,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush ) //清除流水线
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;
@@ -247,7 +247,7 @@ assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
 
 assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
-assign es_ExcCode = Overflow_ex ? `Ov   : 
+assign es_Exctype = Overflow_ex ? `Ov   : 
                     ADES_ex     ? `AdES : 
                     ADEL_ex     ? `AdEL : temp_ExcCode;
 

@@ -28,16 +28,16 @@ module id_stage(
     input        es_load_op, //EXE阶段 判定是否为load指令
     input        m1s_load_op,
     input        flush, //flush=1时表明需要处理异常
-    
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
   //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
-    input        CP0_Status_IE, //IE=1,全局中断使能开启
-    input        CP0_Status_EXL, //EXL=0,没有例外正在处理
-    input [ 7:0] CP0_Status_IM, //IM对应各个中断源屏蔽位
-    input [ 7:0] CP0_Cause_IP, //待处理中断标识
-    input        CP0_Cause_TI,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
-    output       mfc0_stall   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    input        CP0_Status_IE_out, //IE=1,全局中断使能开启
+    input        CP0_Status_EXL_out, //EXL=0,没有例外正在处理
+    input [ 7:0] CP0_Status_IM_out, //IM对应各个中断源屏蔽位
+    input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
+    input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output       mfc0_stall,   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    output       ds_ex         //输出例外信号给PREIF阶段
 );
 
 reg         ds_valid   ;
@@ -53,16 +53,16 @@ wire [31:0] ds_pc  ;
 wire [4:0]  mfc0_rd  ; //mfc0中的rd域 指定CP0寄存器的读写地址
 wire        ds_bd  ; //ID阶段 当前指令若在延迟槽中,则置为1
 wire        temp_ex; //临时用来承接来自IF的fs_ex信号
-wire [4:0]  temp_ExcCode; //临时用来承接来自IF的fs_ExcCode信号
+wire [4:0]  temp_Exctype; //临时用来承接来自IF的fs_ExcCode信号
 //处理例外 Sys,Bp和RI
-wire [ 4:0] ds_ExcCode; //例外编码
+wire [ 4:0] ds_Exctype; //例外编码
 wire        inst_defined; //该指令已经被指令集定义过
-wire        ds_ex; //ID阶段 发现异常则置为1
+// wire        ds_ex; //ID阶段 发现异常则置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 
 assign {
         temp_ex     ,
-        temp_ExcCode,
+        temp_Exctype,
         ds_bd     ,
         ds_inst   ,
         ds_pc  } = fs_to_ds_bus_r;
@@ -77,7 +77,6 @@ assign {rf_we   ,  //37:37
 
 wire        br_taken;
 wire [31:0] br_target;
-// wire is_branch; //lab8添加 当前指令为分支跳转指令时(b,j),置为1
 
 wire [40:0] alu_op; //12条ALU指令
 wire        load_op;
@@ -227,8 +226,6 @@ wire        rs_eq_rt; //rs==rt
 wire rs_wait;
 wire rt_wait;
 wire inst_no_dest; //指令用不着写RF时为1,否则为0
-//在lab4阶段,j指令和b指令之后都会跟上一条nop指令
-//所以,对于这两类指令,除非EXE阶段有load指令,否则流水线都可以正常运转
 wire src1_no_rs;    //指令 rs 域非 0，且不是从寄存器堆读 rs 的数据
 wire src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt 的数据
 wire load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
@@ -240,9 +237,6 @@ wire        rsgtz;
 wire        rslez;
 wire        rsltz;
 
-//lab8添加
-// wire mfc0_stall; //由于mfc0指令在EXE和MEM阶段,而在WB阶段才能读出数据,故如果ID阶段发现数据冒险,必须暂停流水线
-
 assign br_bus       = {br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
@@ -253,7 +247,7 @@ assign ds_to_es_bus = {
                        mfc0_rd     ,  //177:173 --mfc0中的rd域 指定CP0寄存器的读写地址
                        Overflow_inst, //172:170 --可能涉及整型溢出例外的三条指令:add,addi,sub
                        ds_ex       ,  //169:169 --ID阶段 发现异常则置为1
-                       ds_ExcCode  ,  //168:164 --例外编码
+                       ds_Exctype  ,  //168:164 --例外编码
                        ds_bd       ,  //163:163 --ID阶段 当前指令若在延迟槽中,则置为1
                        inst_eret   ,  //162:162 --eret指令要送到WB阶段处理
                        sel         ,  //161:159 --指令sel段要送到WB阶段处理
@@ -439,7 +433,7 @@ assign rsltz=(rs_value[31]==1'b1&&rs_value!=32'b0); //<0
 
 //lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
 wire has_int; //判定是否接收到中断 需要满足下面的条件
-assign has_int = ((CP0_Cause_IP & CP0_Status_IM) != 0) && CP0_Status_IE && !CP0_Status_EXL;
+assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
 
 reg Time_int; //定时中断信号
 reg Soft_int; //软件中断信号
@@ -450,7 +444,7 @@ reg [1:0] Time_state,Time_next_state;
 always @(*) begin //该状态机同时处理next_state和Time_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI&&has_int && ds_valid) begin
+            if(CP0_Cause_TI_out&&has_int && ds_valid) begin
                 Time_next_state<=Time_Start;
                 Time_int<=1'b1;
             end
@@ -459,7 +453,7 @@ always @(*) begin //该状态机同时处理next_state和Time_int
                 Time_int<=1'b0;
             end
         Time_Start: 
-            if(!CP0_Cause_TI&&!has_int) begin
+            if(!CP0_Cause_TI_out&&!has_int) begin
                 Time_next_state<=Time_Idle;
                 Time_int<=1'b0;
             end
@@ -486,7 +480,7 @@ reg [1:0] Soft_state,Soft_next_state;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP[1:0]!=0&&has_int && ds_valid) begin
+            if(CP0_Cause_IP_out[1:0]!=0&&has_int && ds_valid) begin
                 Soft_next_state<=Soft_Start;
                 Soft_int<=1'b1;
             end
@@ -495,7 +489,7 @@ always @(*) begin //该状态机同时处理next_state和Soft_int
                 Soft_int<=1'b0;
             end
         Soft_Start:
-            if(CP0_Cause_IP[1:0]==0&&!has_int) begin
+            if(CP0_Cause_IP_out[1:0]==0&&!has_int) begin
                 Soft_next_state<=Soft_Idle;
                 Soft_int<=1'b0;
             end
@@ -518,10 +512,10 @@ end
 
 assign ds_ex      = temp_ex | !inst_defined | inst_syscall | inst_break | 
                     has_int & (Time_int | Soft_int);
-assign ds_ExcCode = Time_int | Soft_int ? `Int :
+assign ds_Exctype = Time_int | Soft_int ? `Int :
                     !inst_defined       ?  `RI : 
                     inst_syscall        ? `Sys : 
-                    inst_break          ?  `Bp : temp_ExcCode; 
+                    inst_break          ?  `Bp : temp_Exctype; 
 assign Overflow_inst = {inst_add,inst_addi,inst_sub};
 
 //alu_op译码
@@ -604,7 +598,8 @@ regfile u_regfile(
     .rdata2 (rf_rdata2),
     .we     (rf_we    ),
     .waddr  (rf_waddr ),
-    .wdata  (rf_wdata )
+    .wdata  (rf_wdata ),
+    .reset  (reset    )
     );
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
@@ -616,10 +611,13 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
                              rt == MEM_dest ?  MEM_result : WB_result)
                             : rf_rdata2;
 
-assign rs_eq_rt = (rs_value == rt_value);
-assign is_branch= inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
+assign rs_eq_rt  = (rs_value == rt_value);
+assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
 | inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
-assign br_taken =  (   inst_beq  &  rs_eq_rt
+
+reg br_taken_r;
+wire br_taken_temp;
+assign br_taken_temp = (  inst_beq  &  rs_eq_rt
                    || inst_bne  & !rs_eq_rt
                    || inst_jal
                    || inst_jr
@@ -631,10 +629,15 @@ assign br_taken =  (   inst_beq  &  rs_eq_rt
                    || inst_bltz & rsltz
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
-                  ) ; //TODO:见例外不跳转
+                   ) & ds_valid; 
 
-//fs_pc为当前指令的下一条指令的地址,直接从fs_to_ds_bus中取出的没有经过寄存器
-//例外入口地址统一为0xbfc00380
+always @(posedge clk) begin
+    if(reset) br_taken_r <= 1'b0;
+    else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
+    else if(fs_to_ds_valid) br_taken_r <= 1'b0;
+end
+assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
+
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
                    | inst_bgezal | inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
@@ -646,9 +649,9 @@ assign src2_no_rt = inst_addiu | load_op | inst_jal | inst_lui | inst_addi | ins
                     | inst_sltiu | inst_andi | inst_ori | inst_xori;
 
 //ID阶段的读RF地址rs,rt和后面阶段的写RF地址rd冲突,则考虑暂停流水线
-assign rs_wait = ~src1_no_rs & (rs!=5'd0) 
+assign rs_wait = ~src1_no_rs & (rs!=5'd0) & ds_valid
                  & ( (rs==EXE_dest) | (rs==M1s_dest) | (rs==MEM_dest) | (rs==WB_dest) ); 
-assign rt_wait = ~src2_no_rt & (rt!=5'd0)
+assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
                  & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
 assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
@@ -662,10 +665,10 @@ assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
                     (rs_wait & (rs == M1s_dest ) & m1s_load_op ) ||
                     (rt_wait & (rt == M1s_dest ) & m1s_load_op ) ||                   
                     (rt_wait & (rt == EXE_dest) & es_load_op );  
-assign br_stall   = load_stall & br_taken; //Attention:删掉ds_valid
+assign br_stall   = (load_stall | mfc0_stall) & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
-assign mfc0_stall = (rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
-                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0);
+assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
+                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall; 

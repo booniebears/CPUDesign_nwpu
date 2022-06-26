@@ -27,7 +27,6 @@ wire        ws_ready_go;
 reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 wire        ws_gr_we;
 wire [ 4:0] ws_dest;
-wire [31:0] ws_result; //即MEM阶段的ms_final_result 未考虑mfc0和mtc0指令
 wire [31:0] ws_final_result; //考虑了mfc0和mtc0的最终结果
 wire [31:0] ws_pc;
 
@@ -43,7 +42,6 @@ assign {
         ws_pc             //31:0 --MEM阶段 PC值
         } = ms_to_ws_bus_r;
 
-assign ws_final_result = ws_result;
 wire        rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;

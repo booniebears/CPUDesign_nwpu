@@ -33,6 +33,44 @@
     `define UD_AW_SHAKE 2'b01
     `define UD_W_SHAKE  2'b10    
     `define UD_B_SHAKE  2'b11
+
+/*******************分界线******************/
+
+    `define I_RD_EMPTY   3'b000
+    `define I_RD_RECREQ  3'b001
+    `define I_RD_WAIT1   3'b010
+    `define I_RD_WAIT2   3'b011
+    `define I_RD_WAIT3   3'b100
+    `define I_RD_WAIT4   3'b101
+    `define I_RD_FINISH  3'b110
+
+    `define D_RD_EMPTY   3'b000
+    `define D_RD_RECREQ  3'b001
+    `define D_RD_WAIT1   3'b010
+    `define D_RD_WAIT2   3'b011
+    `define D_RD_WAIT3   3'b100
+    `define D_RD_WAIT4   3'b101
+    `define D_RD_FINISH  3'b110
+
+    `define D_WR_EMPTY   3'b000
+    `define D_WR_RECREQ  3'b001
+    `define D_WR_WAIT1   3'b010
+    `define D_WR_WAIT2   3'b011
+    `define D_WR_WAIT3   3'b100
+    `define D_WR_WAIT4   3'b101
+    `define D_WR_S       3'b110
+    `define D_WR_FINISH  3'b111
+
+    `define U_RD_EMPTY   2'b00
+    `define U_RD_RECREQ  2'b01
+    `define U_RD_WAIT1   2'b10 
+    `define U_RD_FINISH  2'b11
+
+    `define U_WR_EMPTY   3'b000
+    `define U_WR_RECREQ  3'b001
+    `define U_WR_WAIT1   3'b010
+    `define U_WR_S       3'b011
+    `define U_WR_FINISH  3'b100
     
 /*******************AXI定义部分如上******************/
 `endif 
