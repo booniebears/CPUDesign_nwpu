@@ -1,7 +1,7 @@
 `include "global_defines.vh"
 
 module ITLB_stage(
-     input             ITLB_found,
+    input             ITLB_found,
     input      [31:0] ITLB_VAddr, //–Èµÿ÷∑
     output reg [31:0] ITLB_RAddr, // µµÿ÷∑
     input      [ 3:0] ITLB_index,
@@ -11,7 +11,8 @@ module ITLB_stage(
     input             ITLB_d,
     input             ITLB_v,
     output  reg       ITLB_EX_Refill,
-    output  reg       ITLB_EX_Invalid
+    output  reg       ITLB_EX_Invalid,
+    output  reg       ITLB_Buffer_Hit
 );
 
 always @(*) begin
@@ -40,5 +41,11 @@ always @(*) begin
         ITLB_EX_Invalid <= 1'b0;
 end
 //assign ITLB_EX_Invalid = 1'b0;
+
+always @(*) begin
+    if(ITLB_VAddr[31:28] < 4'hC && ITLB_VAddr[31:28] > 4'h7)
+        ITLB_Buffer_Hit = 1'b1;
+    
+end
 
 endmodule
