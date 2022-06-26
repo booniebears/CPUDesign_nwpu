@@ -101,12 +101,12 @@ wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
 wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-// wire         ITLB_found;
-// wire  [ 3:0] ITLB_index;
-// wire  [19:0] ITLB_pfn;
-// wire  [ 2:0] ITLB_c;
-// wire         ITLB_d;
-// wire         ITLB_v;
+ wire         ITLB_found;
+ wire  [ 3:0] ITLB_index;
+ wire  [19:0] ITLB_pfn;
+ wire  [ 2:0] ITLB_c;
+ wire         ITLB_d;
+ wire         ITLB_v;
 wire  [31:0] nextpc;
 
 //AXI和Cache的交互信号
@@ -163,42 +163,42 @@ wire  [31:0] data_rdata;
 wire  isUncache;
 
 /********************TLB-CP0交互信号如下********************/
-// wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
-// wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
-// wire           tlb_to_cp0_found; //tlb查找是否成功
-// wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
-// wire  [7:0]    tlb_to_cp0_asid ;
-// wire  [3:0]    tlb_to_cp0_index; 
-// wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
-// wire  [2:0]    tlb_to_cp0_c0   ;
-// wire           tlb_to_cp0_d0   ;
-// wire           tlb_to_cp0_v0   ;
-// wire           tlb_to_cp0_g0   ;
-// wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
-// wire  [2:0]    tlb_to_cp0_c1   ;
-// wire           tlb_to_cp0_d1   ;
-// wire           tlb_to_cp0_v1   ;
-// wire           tlb_to_cp0_g1   ;
-// wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
-// wire  [7:0]    cp0_to_tlb_asid ;
-// wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
-// wire  [2:0]    cp0_to_tlb_c0   ;
-// wire           cp0_to_tlb_d0   ;
-// wire           cp0_to_tlb_v0   ;
-// wire           cp0_to_tlb_g0   ;
-// wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
-// wire  [2:0]    cp0_to_tlb_c1   ;
-// wire           cp0_to_tlb_d1   ;
-// wire           cp0_to_tlb_v1   ;
-// wire           cp0_to_tlb_g1   ;
-// wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
-// wire  [31:0]   m1s_alu_result  ;
-// wire           DTLB_found        ;
-// wire  [3:0]    DTLB_index     ;
-// wire  [19:0]   DTLB_pfn       ;
-// wire  [2:0]    DTLB_c         ;
-// wire           DTLB_d         ;
-// wire           DTLB_v         ;
+ wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
+ wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
+ wire           tlb_to_cp0_found; //tlb查找是否成功
+ wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
+ wire  [7:0]    tlb_to_cp0_asid ;
+ wire  [3:0]    tlb_to_cp0_index; 
+ wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
+ wire  [2:0]    tlb_to_cp0_c0   ;
+ wire           tlb_to_cp0_d0   ;
+ wire           tlb_to_cp0_v0   ;
+ wire           tlb_to_cp0_g0   ;
+ wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
+ wire  [2:0]    tlb_to_cp0_c1   ;
+ wire           tlb_to_cp0_d1   ;
+ wire           tlb_to_cp0_v1   ;
+ wire           tlb_to_cp0_g1   ;
+ wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
+ wire  [7:0]    cp0_to_tlb_asid ;
+ wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
+ wire  [2:0]    cp0_to_tlb_c0   ;
+ wire           cp0_to_tlb_d0   ;
+ wire           cp0_to_tlb_v0   ;
+ wire           cp0_to_tlb_g0   ;
+ wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
+ wire  [2:0]    cp0_to_tlb_c1   ;
+ wire           cp0_to_tlb_d1   ;
+ wire           cp0_to_tlb_v1   ;
+ wire           cp0_to_tlb_g1   ;
+ wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
+ wire  [31:0]   m1s_alu_result  ;
+ wire           DTLB_found        ;
+ wire  [3:0]    DTLB_index     ;
+ wire  [19:0]   DTLB_pfn       ;
+ wire  [2:0]    DTLB_c         ;
+ wire           DTLB_d         ;
+ wire           DTLB_v         ;
 /********************TLB-CP0交互信号如上********************/
 
 
@@ -354,13 +354,13 @@ pre_if_stage pre_if_stage(
     .inst_addr_ok   (inst_addr_ok   ),
     .inst_data_ok   (inst_data_ok   ),  
     .mfc0_stall     (mfc0_stall     ),
-    // .ITLB_found     (ITLB_found     ),
-    // .ITLB_index     (ITLB_index     ),
-    // .ITLB_pfn       (ITLB_pfn       ),
-    // .ITLB_c         (ITLB_c         ),
-    // .ITLB_d         (ITLB_d         ),
-    // .ITLB_v         (ITLB_v         ),
-    // .ITLB_asid      (cp0_to_tlb_asid),
+     .ITLB_found     (ITLB_found     ),
+     .ITLB_index     (ITLB_index     ),
+     .ITLB_pfn       (ITLB_pfn       ),
+     .ITLB_c         (ITLB_c         ),
+     .ITLB_d         (ITLB_d         ),
+     .ITLB_v         (ITLB_v         ),
+     .ITLB_asid      (cp0_to_tlb_asid),
     .nextpc         (nextpc         ),
     .ds_ex          (ds_ex          ),
     .es_ex          (es_ex          ),

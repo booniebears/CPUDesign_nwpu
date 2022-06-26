@@ -17,8 +17,8 @@ module pre_if_stage(
     input             flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
     input  [31:0]     CP0_EPC_out, //CP0寄存器中,EPC的值
     input             m1s_inst_eret,
-    // input  [4:0]  tlb_refill_if_ex,
-    // input  [4:0]  tlb_invalid_if_ex,
+     input  [4:0]  tlb_refill_if_ex,
+     input  [4:0]  tlb_invalid_if_ex,
     //Attention:CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
     output reg        inst_valid,
     output            inst_op,
@@ -28,13 +28,13 @@ module pre_if_stage(
     input             inst_addr_ok,
     input             inst_data_ok,
     input             mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    // input             ITLB_found,
-    // input      [ 3:0] ITLB_index,
-    // input      [19:0] ITLB_pfn,
-    // input      [ 2:0] ITLB_c,
-    // input             ITLB_d,
-    // input             ITLB_v,
-    // input      [3:0]  ITLB_asid,
+     input             ITLB_found,
+     input      [ 3:0] ITLB_index,
+     input      [19:0] ITLB_pfn,
+     input      [ 2:0] ITLB_c,
+     input             ITLB_d,
+     input             ITLB_v,
+     input      [3:0]  ITLB_asid,
     output reg [31:0] nextpc,
     input             ds_ex,
     input             es_ex,
@@ -127,15 +127,15 @@ always @(*) begin
 end
 
 ITLB_stage ITLB(
-        // .ITLB_found        (ITLB_found        ),
+         .ITLB_found        (ITLB_found        ),
         .ITLB_VAddr        (nextpc            ), 
         .ITLB_RAddr        (ITLB_RAddr        ),
-        // .ITLB_index        (ITLB_index        ),
-        // .ITLB_pfn          (ITLB_pfn          ),
-        // .ITLB_asid         (ITLB_asid         ),
-        // .ITLB_c            (ITLB_c            ),
-        // .ITLB_d            (ITLB_d            ),
-        // .ITLB_v            (ITLB_v            ),
+         .ITLB_index        (ITLB_index        ),
+         .ITLB_pfn          (ITLB_pfn          ),
+         .ITLB_asid         (ITLB_asid         ),
+         .ITLB_c            (ITLB_c            ),
+         .ITLB_d            (ITLB_d            ),
+         .ITLB_v            (ITLB_v            ),
         .ITLB_EX_Refill    (ITLB_EX_Refill    ),
         .ITLB_EX_Invalid   (ITLB_EX_Invalid   )
 );

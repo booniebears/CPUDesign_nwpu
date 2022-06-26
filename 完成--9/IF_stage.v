@@ -17,8 +17,6 @@ module if_stage(
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     input         flush, //flush=1时表明需要处理异常
     input         flush_r, //flush=1时表明需要处理异常
-   // output [19:0] inst_tag,
-   // output [ 3:0] inst_offset,
     input         inst_data_ok,
     input  [31:0] inst_rdata,
     input             ds_ex,

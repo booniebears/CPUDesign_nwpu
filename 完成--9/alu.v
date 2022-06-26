@@ -11,8 +11,6 @@ module alu(
     output Overflow_ex, //有整型溢出置为1
     input es_ex,
     input m1s_ex
-    //input m1s_ex,
-   // input ws_ex
 );
 
 wire op_add;   //加法操作

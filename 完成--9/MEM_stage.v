@@ -44,13 +44,7 @@ wire [31:0] mem_result_lh;
 wire [31:0] mem_result_lhu;
 wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
-//lab8Ìí¼Ó
-// wire [2:0] ms_sel;
-// wire [4:0] ms_mfc0_rd; 
-// wire ms_inst_mtc0;
-// wire ms_bd;
- //wire [4:0] ms_ExcCode;
-//wire [31:0] ms_data_sram_addr;
+
 
 assign {
         //ms_data_sram_addr,//164:133 

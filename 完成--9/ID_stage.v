@@ -414,7 +414,7 @@ assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
 assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
 assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
 assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
-assign inst_tltu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tltu  = op_d[6'h00] & func_d[6'h33];
 assign inst_tne   = op_d[6'h00] & func_d[6'h36];
 assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
 
@@ -639,10 +639,10 @@ assign br_taken_temp = (  inst_beq  &  rs_eq_rt
 
 always @(posedge clk) begin
     if(reset) br_taken_r <= 1'b0;
-    else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
+    else if(br_taken_temp & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
     else if(fs_to_ds_valid) br_taken_r <= 1'b0;
 end
-assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
+assign br_taken =  br_taken_temp | br_taken_r ;
 
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
