@@ -12,7 +12,6 @@ module pre_if_stage(
     output                         ps_to_fs_valid,
 
     input                          flush, //flush=1时表明需要处理异常
-    // output reg                     flush_r, //flush=1时表明需要处理异常
     input                          flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
     input  [31:0]                  CP0_EPC_out, //CP0寄存器中,EPC的值
     input                          m1s_inst_eret,
@@ -23,7 +22,8 @@ module pre_if_stage(
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
-    // input             mfc0_stall, //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+    //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
+    output     [31:0]              br_adjusted_pc,
     input                          ITLB_found,
     input      [ 3:0]              ITLB_index,
     input      [19:0]              ITLB_pfn,
@@ -31,9 +31,6 @@ module pre_if_stage(
     input                          ITLB_d,
     input                          ITLB_v,
     input      [3:0]               ITLB_asid
-    // input             ds_ex,
-    // input             es_ex,
-    // input             m1s_ex
 );
 
 wire         ps_ready_go;
@@ -50,6 +47,8 @@ wire [4:0]   ps_Exctype;
 reg   [31:0] nextpc;
 reg   [31:0] prefs_pc;
 wire  [31:0] seq_pc;
+// wire  [31:0] br_adjusted_pc; 
+reg          flush_delayed;
 
 wire         br_taken;
 wire [ 31:0] br_target;
@@ -62,7 +61,7 @@ assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
 assign ps_to_fs_bus   = {
                           inst_valid, //38:38
-                          prefs_pc,   //37:6
+                          br_adjusted_pc, //37:6
                           ps_ex,      //5:5
                           ps_Exctype  //4:0
                         };
@@ -86,13 +85,16 @@ end
 always @(posedge clk) begin //prefs_pc
     if(reset)
         prefs_pc <= `RESET_PC;
-    else if(~icache_busy & ps_allowin)
+    else if((~icache_busy & ps_allowin) | flush)
         prefs_pc <= nextpc;
 end
 
+//在ID阶段有一条确实有效的跳转指令时,将br_adjusted_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
+assign br_adjusted_pc = (br_taken & ~br_stall) ? prefs_pc - 4'd8 : prefs_pc;
+
 ITLB_stage ITLB(
         .ITLB_found        (ITLB_found        ),
-        .ITLB_VAddr        (prefs_pc          ), 
+        .ITLB_VAddr        (br_adjusted_pc    ), 
         .ITLB_RAddr        (ITLB_RAddr        ),
         .ITLB_index        (ITLB_index        ),
         .ITLB_pfn          (ITLB_pfn          ),
@@ -111,8 +113,17 @@ assign ps_Exctype = ADEL_ex         ? `AdEL            :
                     ITLB_EX_Invalid ? `ITLB_EX_Invalid : `NO_EX;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
+always @(posedge clk) begin
+    if(reset) 
+        flush_delayed <= 1'b0;
+    else if(flush)
+        flush_delayed <= 1'b1;
+    else if(~icache_busy)
+        flush_delayed <= 1'b0;
+end
+
 always @(*) begin
-    if(flush)
+    if(flush_delayed & ~icache_busy)
         inst_valid = 1'b1;
     else if(prefs_pc[1:0] != 2'b00)
         inst_valid = 1'b0;

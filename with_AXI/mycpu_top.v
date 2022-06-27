@@ -100,15 +100,15 @@ wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
 wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
-wire         m1s_inst_eret; //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
-wire         mfc0_stall; //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
+wire         m1s_inst_eret; 
+wire         mfc0_stall; 
 wire         ITLB_found;
 wire  [ 3:0] ITLB_index;
 wire  [19:0] ITLB_pfn;
 wire  [ 2:0] ITLB_c;
 wire         ITLB_d;
 wire         ITLB_v;
-wire  [31:0] nextpc;
+wire  [31:0] br_adjusted_pc;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -348,7 +348,7 @@ pre_if_stage pre_if_stage(
     .inst_tag       (inst_tag       ),
     .inst_offset    (inst_offset    ),
     .icache_busy    (icache_busy    ),
-    // .mfc0_stall     (mfc0_stall     ),
+    .br_adjusted_pc (br_adjusted_pc ),
     .ITLB_found     (ITLB_found     ),
     .ITLB_index     (ITLB_index     ),
     .ITLB_pfn       (ITLB_pfn       ),
@@ -356,7 +356,6 @@ pre_if_stage pre_if_stage(
     .ITLB_d         (ITLB_d         ),
     .ITLB_v         (ITLB_v         ),
     .ITLB_asid      (cp0_to_tlb_asid)
-    // .nextpc         (nextpc         ),
     // .ds_ex          (ds_ex          ),
     // .es_ex          (es_ex          ),
     // .m1s_ex         (m1s_ex         )
@@ -386,42 +385,43 @@ if_stage if_stage(
 );
 // ID stage
 id_stage id_stage(
-    .clk            (aclk           ),
-    .reset          (reset          ),
-    //allowin
-    .es_allowin     (es_allowin     ),
-    .ds_allowin     (ds_allowin     ),
-    //from fs
-    .fs_to_ds_valid (fs_to_ds_valid ),
-    .fs_to_ds_bus   (fs_to_ds_bus   ),
-    //to es
-    .ds_to_es_valid (ds_to_es_valid ),
-    .ds_to_es_bus   (ds_to_es_bus   ),
-    //to fs
-    .br_bus         (br_bus         ),
-    .is_branch      (is_branch      ),
+    .clk                (aclk               ),
+    .reset              (reset              ),
+    //allowin        
+    .es_allowin         (es_allowin         ),
+    .ds_allowin         (ds_allowin         ),
+    //from fs        
+    .fs_to_ds_valid     (fs_to_ds_valid     ),
+    .fs_to_ds_bus       (fs_to_ds_bus       ),
+    //to es        
+    .ds_to_es_valid     (ds_to_es_valid     ),
+    .ds_to_es_bus       (ds_to_es_bus       ),
+    //to fs        
+    .br_bus             (br_bus             ),
+    .is_branch          (is_branch          ),
     //to rf: for write back
-    .ws_to_rf_bus   (ws_to_rf_bus   ),
-    .EXE_dest       (EXE_dest       ),
-    .M1s_dest        (M1s_dest      ),
-    .MEM_dest       (MEM_dest       ),
-    .WB_dest        (WB_dest        ),
-    .EXE_result     (EXE_result     ),
-    .M1s_result      (M1s_result      ),
-    .MEM_result     (MEM_result     ),
-    .WB_result      (WB_result      ),
-    .es_load_op     (es_load_op     ),
-    .m1s_load_op    (m1s_load_op     ),
-    .flush          (flush          ),
-    .es_inst_mfc0   (es_inst_mfc0   ),
-    .m1s_inst_mfc0  (m1s_inst_mfc0   ),
+    .ws_to_rf_bus       (ws_to_rf_bus       ),
+    .EXE_dest           (EXE_dest           ),
+    .M1s_dest           (M1s_dest           ),
+    .MEM_dest           (MEM_dest           ),
+    .WB_dest            (WB_dest            ),
+    .EXE_result         (EXE_result         ),
+    .M1s_result         (M1s_result         ),
+    .MEM_result         (MEM_result         ),
+    .WB_result          (WB_result          ),
+    .es_load_op         (es_load_op         ),
+    .m1s_load_op        (m1s_load_op        ),
+    .flush              (flush              ),
+    .es_inst_mfc0       (es_inst_mfc0       ),
+    .m1s_inst_mfc0      (m1s_inst_mfc0      ),
     .CP0_Status_IE_out  (CP0_Status_IE_out  ), 
     .CP0_Status_EXL_out (CP0_Status_EXL_out ), 
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
-    .mfc0_stall     (mfc0_stall     ),
-    .ds_ex          (ds_ex          )
+    .mfc0_stall         (mfc0_stall         ),
+    .ds_ex              (ds_ex              ),
+    .icache_busy        (icache_busy        )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -567,8 +567,8 @@ tlb tlb_stage(
     //TODO: add more signals
     .clk              (aclk             ),
     .reset            (reset            ),
-    .s0_vpn2          (nextpc[31:13]    ),
-    .s0_odd_page      (nextpc[12]       ),
+    .s0_vpn2          (br_adjusted_pc[31:13] ),
+    .s0_odd_page      (br_adjusted_pc[12]    ),
     .s0_asid          (cp0_to_tlb_asid  ),        
     .s0_found         (ITLB_found       ),
     .s0_index         (ITLB_index       ),

@@ -831,7 +831,7 @@ module AXI_Interface(
 
 // Icache 
     wire  [ 3: 0] ibus_arid;
-    wire  [31: 0]  ibus_araddr;
+    wire  [31: 0] ibus_araddr;
     wire  [ 3: 0] ibus_arlen;
     wire  [ 2: 0] ibus_arsize;
     wire  [ 1: 0] ibus_arburst;
@@ -945,29 +945,29 @@ module AXI_Interface(
     reg   [  2:0] I_RD_pre_state;
     reg   [  2:0] I_RD_next_state;
     wire  [  2:0] I_RD_DataReady;
-    reg  [ 31:0] I_RD_Addr;
-    reg  [127:0] AXI_I_RData;
+    reg   [ 31:0] I_RD_Addr;
+    reg   [127:0] AXI_I_RData;
 
     reg   [  2:0] D_RD_pre_state;
     reg   [  2:0] D_RD_next_state;
-    wire  [ 2:0]   D_RD_DataReady;
+    wire  [ 2:0]  D_RD_DataReady;
     reg  [ 31:0]  D_RD_Addr;
     reg  [ 127:0] AXI_D_RData;
 
-    reg   [2:0]  D_WR_pre_state;
-    reg   [2:0]  D_WR_next_state;
-    reg  [31:0]  D_WR_Addr;
-    reg  [127:0] AXI_D_WData;
+    reg    [2:0]  D_WR_pre_state;
+    reg    [2:0]  D_WR_next_state;
+    reg   [31:0]  D_WR_Addr;
+    reg   [127:0] AXI_D_WData;
 
-    reg   [1:0] U_RD_pre_state;
-    reg   [1:0] U_RD_next_state;
-    reg  [31:0]  U_RD_Addr;
-    reg  [31:0]  AXI_U_RData;
+    reg     [1:0] U_RD_pre_state;
+    reg     [1:0] U_RD_next_state;
+    reg    [31:0] U_RD_Addr;
+    reg    [31:0] AXI_U_RData;
 
-    reg   [2:0] U_WR_pre_state;
-    reg   [2:0] U_WR_next_state;
-    reg  [31:0]  U_WR_Addr;
-    reg  [31:0]  AXI_U_WData;
+    reg     [2:0] U_WR_pre_state;
+    reg     [2:0] U_WR_next_state;
+    reg    [31:0] U_WR_Addr;
+    reg    [31:0] AXI_U_WData;
     //I$ RD
     always @(posedge clk) begin
         if (~resetn) begin
@@ -1116,7 +1116,6 @@ module AXI_Interface(
     always @(posedge clk) begin
         if (~resetn) begin
             I_RD_pre_state  <= `I_RD_EMPTY;
-            //I_RD_next_state <= `I_RD_EMPTY;
         end 
         else begin  
             I_RD_pre_state <= I_RD_next_state;
@@ -1132,7 +1131,6 @@ module AXI_Interface(
     always @(*)begin
         case (I_RD_pre_state)
             `I_RD_EMPTY:begin
-                // I_RD_DataReady  = 0;
                 if (icache_rd_req == 1'b1) begin
                     I_RD_next_state <= `I_RD_RECREQ;
                 end
@@ -1141,7 +1139,6 @@ module AXI_Interface(
                 end
             end
             `I_RD_RECREQ:begin
-                // I_RD_DataReady  = 0;
                 if (ibus_arvalid == 1'b1 && ibus_arready == 1'b1) begin
                     I_RD_next_state <= `I_RD_WAIT1;
                 end else begin
@@ -1151,49 +1148,39 @@ module AXI_Interface(
             `I_RD_WAIT1:begin
                 if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
                     I_RD_next_state <= `I_RD_WAIT2;
-                    // I_RD_DataReady  = 3'd1;
                 end
                 else begin
                     I_RD_next_state <= `I_RD_WAIT1;
-                    // I_RD_DataReady  = 0;
                 end
             end
             `I_RD_WAIT2:begin
                 if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
                     I_RD_next_state <= `I_RD_WAIT3;
-                    // I_RD_DataReady  = 3'd2;
                 end
                 else begin
                     I_RD_next_state <= `I_RD_WAIT2;
-                    // I_RD_DataReady  = 0;
                 end
             end
             `I_RD_WAIT3:begin
                 if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
                     I_RD_next_state <= `I_RD_WAIT4;
-                    // I_RD_DataReady  = 3'd3;
                 end
                 else begin
                     I_RD_next_state <= `I_RD_WAIT3;
-                    // I_RD_DataReady  = 0;
                 end
             end
             `I_RD_WAIT4:begin
                 if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1 && ibus_rlast == 1'b1) begin
                     I_RD_next_state <= `I_RD_FINISH;
-                    // I_RD_DataReady  = 3'd4;
                 end
                 else begin
                     I_RD_next_state <= `I_RD_WAIT4;
-                    // I_RD_DataReady  = 0;
                 end
             end
             `I_RD_FINISH: begin
-                // I_RD_DataReady  = 0;
                 I_RD_next_state     <= `I_RD_EMPTY;
             end
             default:begin
-                // I_RD_DataReady  = 0;
                 I_RD_next_state     <= `I_RD_EMPTY;
             end
         endcase
@@ -1202,45 +1189,15 @@ module AXI_Interface(
     // araddr & arvalid
     assign ibus_arvalid = (I_RD_pre_state == `I_RD_RECREQ) ? 1'b1 : 1'b0;
     assign ibus_araddr  = (I_RD_pre_state == `I_RD_RECREQ) ? I_RD_Addr : 32'b0;
-    // always @(*)begin
-    //     if (I_RD_pre_state == `I_RD_RECREQ ) begin
-    //             ibus_arvalid = 1'b1;
-    //             ibus_araddr  = I_RD_Addr;  // 浼犺�?鍦板�?
-    //     end else begin
-    //             ibus_arvalid = 0;
-    //             ibus_araddr  = 0;  // 浼犺�?鍦板�?
-    //     end
-    // end
 
     // rready 
     assign ibus_rready = (I_RD_pre_state == `I_RD_WAIT1 || I_RD_pre_state == `I_RD_WAIT2 
                  || I_RD_pre_state == `I_RD_WAIT3 || I_RD_pre_state == `I_RD_WAIT4) ? 1'b1 : 1'b0;
-//     always @(*) begin
-//         if (I_RD_pre_state == `I_RD_WAIT1 || I_RD_pre_state == `I_RD_WAIT2 ||I_RD_pre_state == `I_RD_WAIT3 ||I_RD_pre_state == `I_RD_WAIT4) begin
-//             if (ibus_rvalid == 1'b1) begin
-//                 ibus_rready = 1'b1;
-//             end 
-//             else begin
-//                 ibus_rready = 0;
-//             end
-//         end
-//         else begin
-//             ibus_rready = 0;
-//         end           
-//    end
+
     //ret_valid & ret_rdata
     assign icache_ret_valid = (I_RD_pre_state == `I_RD_FINISH) ? 1'b1 : 1'b0;
     assign icache_ret_data  = (I_RD_pre_state == `I_RD_FINISH) ? AXI_I_RData : 0;
-    // always @(*) begin
-    //     if (I_RD_pre_state == `I_RD_FINISH) begin
-    //         icache_ret_valid = 1'b1;
-    //         icache_ret_data  = AXI_I_RData;
-    //     end
-    //     else begin
-    //         icache_ret_valid = 1'b0;
-    //         icache_ret_data  = 0;
-    //     end
-    // end
+
     // AXI burst
     always @(posedge clk) begin
         if (~resetn) begin
@@ -1273,14 +1230,12 @@ module AXI_Interface(
     always @(posedge clk) begin
         if (~resetn) begin
             D_RD_pre_state  <= `D_RD_EMPTY;
-            //D_RD_next_state <= `D_RD_EMPTY;
         end 
         else begin  
             D_RD_pre_state <= D_RD_next_state;
         end
     end
 
-    //
     assign D_RD_DataReady = 
         (D_RD_pre_state == `D_RD_WAIT1 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd1 :
         (D_RD_pre_state == `D_RD_WAIT2 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd2 :
@@ -1290,7 +1245,6 @@ module AXI_Interface(
     always @(*) begin
         case (D_RD_pre_state)
             `D_RD_EMPTY:begin
-                // D_RD_DataReady  = 0;
                 if (dcache_rd_req == 1'b1) begin
                     D_RD_next_state <= `D_RD_RECREQ;
                 end
@@ -1299,7 +1253,6 @@ module AXI_Interface(
                 end
             end
             `D_RD_RECREQ:begin
-                // D_RD_DataReady  = 0;
                 if (dbus_arvalid == 1'b1 && dbus_arready == 1'b1) begin
                     D_RD_next_state <= `D_RD_WAIT1;
                 end else begin
@@ -1310,49 +1263,39 @@ module AXI_Interface(
             `D_RD_WAIT1:begin
                 if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
                     D_RD_next_state <= `D_RD_WAIT2;
-                    // D_RD_DataReady  = 3'd1;
                 end
                 else begin
                     D_RD_next_state <= `D_RD_WAIT1;
-                    // D_RD_DataReady  = 0;
                 end
             end
             `D_RD_WAIT2:begin
                 if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
                     D_RD_next_state <= `D_RD_WAIT3;
-                    // D_RD_DataReady  = 3'd2;
                 end
                 else begin
                     D_RD_next_state <= `D_RD_WAIT2;
-                    // D_RD_DataReady  = 0;
                 end
             end
             `D_RD_WAIT3:begin
                 if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
                     D_RD_next_state <= `D_RD_WAIT4;
-                    // D_RD_DataReady  = 3'd3;
                 end
                 else begin
                     D_RD_next_state <= `D_RD_WAIT3;
-                    // D_RD_DataReady  = 0;
                 end
             end
             `D_RD_WAIT4:begin
                 if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1 && dbus_rlast == 1'b1) begin
                     D_RD_next_state <= `D_RD_FINISH;
-                    // D_RD_DataReady  = 3'd4;
                 end
                 else begin
                     D_RD_next_state <= `D_RD_WAIT4;
-                    // D_RD_DataReady  = 0;
                 end
             end
             `D_RD_FINISH: begin
-                // D_RD_DataReady  = 0;
                 D_RD_next_state     <= `D_RD_EMPTY;
             end
             default:begin
-                // D_RD_DataReady  = 0;
                 D_RD_next_state     <= `D_RD_EMPTY;                
             end
 
@@ -1362,44 +1305,14 @@ module AXI_Interface(
     // araddr & arvalid
     assign dbus_arvalid = (D_RD_pre_state == `D_RD_RECREQ) ? 1'b1 : 1'b0;
     assign dbus_araddr  = (D_RD_pre_state == `D_RD_RECREQ) ? D_RD_Addr : 32'b0;
-    // always @(*) begin
-    //     if (D_RD_pre_state == `D_RD_RECREQ ) begin
-    //             dbus_arvalid = 1'b1;
-    //             dbus_araddr  = D_RD_Addr; 
-    //     end else begin
-    //             dbus_arvalid = 0;
-    //             dbus_araddr  = 0;  
-    //     end
-    // end
-    // rready
+
     assign dbus_rready = (D_RD_pre_state == `D_RD_WAIT1 || D_RD_pre_state == `D_RD_WAIT2 
     || D_RD_pre_state == `D_RD_WAIT3 ||D_RD_pre_state == `D_RD_WAIT4) ? 1'b1 : 1'b0;
-//     always @(*) begin
-//         if (D_RD_pre_state == `D_RD_WAIT1 || D_RD_pre_state == `D_RD_WAIT2 ||D_RD_pre_state == `D_RD_WAIT3 ||D_RD_pre_state == `D_RD_WAIT4) begin
-//             if (dbus_rvalid == 1'b1) begin
-//                 dbus_rready = 1'b1;
-//             end 
-//             else begin
-//                 dbus_rready = 0;
-//             end
-//         end 
-//         else begin
-//             dbus_rready = 0;
-//         end          
-//    end
+
     //ret_valid & ret_rdata
     assign dcache_ret_valid = (D_RD_pre_state == `D_RD_FINISH) ? 1'b1 : 1'b0;
     assign dcache_ret_data  = (D_RD_pre_state == `D_RD_FINISH) ? AXI_D_RData : 0;
-    // always @(*) begin
-    //     if (D_RD_pre_state == `D_RD_FINISH) begin
-    //         dcache_ret_valid = 1'b1;
-    //         dcache_ret_data  = AXI_D_RData;
-    //     end
-    //     else begin
-    //         dcache_ret_valid = 1'b0;
-    //         dcache_ret_data  = 0;
-    //     end
-    // end
+
     // AXI burst
     always @(posedge clk) begin
         if (~resetn) begin
@@ -1431,7 +1344,6 @@ module AXI_Interface(
     always @(posedge clk) begin
         if (~resetn) begin
             D_WR_pre_state  <= `D_WR_EMPTY;
-           //s D_WR_next_state = `D_WR_EMPTY;
         end 
         else begin  
             D_WR_pre_state <= D_WR_next_state;
@@ -1448,8 +1360,6 @@ module AXI_Interface(
     always @(*) begin
         case (D_WR_pre_state)
             `D_WR_EMPTY:begin
-                // dbus_wdata = 0;
-                // dbus_wlast = 1'b0;
                 if (dcache_wr_req == 1'b1) begin
                     D_WR_next_state <= `D_WR_RECREQ;
                 end
@@ -1458,8 +1368,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_RECREQ:begin
-                // dbus_wdata = 0;
-                // dbus_wlast = 1'b0;
                 if (dbus_awready == 1'b1) begin
                     D_WR_next_state <= `D_WR_WAIT1;
                 end else begin
@@ -1467,8 +1375,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_WAIT1:begin
-                // dbus_wdata = AXI_D_WData[31:0];
-                // dbus_wlast = 1'b0;
                 if ( dbus_wready == 1'b1) begin
                     D_WR_next_state <= `D_WR_WAIT2;
                 end
@@ -1477,8 +1383,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_WAIT2:begin
-                // dbus_wdata = AXI_D_WData[63:32];
-                // dbus_wlast = 1'b0;
                 if (dbus_wready == 1'b1) begin
                     D_WR_next_state <= `D_WR_WAIT3;
                 end
@@ -1487,8 +1391,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_WAIT3:begin
-                // dbus_wdata = AXI_D_WData[95:64];
-                // dbus_wlast = 1'b0;
                 if (dbus_wready == 1'b1) begin
                     D_WR_next_state <= `D_WR_WAIT4;
                 end
@@ -1497,8 +1399,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_WAIT4:begin
-                // dbus_wdata = AXI_D_WData[127:96];
-                // dbus_wlast = 1'b1;
                 if (dbus_wready == 1'b1) begin
                     D_WR_next_state <= `D_WR_S;
                 end
@@ -1507,8 +1407,6 @@ module AXI_Interface(
                 end
             end
             `D_WR_S: begin
-                // dbus_wdata      = 0;
-                // dbus_wlast      = 1'b0;
                 if (dbus_bvalid == 1'b1) begin
                     D_WR_next_state <= `D_WR_FINISH;
                 end
@@ -1517,13 +1415,9 @@ module AXI_Interface(
                 end
             end
             `D_WR_FINISH: begin
-                // dbus_wlast      = 1'b0;
-                // dbus_wdata      = 0;
                 D_WR_next_state <= `D_WR_EMPTY;
             end
             default:begin
-                // dbus_wlast      = 1'b0;
-                // dbus_wdata      = 0;
                 D_WR_next_state <= `D_WR_EMPTY;
             end
         endcase
@@ -1532,37 +1426,12 @@ module AXI_Interface(
     // awaddr & awvalid
     assign dbus_awvalid = (D_WR_pre_state == `D_WR_RECREQ) ? 1'b1: 1'b0;
     assign dbus_awaddr  = (D_WR_pre_state == `D_WR_RECREQ) ? D_WR_Addr : 32'b0;
-    // always @(*) begin
-    //     if (D_WR_pre_state == `D_WR_RECREQ ) begin
-    //             dbus_awvalid = 1'b1;
-    //             dbus_awaddr  = D_WR_Addr;  
-    //     end else begin
-    //             dbus_awvalid = 0;
-    //             dbus_awaddr  = 0; 
-    //     end
-    // end
+
     // wvalid 
     assign dbus_wvalid = (D_WR_pre_state == `D_WR_WAIT1 || D_WR_pre_state == `D_WR_WAIT2 
         || D_WR_pre_state == `D_WR_WAIT3 || D_WR_pre_state == `D_WR_WAIT4) ? 1'b1 : 1'b0;
-//     always @(*) begin
-//         if (D_WR_pre_state == `D_WR_WAIT1 || D_WR_pre_state == `D_WR_WAIT2 ||D_WR_pre_state == `D_WR_WAIT3 ||D_WR_pre_state == `D_WR_WAIT4) begin
-//             dbus_wvalid = 1'b1;
-//         end     
-//         else begin
-//             dbus_wvalid = 0;            
-//         end      
-//    end
 
-    // finish 鏃朵骇鐢熺殑wr_valid
     assign dcache_wr_valid = (D_WR_pre_state == `D_WR_FINISH) ? 1'b1 : 1'b0;
-    // always @(*) begin
-    //     if (D_WR_pre_state == `D_WR_FINISH) begin
-    //         dcache_wr_valid = 1'b1;
-    //     end
-    //     else begin
-    //         dcache_wr_valid = 1'b0;
-    //     end
-    // end
 
 // FSM -- Uncache RD 
     always @(posedge clk) begin
@@ -1611,44 +1480,14 @@ module AXI_Interface(
     // araddr & arvalid
     assign ubus_arvalid = (U_RD_pre_state == `U_RD_RECREQ) ? 1'b1 : 1'b0;
     assign ubus_araddr  = (U_RD_pre_state == `U_RD_RECREQ) ? U_RD_Addr : 32'b0;
-    // always @(*) begin
-    //     if (U_RD_pre_state == `U_RD_RECREQ ) begin
-    //             ubus_arvalid = 1'b1;
-    //             ubus_araddr  = U_RD_Addr; 
-    //     end else begin
-    //             ubus_arvalid = 0;
-    //             ubus_araddr  = 0;  
-    //     end
-    // end
+
     // rready 
     assign ubus_rready = (U_RD_pre_state == `U_RD_WAIT1) ? 1'b1 : 1'b0;
-//     always @(*) begin
-//         if (U_RD_pre_state == `U_RD_WAIT1 ) begin
-//             if (ubus_rvalid == 1'b1) begin
-//                 ubus_rready = 1'b1;
-//             end 
-//             else begin
-//                 ubus_rready = 0;
-//             end
-//         end 
-//         else begin
-//             ubus_rready = 0;
-//         end          
-//    end
+
     //ret_valid & ret_rdata
     assign udcache_ret_valid = (U_RD_pre_state == `U_RD_FINISH) ? 1'b1 : 1'b0;
     assign udcache_ret_data  = (U_RD_pre_state == `U_RD_FINISH) ? AXI_U_RData : 0;
-    // always @(*) begin
-    //     if (U_RD_pre_state == `U_RD_FINISH) begin
-    //         udcache_ret_valid = 1'b1;
-    //         udcache_ret_data  = AXI_U_RData;
-    //     end
-    //     else begin
-    //         udcache_ret_valid = 1'b0;
-    //         udcache_ret_data  = 0;
-    //     end
-    // end
-    // AXI brust鏁版嵁鐨�?幏锟�???
+
     always @(posedge clk) begin
         if (~resetn) begin
             AXI_U_RData  <= 32'b0; 
@@ -1672,7 +1511,6 @@ module AXI_Interface(
     always @(*) begin
         case (U_WR_pre_state)
             `U_WR_EMPTY:begin
-                // ubus_wlast = 1'b0;
                 if (udcache_wr_req == 1'b1) begin
                     U_WR_next_state <= `U_WR_RECREQ;
                 end
@@ -1681,7 +1519,6 @@ module AXI_Interface(
                 end
             end
             `U_WR_RECREQ:begin
-                // ubus_wlast = 1'b0;
                 if (ubus_awready == 1'b1) begin
                     U_WR_next_state <= `U_WR_WAIT1;
                 end else begin
@@ -1689,7 +1526,6 @@ module AXI_Interface(
                 end
             end
             `U_WR_WAIT1:begin
-                // ubus_wlast = 1'b1;
                 if (ubus_wready == 1'b1) begin
                     U_WR_next_state <= `U_WR_S;
                 end
@@ -1698,7 +1534,6 @@ module AXI_Interface(
                 end
             end
             `U_WR_S: begin
-                // ubus_wlast = 1'b0;
                 if (ubus_bvalid == 1'b1) begin
                     U_WR_next_state <= `U_WR_FINISH;
                 end
@@ -1707,11 +1542,9 @@ module AXI_Interface(
                 end
             end
             `U_WR_FINISH: begin
-                // ubus_wlast = 1'b0;
                 U_WR_next_state <= `U_WR_EMPTY;
             end
             default:begin
-                // ubus_wlast = 1'b0;
                 U_WR_next_state <= `U_WR_EMPTY;
             end
         endcase
@@ -1720,35 +1553,12 @@ module AXI_Interface(
     // awaddr & awvalid
     assign ubus_awvalid = (U_WR_pre_state == `U_WR_RECREQ) ? 1'b1 : 1'b0;
     assign ubus_awaddr  = (U_WR_pre_state == `U_WR_RECREQ) ? U_WR_Addr : 0;
-    // always @(*) begin
-    //     if (U_WR_pre_state == `U_WR_RECREQ ) begin
-    //             ubus_awvalid = 1'b1;
-    //             ubus_awaddr  = U_WR_Addr;  
-    //     end else begin
-    //             ubus_awvalid = 0;
-    //             ubus_awaddr  = 0;  
-    //     end
-    // end
+
     // wvalid 
     assign ubus_wvalid = (U_WR_pre_state == `U_WR_WAIT1) ? 1'b1 : 1'b0;
-//     always @(*) begin
-//         if (U_WR_pre_state == `U_WR_WAIT1 ) begin
-//             ubus_wvalid = 1'b1;
-//         end     
-//         else begin
-//             ubus_wvalid = 0;            
-//         end     
-//    end
+
     // wr_valid
     assign udcache_wr_valid = (U_WR_pre_state == `U_WR_FINISH) ? 1'b1 : 1'b0;
-    // always @(*) begin
-    //     if (U_WR_pre_state == `U_WR_FINISH) begin
-    //         udcache_wr_valid = 1'b1;
-    //     end
-    //     else begin
-    //         udcache_wr_valid = 1'b0;
-    //     end
-    // end
 
     axi_crossbar U_axi_crossbar (
         .aclk             ( clk     ),

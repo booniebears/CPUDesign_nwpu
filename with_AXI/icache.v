@@ -33,7 +33,7 @@ module Icache #(
 
 //define FSM 
 parameter  LOOKUP     = 2'd0,
-           MISSCLEAN  = 2'd1,
+           MISS  = 2'd1,
            REFILL     = 2'd2,
            REFILLDONE = 2'd3;
 
@@ -76,7 +76,7 @@ assign icache_busy    = reqbuffer_inst_valid & ~delayed_cache_hit;
 assign inst_rdata     = reqbuffer_inst_valid ? icache_rdata_sel[0] : 32'b0; //TODO:一路组相连暂不考虑delayed_hit对路的片选
 
 //与AXI总线接口的交互接口
-assign icache_rd_req  = (icache_state == MISSCLEAN);
+assign icache_rd_req  = (icache_state == MISS);
 assign icache_rd_addr = {reqbuffer_inst_tag,reqbuffer_inst_index,{OFFSET_WIDTH{1'b0}}};
 
 //hit判定逻辑
@@ -124,7 +124,7 @@ always @(*) begin
     else
         tagv_we    = 0;
 end
-assign index_addr = (icache_state == MISSCLEAN | icache_state == REFILL 
+assign index_addr = (icache_state == MISS | icache_state == REFILL 
                     | icache_state == REFILLDONE) ? reqbuffer_inst_index : inst_index;
 assign tagv_wdata = {reqbuffer_inst_tag,1'b1};
 
@@ -148,7 +148,8 @@ generate
     genvar j;
     for (i = 0;i < ASSOC_NUM ;i = i + 1) begin
         simple_port_lutram  #(
-            .SIZE(BLOCK_NUMS)
+            .SIZE(BLOCK_NUMS),
+            .DATA_WIDTH(TAG_WIDTH + 1)
         ) ram_tag(
             .clka(clk),
             .rsta(reset),
@@ -162,7 +163,8 @@ generate
         );
         for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
             simple_port_ram_without_bypass #(
-            .SIZE(BLOCK_NUMS)
+            .SIZE(BLOCK_NUMS),
+            .DATA_WIDTH(DATA_WIDTH)
             ) ram_bank(
                 .clk(clk),
                 .rst(reset),
@@ -193,15 +195,15 @@ always @(*) begin
     case (icache_state)
         LOOKUP: 
             if(reqbuffer_inst_valid && ~delayed_cache_hit)
-                icache_nextstate = MISSCLEAN;
+                icache_nextstate = MISS;
             else
                 icache_nextstate = LOOKUP;
 
-        MISSCLEAN:
+        MISS:
             if(icache_rd_rdy)
                 icache_nextstate = REFILL;
             else
-                icache_nextstate = MISSCLEAN;
+                icache_nextstate = MISS;
         
         REFILL:
             if(icache_ret_valid)

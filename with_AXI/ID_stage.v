@@ -37,7 +37,8 @@ module id_stage(
     input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     output       mfc0_stall,   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    output       ds_ex         //输出例外信号给PREIF阶段
+    output       ds_ex,         //输出例外信号给PREIF阶段
+    input        icache_busy
 );
 
 reg         ds_valid   ;
@@ -439,74 +440,101 @@ reg Time_int; //定时中断信号
 reg Soft_int; //软件中断信号
 
 //处理定时中断
-parameter Time_Idle=2'b00,Time_Start=2'b01; 
-reg [1:0] Time_state,Time_next_state;
-always @(*) begin //该状态机同时处理next_state和Time_int
+parameter Time_Idle     = 2'd0,
+          Time_Start    = 2'd1,
+          Time_Rollback = 2'd2; 
+reg [1:0] Time_state,Time_nextstate;
+always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI_out&&has_int && ds_valid) begin
-                Time_next_state<=Time_Start;
-                Time_int<=1'b1;
+            if(CP0_Cause_TI_out && has_int && ds_valid) begin
+                Time_nextstate = Time_Start;
+                Time_int       = 1'b1;
             end
             else begin
-                Time_next_state<=Time_Idle;
-                Time_int<=1'b0;
+                Time_nextstate = Time_Idle;
+                Time_int       = 1'b0;
             end
-        Time_Start: 
-            if(!CP0_Cause_TI_out&&!has_int) begin
-                Time_next_state<=Time_Idle;
-                Time_int<=1'b0;
+        Time_Start:
+            if(ds_to_es_valid && es_allowin) begin
+                Time_nextstate = Time_Rollback;
+                Time_int       = 1'b1;
             end
             else begin
-                Time_next_state<=Time_Start;
-                Time_int<=1'b0;
+                Time_nextstate = Time_Start;
+                Time_int       = 1'b1;
+            end
+        Time_Rollback:
+            if(~CP0_Cause_TI_out && ~has_int) begin
+                Time_nextstate = Time_Idle;
+                Time_int       = 1'b0;
+            end
+            else begin
+                Time_nextstate = Time_Rollback;
+                Time_int       = 1'b0;
             end
         default: begin
-            Time_next_state<=Time_Idle;
-            Time_int<=1'b0;
+            Time_nextstate = Time_Idle;
+            Time_int       = 1'b0;
         end
     endcase
 end
 
+
 always @(posedge clk) begin
-    if(reset) Time_state<=Time_Idle;
-    else Time_state<=Time_next_state;
+    if(reset) 
+        Time_state <= Time_Idle;
+    else 
+        Time_state <= Time_nextstate;
 end
 
 //处理软件中断
-parameter Soft_Idle=2'b10,Soft_Start=2'b11; 
-reg [1:0] Soft_state,Soft_next_state;
+parameter Soft_Idle     = 2'd0,
+          Soft_Start    = 2'd1,
+          Soft_Rollback = 2'd2; 
+reg [1:0] Soft_state,Soft_nextstate;
 
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP_out[1:0]!=0&&has_int && ds_valid) begin
-                Soft_next_state<=Soft_Start;
-                Soft_int<=1'b1;
+            if(CP0_Cause_IP_out[1:0] != 0 && has_int && ds_valid) begin
+                Soft_nextstate = Soft_Start;
+                Soft_int       = 1'b1;
             end
             else begin
-                Soft_next_state<=Soft_Idle;
-                Soft_int<=1'b0;
+                Soft_nextstate = Soft_Idle;
+                Soft_int       = 1'b0;
             end
         Soft_Start:
-            if(CP0_Cause_IP_out[1:0]==0&&!has_int) begin
-                Soft_next_state<=Soft_Idle;
-                Soft_int<=1'b0;
+            if(ds_to_es_valid && es_allowin) begin
+                Soft_nextstate = Soft_Rollback;
+                Soft_int       = 1'b1;
             end
             else begin
-                Soft_next_state<=Soft_Start;
-                Soft_int<=1'b0;
+                Soft_nextstate = Soft_Start;
+                Soft_int       = 1'b1;
+            end
+        Soft_Rollback:
+            if(CP0_Cause_IP_out[1:0] == 0 && ~has_int) begin
+                Soft_nextstate = Soft_Idle;
+                Soft_int       = 1'b0;
+            end
+            else begin
+                Soft_nextstate = Soft_Rollback;
+                Soft_int       = 1'b0;
             end
         default: begin
-            Soft_next_state<=Soft_Idle;
-            Soft_int<=1'b0;
+            Soft_nextstate = Soft_Idle;
+            Soft_int       = 1'b0;
         end
     endcase
 end
 
 always @(posedge clk) begin
-    if(reset) Soft_state<=Soft_Idle;
-    else Soft_state<=Soft_next_state;
+    if(reset) 
+        Soft_state <= Soft_Idle;
+    else 
+        Soft_state <= Soft_nextstate;
 end
 
 
@@ -615,9 +643,7 @@ assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
 | inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
 
-reg br_taken_r;
-wire br_taken_temp;
-assign br_taken_temp = (  inst_beq  &  rs_eq_rt
+assign br_taken =  (  inst_beq  &  rs_eq_rt
                    || inst_bne  & !rs_eq_rt
                    || inst_jal
                    || inst_jr
@@ -631,12 +657,12 @@ assign br_taken_temp = (  inst_beq  &  rs_eq_rt
                    || inst_bltzal & rsltz
                    ) & ds_valid; 
 
-always @(posedge clk) begin
-    if(reset) br_taken_r <= 1'b0;
-    else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
-    else if(fs_to_ds_valid) br_taken_r <= 1'b0;
-end
-assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
+// always @(posedge clk) begin
+//     if(reset) br_taken_r <= 1'b0;
+//     else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
+//     else if(fs_to_ds_valid) br_taken_r <= 1'b0;
+// end
+// assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
 
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
@@ -671,6 +697,6 @@ assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
-assign ds_ready_go    = ~load_stall & ~mfc0_stall; 
+assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy; 
 
 endmodule
