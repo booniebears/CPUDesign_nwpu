@@ -77,7 +77,8 @@ module m1_stage(
     input  [ 2:0]   DTLB_c,
     input           DTLB_d, 
     input           DTLB_v,
-    output          isUncache
+    output          isUncache,
+    output          TLB_Buffer_Flush_Final
 );
 wire  [31:0]  DTLB_RAddr;//实地址
 reg           m1s_valid;
@@ -111,7 +112,7 @@ wire        m1s_mem_we;
 wire [3:0]  sram_wen;
 wire[31:0]  sram_wdata;//位数问题！
 wire        temp_m1s_ex;
-
+wire        TLB_Buffer_Flush;
 assign {
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
@@ -239,7 +240,12 @@ wire DTLB_EX_WR_Refill   ;
 wire DTLB_EX_RD_Invalid  ;
 wire DTLB_EX_WR_Invalid  ;
 wire DTLB_EX_Modified    ;
+wire DTLB_Buffer_Wr  ;
+wire DTLB_Buffer_Stall;
+wire DTLB_Buffer_Valid_m1s;
 DTLB_stage DTLB(
+        .clk                 (clk                 ),
+        .reset               (reset               ),
         .DTLB_found          (DTLB_found          ),
         .DTLB_VAddr          (m1s_alu_result      ), 
         .DTLB_asid           (cp0_to_tlb_asid     ),
@@ -256,7 +262,11 @@ DTLB_stage DTLB(
         .DTLB_EX_WR_Refill   (DTLB_EX_WR_Refill   ),
         .DTLB_EX_RD_Invalid  (DTLB_EX_RD_Invalid  ),
         .DTLB_EX_WR_Invalid  (DTLB_EX_WR_Invalid  ),
-        .DTLB_EX_Modified    (DTLB_EX_Modified    )
+        .DTLB_EX_Modified    (DTLB_EX_Modified    ),
+        .TLB_Buffer_Flush    (TLB_Buffer_Flush_Final ),
+        .DTLB_Buffer_Wr      (DTLB_Buffer_Wr      ),
+        .DTLB_Buffer_Stall   (DTLB_Buffer_Stall   ),
+        .DTLB_Buffer_Valid_m1s   (DTLB_Buffer_Valid_m1s   )
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
@@ -294,6 +304,8 @@ assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
 assign data_wdata = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
 
+assign TLB_Buffer_Flush          = (m1s_inst_tlbwi ||m1s_inst_tlbr );
+assign TLB_Buffer_Flush_Final    = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;//当一条TLBW发生在MEM级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer，然后就会反复TLBStall
 
 /******************例外处理部分********************/
 assign flush        = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线

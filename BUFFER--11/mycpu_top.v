@@ -141,12 +141,13 @@ wire         udcache_wr_rdy;
 wire         udcache_wr_valid; 
 
 //CPU和ICache的交互信号如下;本人目前没有实现《CPU设计实战》中的wstrb和wdata
-wire         inst_valid;
+//wire         inst_valid;
 wire  [ 7:0] inst_index;
 wire  [19:0] inst_tag;
 wire  [ 3:0] inst_offset;
 wire         icache_busy;
 wire  [31:0] inst_rdata;
+wire         inst_valid_end;
 
 //CPU和DCache的交互信号如下;
 wire         data_valid;
@@ -199,7 +200,7 @@ wire  [2:0]    DTLB_c         ;
 wire           DTLB_d         ;
 wire           DTLB_v         ;
 /********************TLB-CP0交互信号如上********************/
-
+wire          TLB_Buffer_Flush;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
@@ -276,7 +277,7 @@ AXI_Interface U_AXI_Interface(
 Icache U_Icache(
     .clk              (aclk             ),
     .reset            (reset            ),
-    .inst_valid       (inst_valid       ),
+    .inst_valid       (inst_valid_end   ),
     .inst_index       (inst_index       ),
     .inst_tag         (inst_tag         ),
     .inst_offset      (inst_offset      ),
@@ -343,7 +344,7 @@ pre_if_stage pre_if_stage(
     .flush_refill   (flush_refill   ),
     .CP0_EPC_out    (CP0_EPC_out    ),
     .m1s_inst_eret  (m1s_inst_eret  ),
-    .inst_valid     (inst_valid     ),
+    //.inst_valid     (inst_valid     ),
     .inst_index     (inst_index     ),
     .inst_tag       (inst_tag       ),
     .inst_offset    (inst_offset    ),
@@ -355,10 +356,12 @@ pre_if_stage pre_if_stage(
     .ITLB_c         (ITLB_c         ),
     .ITLB_d         (ITLB_d         ),
     .ITLB_v         (ITLB_v         ),
-    .ITLB_asid      (cp0_to_tlb_asid)
+    .ITLB_asid      (cp0_to_tlb_asid),
+    .TLB_Buffer_Flush(TLB_Buffer_Flush),
     // .ds_ex          (ds_ex          ),
     // .es_ex          (es_ex          ),
     // .m1s_ex         (m1s_ex         )
+    .inst_valid_end (inst_valid_end)
 );
 
 // IF stage
@@ -519,7 +522,8 @@ m1_stage m1_stage(
     .DTLB_c             (DTLB_c             ),
     .DTLB_d             (DTLB_d             ),
     .DTLB_v             (DTLB_v             ),
-    .isUncache          (isUncache          )
+    .isUncache          (isUncache          ),
+    .TLB_Buffer_Flush_Final(TLB_Buffer_Flush)
 );
 // MEM stage
 wire ms_inst_mfc0;

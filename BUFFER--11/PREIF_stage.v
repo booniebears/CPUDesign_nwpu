@@ -17,7 +17,7 @@ module pre_if_stage(
     input                          m1s_inst_eret,
 
     //CPU和ICache的交互信号如下
-    output reg                     inst_valid,
+ 
     output     [ 7:0]              inst_index,
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
@@ -30,7 +30,9 @@ module pre_if_stage(
     input      [ 2:0]              ITLB_c,
     input                          ITLB_d,
     input                          ITLB_v,
-    input      [3:0]               ITLB_asid
+    input      [3:0]               ITLB_asid,
+    input                          TLB_Buffer_Flush,
+    output                         inst_valid_end
 );
 
 wire         ps_ready_go;
@@ -42,7 +44,10 @@ wire         ADEL_ex;//处理取指令地址错例外ADEL
 wire         ITLB_EX_Refill;
 wire         ITLB_EX_Invalid;
 wire [4:0]   ps_Exctype;
-
+wire         ITLB_Buffer_Wr  ;
+wire         ITLB_Buffer_Stall;
+wire         ITLB_Buffer_Valid_ps;
+reg          inst_valid         ;
 //PC_reg
 reg   [31:0] nextpc;
 reg   [31:0] prefs_pc;
@@ -60,7 +65,7 @@ assign ps_ready_go    = ~icache_busy;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
 assign ps_to_fs_bus   = {
-                          inst_valid, //38:38
+                          inst_valid_end, //38:38
                           br_adjusted_pc, //37:6
                           ps_ex,      //5:5
                           ps_Exctype  //4:0
@@ -92,7 +97,10 @@ end
 //在ID阶段有一条确实有效的跳转指令时,将br_adjusted_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
 assign br_adjusted_pc = (br_taken & ~br_stall) ? prefs_pc - 4'd8 : prefs_pc;
 
+
 ITLB_stage ITLB(
+        .clk               (clk               ),
+        .reset             (reset             ),
         .ITLB_found        (ITLB_found        ),
         .ITLB_VAddr        (br_adjusted_pc    ), 
         .ITLB_RAddr        (ITLB_RAddr        ),
@@ -103,7 +111,11 @@ ITLB_stage ITLB(
         .ITLB_d            (ITLB_d            ),
         .ITLB_v            (ITLB_v            ),
         .ITLB_EX_Refill    (ITLB_EX_Refill    ),
-        .ITLB_EX_Invalid   (ITLB_EX_Invalid   )
+        .ITLB_EX_Invalid   (ITLB_EX_Invalid   ),
+        .ITLB_Buffer_Wr    (ITLB_Buffer_Wr    ),
+        .ITLB_Buffer_Stall (ITLB_Buffer_Stall ),
+        .TLB_Buffer_Flush  (TLB_Buffer_Flush  ),
+        .ITLB_Buffer_Valid_ps (ITLB_Buffer_Valid_ps)
 );
 
 assign ADEL_ex    = prefs_pc[1:0] == 2'b00 ? 1'b0 : 1'b1; 
@@ -137,6 +149,7 @@ always @(*) begin
         inst_valid = 1'b0;
 end
 
+assign inst_valid_end = inst_valid && ITLB_Buffer_Valid_ps;
 assign {inst_tag,inst_index,inst_offset} = ITLB_RAddr;
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule
