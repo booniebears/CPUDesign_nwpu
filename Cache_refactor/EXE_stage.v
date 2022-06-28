@@ -251,24 +251,6 @@ assign es_Exctype = Overflow_ex ? `Ov   :
                     ADES_ex     ? `AdES : 
                     ADEL_ex     ? `AdEL : temp_ExcCode;
 
-
-/*******************CPU与DCache的交互信号赋值如下******************/
-//always @(*) begin
-//    if(es_ex | m1s_ex | m1s_inst_eret )
-//        data_valid <= 1'b0;
-//    else if((es_load_op | es_mem_we) & data_addr_ok & m1s_allowin & es_valid)
-//        data_valid <= 1'b1;
-//    else
-//        data_valid <= 1'b0;
-//end
-//
-//assign data_op    = es_mem_we ? 1'b1 : 1'b0;
-//assign {data_tag,data_index,data_offset} = (es_load_op | es_mem_we) ? es_alu_result : {data_tag,data_index,data_offset};
-//assign data_wstrb = es_ex | m1s_ex | m1s_inst_eret  ? 4'b0 :
-//                    es_mem_we ? sram_wen : 4'h0; //去掉了es_valid
-//assign data_wdata = sram_wdata;
-/*******************CPU与DCache的交互信号赋值如上******************/
-
 assign EXE_dest   = es_dest & {5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
 assign EXE_result = es_alu_result;
 

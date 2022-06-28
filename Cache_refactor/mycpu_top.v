@@ -161,6 +161,7 @@ wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状
 wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire         isUncache;
+wire         dcache_busy;
 
 /********************TLB-CP0交互信号如下********************/
 wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
@@ -292,44 +293,82 @@ Icache U_Icache(
     .icache_ret_data  (icache_ret_data  )
 );
 
-dcache dcache(
-    .clk            (aclk     ),
-    .reset          (reset    ),
-    .d_valid        (data_valid),
-    .d_op           (data_op   ),
-    .d_index        (data_index),
-    .d_tag          (data_tag  ),
-    .d_offset       (data_offset),
-    .d_wstrb        (data_wstrb),
-    .d_wdata        (data_wdata),
-    .d_addr_ok      (data_addr_ok),
-    .d_data_ok      (data_data_ok),
-    .d_rdata        (data_rdata),
+// dcache dcache(
+//     .clk            (aclk     ),
+//     .reset          (reset    ),
+//     .d_valid        (data_valid),
+//     .d_op           (data_op   ),
+//     .d_index        (data_index),
+//     .d_tag          (data_tag  ),
+//     .d_offset       (data_offset),
+//     .d_wstrb        (data_wstrb),
+//     .d_wdata        (data_wdata),
+//     .d_addr_ok      (data_addr_ok),
+//     .d_data_ok      (data_data_ok),
+//     .d_rdata        (data_rdata),
 
-    .d_rd_req       (dcache_rd_req    ),
-    .d_rd_addr      (dcache_rd_addr   ),
-    .d_rd_rdy       (dcache_rd_rdy    ),
-    .d_ret_valid    (dcache_ret_valid ),
-    .d_ret_data     (dcache_ret_data  ),
-    .d_wr_req       (dcache_wr_req    ),
-    .d_wr_addr      (dcache_wr_addr   ),
-    // .d_wr_strb      (dcache_wr_strb   ),
-    .d_wr_data      (dcache_wr_data   ),
-    .d_wr_rdy       (dcache_wr_rdy    ),
-    .d_wr_valid     (dcache_wr_valid  ),
+//     .d_rd_req       (dcache_rd_req    ),
+//     .d_rd_addr      (dcache_rd_addr   ),
+//     .d_rd_rdy       (dcache_rd_rdy    ),
+//     .d_ret_valid    (dcache_ret_valid ),
+//     .d_ret_data     (dcache_ret_data  ),
+//     .d_wr_req       (dcache_wr_req    ),
+//     .d_wr_addr      (dcache_wr_addr   ),
+//     // .d_wr_strb      (dcache_wr_strb   ),
+//     .d_wr_data      (dcache_wr_data   ),
+//     .d_wr_rdy       (dcache_wr_rdy    ),
+//     .d_wr_valid     (dcache_wr_valid  ),
 
-    .ud_rd_req      (udcache_rd_req    ),
-    .ud_rd_addr     (udcache_rd_addr   ),
-    .ud_rd_rdy      (udcache_rd_rdy    ),
-    .ud_ret_valid   (udcache_ret_valid ),
-    .ud_ret_data    (udcache_ret_data  ),
-    .ud_wr_req      (udcache_wr_req    ),
-    .ud_wr_addr     (udcache_wr_addr   ),
-    .ud_wr_strb     (udcache_wr_strb   ),
-    .ud_wr_data     (udcache_wr_data   ),
-    .ud_wr_rdy      (udcache_wr_rdy    ),
-    .ud_wr_valid    (udcache_wr_valid  ),
-    .isUncache      (isUncache         ) 
+//     .ud_rd_req      (udcache_rd_req    ),
+//     .ud_rd_addr     (udcache_rd_addr   ),
+//     .ud_rd_rdy      (udcache_rd_rdy    ),
+//     .ud_ret_valid   (udcache_ret_valid ),
+//     .ud_ret_data    (udcache_ret_data  ),
+//     .ud_wr_req      (udcache_wr_req    ),
+//     .ud_wr_addr     (udcache_wr_addr   ),
+//     .ud_wr_strb     (udcache_wr_strb   ),
+//     .ud_wr_data     (udcache_wr_data   ),
+//     .ud_wr_rdy      (udcache_wr_rdy    ),
+//     .ud_wr_valid    (udcache_wr_valid  ),
+//     .isUncache      (isUncache         ) 
+// );
+
+DCache U_DCache(
+    .clk                 (aclk              ),
+    .reset               (reset             ),
+    .data_valid          (data_valid        ),
+    .data_op             (data_op           ),
+    .data_index          (data_index        ),
+    .data_tag            (data_tag          ),
+    .data_offset         (data_offset       ),
+    .data_wstrb          (data_wstrb        ),
+    .data_wdata          (data_wdata        ),
+    .data_rdata          (data_rdata        ),
+    .busy                (dcache_busy       ),
+ 
+    .dcache_rd_req       (dcache_rd_req     ),
+    .dcache_rd_addr      (dcache_rd_addr    ),
+    .dcache_rd_rdy       (dcache_rd_rdy     ),
+    .dcache_ret_valid    (dcache_ret_valid  ),
+    .dcache_ret_data     (dcache_ret_data   ),
+    .dcache_wr_req       (dcache_wr_req     ),
+    .dcache_wr_addr      (dcache_wr_addr    ),
+    .dcache_wr_data      (dcache_wr_data    ),
+    .dcache_wr_rdy       (dcache_wr_rdy     ),
+    .dcache_wr_valid     (dcache_wr_valid   ),
+
+    .udcache_rd_req      (udcache_rd_req    ),
+    .udcache_rd_addr     (udcache_rd_addr   ),
+    .udcache_rd_rdy      (udcache_rd_rdy    ),
+    .udcache_ret_valid   (udcache_ret_valid ),
+    .udcache_ret_data    (udcache_ret_data  ),
+    .udcache_wr_req      (udcache_wr_req    ),
+    .udcache_wr_addr     (udcache_wr_addr   ),
+    .udcache_wr_strb     (udcache_wr_strb   ),
+    .udcache_wr_data     (udcache_wr_data   ),
+    .udcache_wr_rdy      (udcache_wr_rdy    ),
+    .udcache_wr_valid    (udcache_wr_valid  ),
+    .isUncache           (isUncache         ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(

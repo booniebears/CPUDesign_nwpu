@@ -33,7 +33,7 @@ module Icache #(
 
 //define FSM 
 parameter  LOOKUP     = 2'd0,
-           MISS  = 2'd1,
+           MISS       = 2'd1,
            REFILL     = 2'd2,
            REFILLDONE = 2'd3;
 
@@ -50,7 +50,7 @@ reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
 
 wire [ASSOC_NUM-1:0]   hit;
 wire                   cache_hit;
-// reg                    delayed_hit; //hit延时
+// reg  [ASSOC_NUM-1:0]   delayed_hit; //hit延时
 reg                    delayed_cache_hit; //cache_hit延时
 wire                   delayed_hit_wr;
 wire                   data_read_en;
@@ -119,7 +119,7 @@ end
 
 //硬件资源输入信号赋值
 always @(*) begin
-    if(icache_state == REFILL & icache_ret_valid)
+    if(icache_state == REFILL & icache_ret_valid) 
         tagv_we[0] = 1'b1; //TODO:之后使用多路组相连需要调整,使用LRU算法
     else
         tagv_we    = 0;
@@ -148,7 +148,8 @@ generate
     genvar j;
     for (i = 0;i < ASSOC_NUM ;i = i + 1) begin
         simple_port_lutram  #(
-            .SIZE(BLOCK_NUMS)
+            .SIZE(BLOCK_NUMS),
+            .DATA_WIDTH(TAG_WIDTH + 1)
         ) ram_tag(
             .clka(clk),
             .rsta(reset),
@@ -162,7 +163,8 @@ generate
         );
         for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
             simple_port_ram_without_bypass #(
-            .SIZE(BLOCK_NUMS)
+                .SIZE(BLOCK_NUMS),
+                .DATA_WIDTH(DATA_WIDTH)
             ) ram_bank(
                 .clk(clk),
                 .rst(reset),
