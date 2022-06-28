@@ -25,7 +25,7 @@ parameter   IDLE =   4'd0,//ø’œ–
 reg ITLB_cstate;
 reg ITLB_nstate;  
 reg ITLB_Buffer_Hit;
-reg        ITLB_Buffer_Valid;
+reg ITLB_Buffer_Valid;
 //TLB Buffer
 reg          ITLB_Buffer_found     ;
 reg  [ 3:0]  ITLB_Buffer_index     ;
