@@ -29404,22 +29404,3 @@ bfc00064 f 19 9fc0038c
 9fc003a0 f 0a 20000000
 9fc003a4 f 19 bfc00100
 bfc00100 f 08 bfaf8001
-
-
-
-Test begin!
-bitcount test begin.
-
-Bit counter algorithm benchmark
-
-
-
-bitcount PASS!Bits: 811
-
-bitcount: Total Count(SoC count) = 0xcc2bb
-
-bitcount: Total Count(CPU count) = 0x5cc61
-
-==============================================================
-Test end!
-----PASS!!!
