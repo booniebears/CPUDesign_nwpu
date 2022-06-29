@@ -2,7 +2,7 @@
     `define MYCPU_H
     `define BR_BUS_WD       34 
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
-    `define PS_TO_FS_BUS_WD 39
+    `define PS_TO_FS_BUS_WD 40
     `define FS_TO_DS_BUS_WD 71
     //DS_TO_ES_BUS_WD原来是136,lab6修改为137(src2_is_imm变为2位宽),修改为145(加入mf_mt和mult_div)
     //lab7再次修改为157(添加mem_control区别不同的存取数指令),lab8修改为174(加入mfc0,mtc0,eret指令

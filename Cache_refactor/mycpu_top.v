@@ -108,7 +108,7 @@ wire  [19:0] ITLB_pfn;
 wire  [ 2:0] ITLB_c;
 wire         ITLB_d;
 wire         ITLB_v;
-wire  [31:0] br_adjusted_pc;
+wire  [31:0] prefs_pc;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -372,35 +372,30 @@ DCache U_DCache(
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
-    .clk            (aclk           ),
-    .reset          (reset          ),
-    .fs_allowin     (fs_allowin     ),
-    .br_bus         (br_bus         ),
-    .ps_to_fs_bus   (ps_to_fs_bus   ),
-    .ps_to_fs_valid (ps_to_fs_valid ),
-    .flush          (flush          ),
-    // .flush_r        (flush_r        ),
-    .flush_refill   (flush_refill   ),
-    .CP0_EPC_out    (CP0_EPC_out    ),
-    .m1s_inst_eret  (m1s_inst_eret  ),
-    //.inst_valid     (inst_valid     ),
-    .inst_index     (inst_index     ),
-    .inst_tag       (inst_tag       ),
-    .inst_offset    (inst_offset    ),
-    .icache_busy    (icache_busy    ),
-    .br_adjusted_pc (br_adjusted_pc ),
-    .ITLB_found     (ITLB_found     ),
-    .ITLB_index     (ITLB_index     ),
-    .ITLB_pfn       (ITLB_pfn       ),
-    .ITLB_c         (ITLB_c         ),
-    .ITLB_d         (ITLB_d         ),
-    .ITLB_v         (ITLB_v         ),
-    .ITLB_asid      (cp0_to_tlb_asid),
-    .TLB_Buffer_Flush(TLB_Buffer_Flush),
-    // .ds_ex          (ds_ex          ),
-    // .es_ex          (es_ex          ),
-    // .m1s_ex         (m1s_ex         )
-    .inst_valid_end (inst_valid_end)
+    .clk              (aclk             ),
+    .reset            (reset            ),
+    .fs_allowin       (fs_allowin       ),
+    .br_bus           (br_bus           ),
+    .ps_to_fs_bus     (ps_to_fs_bus     ),
+    .ps_to_fs_valid   (ps_to_fs_valid   ),
+    .flush            (flush            ),
+    .flush_refill     (flush_refill     ),
+    .CP0_EPC_out      (CP0_EPC_out      ),
+    .m1s_inst_eret    (m1s_inst_eret    ),
+    .inst_index       (inst_index       ),
+    .inst_tag         (inst_tag         ),
+    .inst_offset      (inst_offset      ),
+    .icache_busy      (icache_busy      ),
+    .prefs_pc         (prefs_pc         ),
+    .ITLB_found       (ITLB_found       ),
+    .ITLB_index       (ITLB_index       ),
+    .ITLB_pfn         (ITLB_pfn         ),
+    .ITLB_c           (ITLB_c           ),
+    .ITLB_d           (ITLB_d           ),
+    .ITLB_v           (ITLB_v           ),
+    .ITLB_asid        (cp0_to_tlb_asid  ),
+    .TLB_Buffer_Flush (TLB_Buffer_Flush ),
+    .inst_valid_end   (inst_valid_end   )
 );
 
 // IF stage
@@ -610,8 +605,8 @@ tlb tlb_stage(
     //TODO: add more signals
     .clk              (aclk             ),
     .reset            (reset            ),
-    .s0_vpn2          (br_adjusted_pc[31:13] ),
-    .s0_odd_page      (br_adjusted_pc[12]    ),
+    .s0_vpn2          (prefs_pc[31:13] ),
+    .s0_odd_page      (prefs_pc[12]    ),
     .s0_asid          (cp0_to_tlb_asid  ),        
     .s0_found         (ITLB_found       ),
     .s0_index         (ITLB_index       ),

@@ -1,54 +1,55 @@
 module DCache #(
-    parameter  DATA_WIDTH     = 32, 
-    parameter  ASSOC_NUM      = 1, //组相连数
-    parameter  WORDS_PER_LINE = 4, //一行4字
-    parameter  WAY_SIZE       = 4*1024*8, //一路Cache 容量大小
-    parameter  BLOCK_NUMS     = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //一路Cache块数=256
-    localparam BYTES_PER_WORD = 4,
-    localparam INDEX_WIDTH    = $clog2(BLOCK_NUMS), //8
-    localparam OFFSET_WIDTH   = $clog2(WORDS_PER_LINE*BYTES_PER_WORD),//4
-    localparam TAG_WIDTH      = 32-INDEX_WIDTH-OFFSET_WIDTH, //20
-    localparam WSTRB_WIDTH    = 4,
-    localparam DIRTY_WIDTH    = 1
+    parameter  DATA_WIDTH      = 32, 
+    parameter  CACHELINE_WIDTH = 128, 
+    parameter  ASSOC_NUM       = 1, //组相连数
+    parameter  WORDS_PER_LINE  = 4, //一行4字
+    parameter  WAY_SIZE        = 4*1024*8, //一路Cache 容量大小
+    parameter  BLOCK_NUMS      = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //一路Cache块数=256
+    localparam BYTES_PER_WORD  = 4,
+    localparam INDEX_WIDTH     = $clog2(BLOCK_NUMS), //8
+    localparam OFFSET_WIDTH    = $clog2(WORDS_PER_LINE*BYTES_PER_WORD),//4
+    localparam TAG_WIDTH       = 32-INDEX_WIDTH-OFFSET_WIDTH, //20
+    localparam WSTRB_WIDTH     = 4,
+    localparam DIRTY_WIDTH     = 1
 )
 (
     //与CPU流水线的交互接口
-    input                    clk,
-    input                    reset,
-    input                    data_valid,
-    input                    data_op,
-    input [INDEX_WIDTH-1:0]  data_index,
-    input [TAG_WIDTH-1:0]    data_tag,
-    input [OFFSET_WIDTH-1:0] data_offset,
-    input [DATA_WIDTH-1:0]   data_wdata,
-    input [WSTRB_WIDTH-1:0]  data_wstrb, //字节写使能wstrb
-    output [DATA_WIDTH-1:0]  data_rdata,
-    output                   busy,
+    input                        clk,
+    input                        reset,
+    input                        data_valid,
+    input                        data_op,
+    input [INDEX_WIDTH-1:0]      data_index,
+    input [TAG_WIDTH-1:0]        data_tag,
+    input [OFFSET_WIDTH-1:0]     data_offset,
+    input [DATA_WIDTH-1:0]       data_wdata,
+    input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
+    output [DATA_WIDTH-1:0]      data_rdata,
+    output                       busy,
 
     //与AXI总线接口的交互接口
-    output                   dcache_rd_req,
-    output [DATA_WIDTH-1:0]  dcache_rd_addr,
-    input                    dcache_rd_rdy,
-    input                    dcache_wr_valid,
-    input                    dcache_ret_valid,
-    input [127:0]            dcache_ret_data,
-    output                   dcache_wr_req,
-    input                    dcache_wr_rdy,
-    output [DATA_WIDTH-1:0]  dcache_wr_addr,
-    output [127:0]           dcache_wr_data,
+    output                       dcache_rd_req,
+    output [DATA_WIDTH-1:0]      dcache_rd_addr,
+    input                        dcache_rd_rdy,
+    input                        dcache_wr_valid,
+    input                        dcache_ret_valid,
+    input [CACHELINE_WIDTH-1:0]  dcache_ret_data,
+    output                       dcache_wr_req,
+    input                        dcache_wr_rdy,
+    output [DATA_WIDTH-1:0]      dcache_wr_addr,
+    output [CACHELINE_WIDTH-1:0] dcache_wr_data,
 
-    output                   udcache_rd_req,
-    output [31:0]            udcache_rd_addr,
-    input                    udcache_rd_rdy,
-    input                    udcache_ret_valid,
-    input                    udcache_wr_valid,
-    input [DATA_WIDTH-1:0]   udcache_ret_data,
-    output [WSTRB_WIDTH-1:0] udcache_wr_strb,
-    output                   udcache_wr_req,
-    input                    udcache_wr_rdy,
-    output [31:0]            udcache_wr_addr,
-    output [DATA_WIDTH-1:0]  udcache_wr_data,
-    input                    isUncache //
+    output                       udcache_rd_req,
+    output [31:0]                udcache_rd_addr,
+    input                        udcache_rd_rdy,
+    input                        udcache_ret_valid,
+    input                        udcache_wr_valid,
+    input [DATA_WIDTH-1:0]       udcache_ret_data,
+    output [WSTRB_WIDTH-1:0]     udcache_wr_strb,
+    output                       udcache_wr_req,
+    input                        udcache_wr_rdy,
+    output [31:0]                udcache_wr_addr,
+    output [DATA_WIDTH-1:0]      udcache_wr_data,
+    input                        isUncache //
 );
 
 //define Cache FSM 
@@ -124,7 +125,8 @@ wire [DATA_WIDTH-1:0]    dcache_wdata[WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]    dcache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]    dcache_rdata_sel[ASSOC_NUM-1:0];
 wire [DATA_WIDTH-1:0]    dcache_write_data;
-reg [DATA_WIDTH-1:0]     uncache_rdata;
+reg  [DATA_WIDTH-1:0]    uncache_rdata;
+reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdata一拍延时
 
 wire                     uncache_busy;
 wire                     dcache_busy;
@@ -154,10 +156,39 @@ assign dcache_write_data[31:24] = reqbuffer_data_wstrb[3] ? reqbuffer_data_wdata
                                                             dcache_rdata_sel[0][31:24]; 
 
 //与AXI的交互接口
-assign dcache_rd_req  = (dcache_state == MISSCLEAN);
-assign dcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
-assign dcache_wr_req  = (dcache_state == MISSDIRTY);
-// assign dcache_wr_addr = ; //需要将tag锁存
+//dcache AXI
+assign dcache_rd_req   = (dcache_state == MISSCLEAN);
+assign dcache_rd_addr  = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
+assign dcache_wr_req   = (dcache_state == MISSDIRTY);
+//TODO:考虑多路组相连情况
+assign dcache_wr_addr  = {delayed_tag_rdata[0],reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}}; 
+generate //TODO:考虑多路组相连情况
+    genvar u;
+    for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
+        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[0][u];
+    end
+endgenerate
+
+//uncache AXI
+assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD);
+assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+assign udcache_wr_strb = reqbuffer_data_wstrb;
+assign udcache_wr_req  = (uncache_state == UNCACHE_STORE);
+assign udcache_wr_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+assign udcache_wr_data = reqbuffer_data_wdata;
+
+generate
+    genvar t;
+    for (t = 0; t < ASSOC_NUM; t = t + 1) begin
+        always @(posedge clk) begin //用于发送AXI write地址
+            if(reset)
+                delayed_tag_rdata[t] <= 0;
+            else if(delayed_hit_wr)
+                delayed_tag_rdata[t] <= tag_rdata[t];
+        end
+    end
+endgenerate
+
 
 //hit判定逻辑
 generate

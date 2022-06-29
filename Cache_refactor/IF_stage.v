@@ -16,26 +16,26 @@ module if_stage(
     input                          flush, //flush=1时表明需要处理异常
     input                          icache_busy,
     input  [31:0]                  inst_rdata
-    // input             ds_ex,
-    // input             es_ex,
-    // input             m1s_ex
 );
 
 reg          fs_valid;
 wire         fs_ready_go;
 
-wire                           fs_ex;
-wire [4:0]                     fs_Exctype;
-reg  [`PS_TO_FS_BUS_WD -1:0]   ps_to_fs_bus_r;
-wire                           ps_ex;
-wire [4:0]                     ps_Exctype;                         
-wire [31:0]                    fs_pc;
-wire [31:0]                    fs_inst;
-wire                           fs_inst_valid;
+wire                          fs_ex;
+wire [4:0]                    fs_Exctype;
+reg  [`PS_TO_FS_BUS_WD -1:0]  ps_to_fs_bus_r;
+wire                          ps_ex;
+wire [4:0]                    ps_Exctype;                         
+wire [31:0]                   temp_fs_pc;
+wire [31:0]                   fs_pc;
+wire [31:0]                   fs_inst;
+wire                          fs_inst_valid;
+wire                          fs_bdd;
 
 assign {
     fs_inst_valid,
-    fs_pc,
+    fs_bdd,
+    temp_fs_pc,
     ps_ex,
     ps_Exctype
 } = ps_to_fs_bus_r;
@@ -73,7 +73,8 @@ assign fs_to_ds_bus = {
 assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
-// assign fs_inst         = (flush | flush_r | fs_ex | ds_ex | es_ex) ? 32'b0 : inst_rdata; 
-assign fs_inst    = fs_inst_valid ? inst_rdata : 32'b0; 
+assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
+//在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
+assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
 
 endmodule
