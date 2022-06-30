@@ -69,8 +69,9 @@ module m1_stage(
     output [ 3:0]   data_offset,
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
-    input           data_data_ok, //
-    input           data_addr_ok,
+    // input           data_data_ok, //
+    // input           data_addr_ok,
+    input           dcache_busy,
     input           DTLB_found,
     input  [ 3:0]   DTLB_index,
     input  [19:0]   DTLB_pfn,
@@ -152,9 +153,9 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                         } ;               
 
-assign m1s_ready_go    =   m1s_ex ? 1'b1 : //出现例外,直接放行
-                         (m1s_load_op | m1s_mem_we) ? (data_data_ok ? 1'b1 : 1'b0) :1'b1;
-assign m1s_allowin     = !m1s_valid || m1s_ready_go && ms_allowin;
+assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we) | 
+                        ((m1s_load_op | m1s_mem_we) & ~dcache_busy);
+assign m1s_allowin     = ~m1s_valid || m1s_ready_go && ms_allowin;
 assign m1s_to_ms_valid = m1s_valid && m1s_ready_go;
 always @(posedge clk) begin
     if (reset) begin
@@ -270,41 +271,24 @@ DTLB_stage DTLB(
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
-reg [31:0] cache_req_buffer;
-reg [31:0] cache_req_timely;
-
 always @(*) begin
-    if(m1s_load_op | m1s_mem_we)
-        cache_req_timely <= DTLB_RAddr;
+    if(m1s_ex | m1s_inst_eret)
+        data_valid = 1'b0;
+    else if((m1s_load_op | m1s_mem_we) & ~dcache_busy & ms_allowin)
+        data_valid = 1'b1;
     else
-        cache_req_timely <= 0;
-end
-
-always @(posedge clk) begin
-    if(reset)
-        cache_req_buffer <= 0;
-    else if(m1s_load_op | m1s_mem_we)
-        cache_req_buffer <= cache_req_timely;
-end
-
-always @(*) begin
-    if( m1s_ex | m1s_inst_eret)
-        data_valid <= 1'b0;
-    else if((m1s_load_op | m1s_mem_we) & data_addr_ok & ms_allowin & m1s_valid)
-        data_valid <= 1'b1;
-    else
-        data_valid <= 1'b0;
+        data_valid = 1'b0;
 end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
 // assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : cache_req_buffer;
-assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? cache_req_timely : cache_req_buffer;
+assign {data_tag,data_index,data_offset} = DTLB_RAddr;
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
 
-assign TLB_Buffer_Flush          = (m1s_inst_tlbwi ||m1s_inst_tlbr );
+assign TLB_Buffer_Flush          = (m1s_inst_tlbwi || m1s_inst_tlbr );
 assign TLB_Buffer_Flush_Final    = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;//当一条TLBW发生在MEM级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer，然后就会反复TLBStall
 
 /******************例外处理部分********************/

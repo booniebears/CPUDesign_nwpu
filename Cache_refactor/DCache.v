@@ -140,11 +140,10 @@ generate
 endgenerate
 //TODO:之后添加多路组相连
 assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[0];
-assign uncache_busy = (uncache_state == UNCACHE_DONE || uncache_busy == LOOKUP) ? 1'b0 : 1'b1;
+assign uncache_busy = (uncache_state == UNCACHE_DONE | uncache_state == UNCACHE_LOOKUP) ? 1'b0 : 1'b1;
 assign dcache_busy  = reqbuffer_data_valid & ~delayed_cache_hit & ~reqbuffer_data_isUncache;
 assign busy         = uncache_busy | dcache_busy;
 
-assign writebuffer_en = delayed_cache_hit & reqbuffer_data_op;
 //TODO:之后添加多路组相连
 assign dcache_write_data[7:0]   = reqbuffer_data_wstrb[0] ? reqbuffer_data_wdata[7:0] :
                                                             dcache_rdata_sel[0][7:0];
@@ -189,7 +188,6 @@ generate
     end
 endgenerate
 
-
 //hit判定逻辑
 generate
     genvar k;
@@ -219,7 +217,8 @@ always @(posedge clk) begin
     else if(udcache_ret_valid)
         uncache_rdata <= udcache_ret_data;
 end
-                                                       
+
+assign writebuffer_en = delayed_cache_hit & reqbuffer_data_op;                                                 
 always @(posedge clk) begin //writebuffer
     if(reset) begin
         writebuffer_data_index  <= 0;

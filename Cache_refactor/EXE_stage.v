@@ -101,8 +101,14 @@ wire [31:0] es_alu_src2   ;
 wire [31:0] temp_alu_result ; //临时接收alu计算得到的结果
 wire [31:0] es_alu_result ; //除了考虑alu运算结果,还考虑mtc0指令携带的rt数据;
 wire        es_res_from_mem;
-wire m_axis_dout_tvalid;
-wire m_axis_dout_tvalidu;
+
+//MUL DIV控制信号
+wire        m_axis_dout_tvalid;
+wire        m_axis_dout_tvalidu;
+wire        isMul;
+wire        isDiv;
+wire        mul_finished;
+
 wire        inst_is_sb;
 wire        inst_is_sh;
 wire        inst_is_swl;
@@ -152,15 +158,14 @@ assign es_to_m1s_bus = {
                       };
 
 //m_axis_dout_tvalid除法完成信号 es_alu_op[12]为div指令 es_alu_op[13]为divu指令
-//如果EXE对应一条load指令,那么等待data_data_ok,才能将该指令放行到MEM阶段。在下面的控制逻辑中,data_ok和
-//数据data_rdata要比pc值提前一个时钟周期到达MEM阶段。
-//TODO:如果是store指令,直接放行???(参考《CPU设计实战》P243)
-assign es_ready_go    =  
-                         ((!es_alu_op[12] & ~es_alu_op[13])
-                         |(es_alu_op[12] & m_axis_dout_tvalid)
-                         |(es_alu_op[13] & m_axis_dout_tvalidu));
-
-assign es_allowin     = !es_valid || es_ready_go && m1s_allowin;
+// assign es_ready_go    =  
+//                          ((~es_alu_op[12] & ~es_alu_op[13])
+//                          |(es_alu_op[12] & m_axis_dout_tvalid)
+//                          |(es_alu_op[13] & m_axis_dout_tvalidu));
+assign es_ready_go     = (~isMul & ~isDiv) | (isDiv & (m_axis_dout_tvalid | m_axis_dout_tvalidu))
+                         | (isMul & mul_finished);
+                         
+assign es_allowin      = !es_valid || es_ready_go && m1s_allowin;
 assign es_to_m1s_valid =  es_valid && es_ready_go;
 
 always @(posedge clk) begin
@@ -221,18 +226,21 @@ assign sram_wen   = inst_is_sb  ? (es_alu_result[1:0] == 2'b00 ? 4'b0001 :
                                                                  4'b1111;
 
 alu u_alu(
-    .clk                (clk          ),
-    .reset              (reset        ),
-    .alu_op             (es_alu_op    ),
-    .alu_src1           (es_alu_src1  ),
-    .alu_src2           (es_alu_src2  ),
-    .alu_result         (temp_alu_result),
-    .Overflow_inst      (Overflow_inst),
-    .m_axis_dout_tvalid (m_axis_dout_tvalid),
-    .m_axis_dout_tvalidu(m_axis_dout_tvalidu),
-    .Overflow_ex        (Overflow_ex),
-    .es_ex              (es_ex),
-    .m1s_ex              (m1s_ex)
+    .clk                 (clk                 ),
+    .reset               (reset               ),
+    .alu_op              (es_alu_op           ),
+    .alu_src1            (es_alu_src1         ),
+    .alu_src2            (es_alu_src2         ),
+    .alu_result          (temp_alu_result     ),
+    .Overflow_inst       (Overflow_inst       ),
+    .m_axis_dout_tvalid  (m_axis_dout_tvalid  ),
+    .m_axis_dout_tvalidu (m_axis_dout_tvalidu ),
+    .isMul               (isMul               ),
+    .isDiv               (isDiv               ),
+    .mul_finished        (mul_finished        ),
+    .Overflow_ex         (Overflow_ex         ),
+    .es_ex               (es_ex               ),
+    .m1s_ex              (m1s_ex              )
 );
 
 //lab8添加 当该指令为mtc0 把es_alu_result保存为es_rt_value;否则即为alu运算得到的值

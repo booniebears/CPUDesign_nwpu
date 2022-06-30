@@ -157,8 +157,8 @@ wire  [19:0] data_tag;
 wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
-wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状态机)
-wire         data_data_ok;
+// wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状态机)
+// wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire         isUncache;
 wire         dcache_busy;
@@ -462,26 +462,26 @@ id_stage id_stage(
 );
 // EXE stage
 exe_stage exe_stage(
-    .clk            (aclk           ),
-    .reset          (reset          ),
-    //allowin
-    .m1s_allowin    (m1s_allowin     ),
-    .es_allowin     (es_allowin     ),
-    //from ds
-    .ds_to_es_valid (ds_to_es_valid ),
-    .ds_to_es_bus   (ds_to_es_bus   ),
+    .clk             (aclk            ),
+    .reset           (reset           ),
+    //allowin  
+    .m1s_allowin     (m1s_allowin     ),
+    .es_allowin      (es_allowin      ),
+    //from ds  
+    .ds_to_es_valid  (ds_to_es_valid  ),
+    .ds_to_es_bus    (ds_to_es_bus    ),
     //to ms
     .es_to_m1s_valid (es_to_m1s_valid ),
     .es_to_m1s_bus   (es_to_m1s_bus   ),
     // data sram interface
-    .EXE_dest       (EXE_dest       ),
-    .EXE_result     (EXE_result     ),
-    .es_load_op     (es_load_op     ),
-    .flush          (flush          ),
-    .es_ex          (es_ex          ),
-    .m1s_ex         (m1s_ex          ),
-    .es_inst_mfc0   (es_inst_mfc0   ),
-    .m1s_inst_eret  (m1s_inst_eret   )
+    .EXE_dest        (EXE_dest        ),
+    .EXE_result      (EXE_result      ),
+    .es_load_op      (es_load_op      ),
+    .flush           (flush           ),
+    .es_ex           (es_ex           ),
+    .m1s_ex          (m1s_ex          ),
+    .es_inst_mfc0    (es_inst_mfc0    ),
+    .m1s_inst_eret   (m1s_inst_eret   )
 );
 // M1 stage
 m1_stage m1_stage(
@@ -548,8 +548,7 @@ m1_stage m1_stage(
     .data_offset        (data_offset        ),
     .data_wstrb         (data_wstrb         ),
     .data_wdata         (data_wdata         ),
-    .data_addr_ok       (data_addr_ok       ),
-    .data_data_ok       (data_data_ok       ),
+    .dcache_busy        (dcache_busy        ),
     .DTLB_found         (DTLB_found         ),
     .DTLB_index         (DTLB_index         ),
     .DTLB_pfn           (DTLB_pfn           ),
@@ -574,6 +573,7 @@ mem_stage mem_stage(
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
     //to ws
     .data_rdata      (data_rdata       ),
+    .dcache_busy     (dcache_busy      ),
     .ms_to_ws_valid  (ms_to_ws_valid   ),
     .ms_to_ws_bus    (ms_to_ws_bus     ),
     .MEM_dest        (MEM_dest         ), 

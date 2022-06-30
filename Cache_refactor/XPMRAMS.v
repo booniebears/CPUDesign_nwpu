@@ -107,8 +107,8 @@ module simple_port_ram #(
 // xpm_memory_sdpram: Simple Dual Port RAM
    // Xilinx Parameterized Macro, version 2019.2
    reg valid;
-   reg [DATA_WIDTH-1 : 0] doutb_bypass;
-   reg [DATA_WIDTH-1 : 0] doutb_byram ;
+   reg [DATA_WIDTH-1 : 0]  doutb_bypass;
+   wire [DATA_WIDTH-1 : 0] doutb_byram ;
    always @( posedge clk) begin
       if (enb) begin//如果是读端口读使能打开
          if (wea & ena & addra == addrb) begin//那么检测是否需要写优先

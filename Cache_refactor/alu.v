@@ -6,13 +6,14 @@ module alu(
     input  [31:0] alu_src2,
     output [31:0] alu_result,
     input  [ 2:0] Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
-    output m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
-    output m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
-    output Overflow_ex, //有整型溢出置为1
-    input es_ex,
-    input m1s_ex
-    //input m1s_ex,
-   // input ws_ex
+    output        m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
+    output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
+    output        isMul, //指令要用到乘法器
+    output        isDiv, //该信号为1表明乘法运算完毕
+    output reg    mul_finished, //该信号为1表明乘法运算完毕
+    output        Overflow_ex, //有整型溢出置为1
+    input         es_ex,
+    input         m1s_ex
 );
 
 wire op_add;   //加法操作
@@ -113,6 +114,7 @@ wire [31:0] sll_result    ;
 wire [63:0] sr64_result   ; 
 wire [31:0] sr_result     ; 
 wire [63:0] mult_result   ; 
+wire [63:0] multi_result  ; 
 wire [63:0] multu_result  ; 
 wire [63:0] div_result    ; 
 wire [63:0] divu_result   ; 
@@ -178,9 +180,6 @@ assign sr64_result = {{32{op_sra & alu_src2[31]}}, alu_src2[31:0]} >> alu_src1[4
 
 assign sr_result   = sr64_result[31:0];
 
-assign mult_result=$signed(alu_src1)*$signed(alu_src2);
-assign multu_result=alu_src1*alu_src2;
-
 cloclz_cnt U_cloclz_cnt(
     .cloclz_in   (alu_src1),
     .cloclz_type (op_clz),
@@ -193,25 +192,6 @@ trap U_trap(
      .trap_src2(alu_src2),
      .result_out(result_out)
 );
-
-//always@(*) 
-//begin
-//case(trap_op[3:0])  
-//4'b0001:alu_op[40:29]=12'b000000000001;
-//4'b0010:alu_op[40:29]=12'b000000000010;
-//4'b0011:alu_op[40:29]=12'b000000000100;
-//4'b0100:alu_op[40:29]=12'b000000001000;
-//4'b0101:alu_op[40:29]=12'b000000010000;
-//4'b0110:alu_op[40:29]=12'b000000100000;
-//4'b0111:alu_op[40:29]=12'b000001000000;
-//4'b1000:alu_op[40:29]=12'b000010000000;
-//4'b1001:alu_op[40:29]=12'b000100000000;
-//4'b1010:alu_op[40:29]=12'b001000000000;
-//4'b1011:alu_op[40:29]=12'b010000000000;
-//4'b1100:alu_op[40:29]=12'b100000000000;
-//default alu_op[40:29]=12'b000000000000;
-//endcase
-//end
 
 always@(*) 
 begin
@@ -233,13 +213,79 @@ begin
 end
 
 //lab添加 HI LO寄存器
-reg [31:0] HI;
-reg [31:0] LO;
+reg  [31:0] HI;
+reg  [31:0] LO;
+wire        mul_isSigned; //乘法是有符号乘
+wire        isNegative;   //乘法结果应为负数
+wire [31:0] multiplicantA;
+wire [31:0] multiplicantB;
 
-assign madd_result = {HI,LO} + $signed(alu_src1)*$signed(alu_src2);
-assign maddu_result= {HI,LO} + alu_src1*alu_src2;
-assign msub_result = {HI,LO} - $signed(alu_src1)*$signed(alu_src2);
-assign msubu_result= {HI,LO} - alu_src1*alu_src2;
+multiplier U_multiplier( //Unsigned multiplier 3拍返回
+    .CLK(clk),
+    .A  (multiplicantA),
+    .B  (multiplicantB),
+    .P  (multi_result )
+);
+
+assign mul_isSigned  = op_mult | op_madd | op_msub | op_mul;
+assign multiplicantA = mul_isSigned & alu_src1[31] ? -alu_src1 : alu_src1;
+assign multiplicantB = mul_isSigned & alu_src2[31] ? -alu_src2 : alu_src2;
+assign isNegative    = mul_isSigned & (alu_src1[31] ^ alu_src2[31]);
+assign mult_result   = isNegative ? -multi_result : multi_result;
+assign multu_result  = multi_result;
+
+//乘法时序控制状态机
+reg [1:0] mul_state;
+reg [1:0] mul_nextstate;
+
+parameter MUL_IDLE   = 2'd0,
+          MUL_STAGE1 = 2'd1,
+          MUL_STAGE2 = 2'd2,
+          MUL_STAGE3 = 2'd3;
+
+always @(posedge clk) begin
+    if(reset)
+        mul_state <= MUL_IDLE;
+    else
+        mul_state <= mul_nextstate;
+end
+
+assign isMul = op_mult | op_multu | op_madd | op_maddu | op_msub | op_msubu | op_mul;
+always @(posedge clk) begin //STAGE3的下一拍(IDLE)可以放行mul
+    if(reset)
+        mul_finished <= 1'b0;
+    if(mul_state == MUL_STAGE3)
+        mul_finished <= 1'b1;
+    else
+        mul_finished <= 1'b0;
+end
+
+always @(*) begin
+    case (mul_state)
+        MUL_IDLE: 
+            if(isMul) 
+                mul_nextstate = MUL_STAGE1;
+            else
+                mul_nextstate = MUL_IDLE;
+        
+        MUL_STAGE1:
+            mul_nextstate = MUL_STAGE2;
+        
+        MUL_STAGE2:
+            mul_nextstate = MUL_STAGE3;
+
+        MUL_STAGE3:
+            mul_nextstate = MUL_IDLE;
+
+        default: mul_nextstate = MUL_IDLE;
+    endcase
+end
+
+//利用乘法结果
+assign madd_result   = {HI,LO} + mult_result;
+assign maddu_result  = {HI,LO} + multu_result;
+assign msub_result   = {HI,LO} - mult_result;
+assign msubu_result  = {HI,LO} - multu_result;
 
 //lab6添加 以下为mydiv模块用到的信号
 //valid信号与ready信号是一对握手信号,同时为1后除法器工作.ready信号周期性出现(变为1),valid信号则可以人为控制
@@ -247,13 +293,12 @@ reg s_axis_divisor_tvalid;
 wire s_axis_divisor_tready;
 reg s_axis_dividend_tvalid;
 wire s_axis_dividend_tready;
-// wire m_axis_dout_tvalid; //已经在output端口定义
 //lab6添加 以下为mydiv_unsigned模块用到的信号 
-reg s_axis_divisor_tvalidu; 
+reg  s_axis_divisor_tvalidu; 
 wire s_axis_divisor_treadyu;
-reg s_axis_dividend_tvalidu;
+reg  s_axis_dividend_tvalidu;
 wire s_axis_dividend_treadyu;
-// wire m_axis_dout_tvalidu; //已经在output端口定义
+
 //带符号除法
 mydiv u_mydiv(
     .aclk                    (clk),
@@ -281,32 +326,44 @@ mydiv_unsigned u_mydiv_unsigned(
 );
 
 //lab6添加 状态机控制有符号和无符号除法的valid信号
-parameter Idle=1'b0,Start=1'b1;
-reg state,next_state;
+parameter DIV_IDLE  = 1'b0,
+          DIV_START = 1'b1;
+
+reg       div_state;
+reg       div_nextstate;
+
 always @(posedge clk) begin 
-    if(reset) state<=Idle;
-    else state<=next_state;
+    if(reset) 
+        div_state <= DIV_IDLE;
+    else 
+        div_state <= div_nextstate;
 end
 
+assign isDiv = op_div | op_divu;
 always @(*) begin
-    case(state)
-        Idle:
-            if(op_div&&s_axis_divisor_tready&&s_axis_divisor_tvalid)
-                next_state<=Start;
-            else if(op_divu&&s_axis_divisor_treadyu&&s_axis_divisor_tvalidu)
-                next_state<=Start;
+    case(div_state)
+        DIV_IDLE:
+            if(op_div & s_axis_divisor_tready & s_axis_divisor_tvalid)
+                div_nextstate = DIV_START;
+            else if(op_divu & s_axis_divisor_treadyu & s_axis_divisor_tvalidu)
+                div_nextstate = DIV_START;
             else
-                next_state<=Idle;
-        Start:
-            if(op_div|op_divu) next_state<=Start;
-            else next_state<=Idle;
-        default: next_state<=Idle;
+                div_nextstate = DIV_IDLE;
+
+        DIV_START:
+            if(op_div | op_divu) 
+                div_nextstate = DIV_START;
+            else 
+                div_nextstate = DIV_IDLE;
+
+        default: 
+            div_nextstate = DIV_IDLE;
     endcase
 end
 
 always @(posedge clk) begin
     if(op_div) begin
-        if(next_state==Start) begin
+        if(div_nextstate==DIV_START) begin
             s_axis_divisor_tvalid<=1'b0;
             s_axis_dividend_tvalid<=1'b0;
         end
@@ -316,7 +373,7 @@ always @(posedge clk) begin
         end
     end
     else if(op_divu) begin
-        if(next_state==Start) begin
+        if(div_nextstate==DIV_START) begin
             s_axis_divisor_tvalidu<=1'b0;
             s_axis_dividend_tvalidu<=1'b0;
         end
@@ -403,7 +460,7 @@ assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_mflo      }} & mflo_result)
                   | ({32{op_clo       }} & cloclz_result)
                   | ({32{op_clz       }} & cloclz_result)
-                  | ({32{op_mul       }} & mul_result[31:0])
+                //   | ({32{op_mul       }} & mul_result[31:0])
                   | ({32{op_movn      }} & movn_result)
                   | ({32{op_movz      }} & movz_result)
                   | ({32{op_teq  | op_teqi | op_tge  | op_tgei | op_tgeiu 
