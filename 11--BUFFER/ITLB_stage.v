@@ -17,22 +17,23 @@ module ITLB_stage(
     output            ITLB_Buffer_Wr  ,
     output            ITLB_Buffer_Stall,
     input             TLB_Buffer_Flush,
-    output reg        ITLB_Buffer_Valid_ps
+    output reg        ITLB_Buffer_Valid_ps,
+    output reg        ITLB_Buffer_found    ,
+    output reg [ 3:0] ITLB_Buffer_index    ,
+    output reg [19:0] ITLB_Buffer_pfn      ,
+    output reg [ 2:0] ITLB_Buffer_c        ,
+    output reg        ITLB_Buffer_d        ,
+    output reg        ITLB_Buffer_v        
 );
 
-parameter   IDLE =   4'd0,//ø’œ–
-            SEARCH = 4'd1;//À——∞
+parameter   IDLE =   1'd0,//ø’œ–
+            SEARCH = 1'd1;//À——∞
 reg ITLB_cstate;
 reg ITLB_nstate;  
 reg ITLB_Buffer_Hit;
 reg ITLB_Buffer_Valid;
 //TLB Buffer
-reg          ITLB_Buffer_found     ;
-reg  [ 3:0]  ITLB_Buffer_index     ;
-reg  [19:0]  ITLB_Buffer_pfn       ;
-reg  [ 2:0]  ITLB_Buffer_c         ;
-reg          ITLB_Buffer_d         ;
-reg          ITLB_Buffer_v         ;
+
 
 
 //–È µµÿ÷∑◊™ªª

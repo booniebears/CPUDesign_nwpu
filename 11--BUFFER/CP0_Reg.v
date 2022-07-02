@@ -12,7 +12,7 @@ module CP0_Reg
     input  [31:0] m1s_result,
     input         m1s_bd,
     input         m1s_ex, //ms阶段 若报出例外,置为1,否则为0
-    input  [31:0] m1s_alu_result, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
+    //input  [31:0] m1s_result, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
     input  [ 5:0] ext_int, //6个外部硬件中断输入
     input  [ 4:0] Exctype, //Cause寄存器中 例外的5位编码
     input  [31:0] m1s_pc, //MEM阶段的PC值
@@ -304,11 +304,9 @@ reg [31:0]  CP0_BadVAddr;
 always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst_ram)就记录
     if(m1s_ex) begin
         if(Exctype == `AdES)
-            CP0_BadVAddr <= m1s_alu_result;
+            CP0_BadVAddr <= m1s_result;
         else if(Exctype == `AdEL)
-            CP0_BadVAddr <= m1s_pc[1:0] ? m1s_pc : m1s_alu_result;
-       /* else if(Exctype==`TLBL||Exctype==`TLBS ||Exctype==`Mod)
-            CP0_BadVAddr <= m1s_alu_result;*/
+            CP0_BadVAddr <= m1s_pc[1:0] ? m1s_pc : m1s_result;
     end
 end
 

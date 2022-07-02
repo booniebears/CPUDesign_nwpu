@@ -21,26 +21,26 @@ module DTLB_stage(
     output reg        DTLB_EX_WR_Invalid,
     output reg        DTLB_EX_Modified, //,
     input             TLB_Buffer_Flush,
-    output            DTLB_Buffer_Wr  ,
     output            DTLB_Buffer_Stall,
-    output reg        DTLB_Buffer_Valid_m1s
+    output reg        DTLB_Buffer_Valid_m1s,
+    output reg          DTLB_Buffer_found  ,
+    output reg  [ 3:0]  DTLB_Buffer_index  ,
+    output reg  [19:0]  DTLB_Buffer_pfn    ,
+    output reg  [ 2:0]  DTLB_Buffer_c      ,
+    output reg          DTLB_Buffer_d      ,
+    output reg          DTLB_Buffer_v      ,
+    output reg          DTLB_Buffer_read   ,
+    output reg          DTLB_Buffer_store   
 );
 
-parameter   IDLE =   4'd0,//ø’œ–
-            SEARCH = 4'd1;//À——∞
+parameter   IDLE =   1'd0,//ø’œ–
+            SEARCH = 1'd1;//À——∞
 reg         DTLB_cstate;
 reg         DTLB_nstate;  
 reg         DTLB_Buffer_Hit;
 reg        DTLB_Buffer_Valid;//todo
+wire           DTLB_Buffer_Wr  ;
 //TLB Buffer
-reg          DTLB_Buffer_found     ;
-reg  [ 3:0]  DTLB_Buffer_index     ;
-reg  [19:0]  DTLB_Buffer_pfn       ;
-reg  [ 2:0]  DTLB_Buffer_c         ;
-reg          DTLB_Buffer_d         ;
-reg          DTLB_Buffer_v         ;
-reg          DTLB_Buffer_read      ;
-reg          DTLB_Buffer_store     ;
 
 
 always @(*) begin

@@ -32,7 +32,13 @@ module pre_if_stage(
     input                          ITLB_v,
     input      [3:0]               ITLB_asid,
     input                          TLB_Buffer_Flush,
-    output                         inst_valid_end
+    output                         inst_valid_end,
+    output reg ITLB_Buffer_found  ,
+    output reg ITLB_Buffer_index  ,
+    output reg ITLB_Buffer_pfn    ,
+    output reg ITLB_Buffer_c      ,
+    output reg ITLB_Buffer_d      ,
+    output reg ITLB_Buffer_v      
 );
 
 wire         ps_ready_go;
@@ -97,7 +103,6 @@ end
 //在ID阶段有一条确实有效的跳转指令时,将br_adjusted_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
 assign br_adjusted_pc = (br_taken & ~br_stall) ? prefs_pc - 4'd8 : prefs_pc;
 
-
 ITLB_stage ITLB(
         .clk               (clk               ),
         .reset             (reset             ),
@@ -115,7 +120,13 @@ ITLB_stage ITLB(
         .ITLB_Buffer_Wr    (ITLB_Buffer_Wr    ),
         .ITLB_Buffer_Stall (ITLB_Buffer_Stall ),
         .TLB_Buffer_Flush  (TLB_Buffer_Flush  ),
-        .ITLB_Buffer_Valid_ps (ITLB_Buffer_Valid_ps)
+        .ITLB_Buffer_Valid_ps (ITLB_Buffer_Valid_ps),
+        .ITLB_Buffer_found  (ITLB_Buffer_found),
+        .ITLB_Buffer_index  (ITLB_Buffer_index),
+        .ITLB_Buffer_pfn    (ITLB_Buffer_pfn),
+        .ITLB_Buffer_c      (ITLB_Buffer_c),
+        .ITLB_Buffer_d      (ITLB_Buffer_d),
+        .ITLB_Buffer_v      (ITLB_Buffer_v)
 );
 
 assign ADEL_ex    = prefs_pc[1:0] == 2'b00 ? 1'b0 : 1'b1; 

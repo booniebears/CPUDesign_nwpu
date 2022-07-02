@@ -361,7 +361,13 @@ pre_if_stage pre_if_stage(
     // .ds_ex          (ds_ex          ),
     // .es_ex          (es_ex          ),
     // .m1s_ex         (m1s_ex         )
-    .inst_valid_end (inst_valid_end)
+    .inst_valid_end (inst_valid_end),
+    .ITLB_Buffer_found(ITLB_Buffer_found)  ,
+    .ITLB_Buffer_index(ITLB_Buffer_index) ,
+    .ITLB_Buffer_pfn  (ITLB_Buffer_pfn  ) ,
+    .ITLB_Buffer_c    (ITLB_Buffer_c    ) ,
+    .ITLB_Buffer_d    (ITLB_Buffer_d    ) ,
+    .ITLB_Buffer_v    (ITLB_Buffer_v    ) 
 );
 
 // IF stage
@@ -523,7 +529,15 @@ m1_stage m1_stage(
     .DTLB_d             (DTLB_d             ),
     .DTLB_v             (DTLB_v             ),
     .isUncache          (isUncache          ),
-    .TLB_Buffer_Flush_Final(TLB_Buffer_Flush)
+    .TLB_Buffer_Flush_Final(TLB_Buffer_Flush),
+    .DTLB_Buffer_found(DTLB_Buffer_found  ) ,
+    .DTLB_Buffer_index(DTLB_Buffer_index  ) ,
+    .DTLB_Buffer_pfn  (DTLB_Buffer_pfn    ) ,
+    .DTLB_Buffer_c    (DTLB_Buffer_c      ) ,
+    .DTLB_Buffer_d    (DTLB_Buffer_d      ) ,
+    .DTLB_Buffer_v    (DTLB_Buffer_v      ) ,
+    .DTLB_Buffer_read (DTLB_Buffer_read   ) ,
+    .DTLB_Buffer_store(DTLB_Buffer_store  )  
 );
 // MEM stage
 wire ms_inst_mfc0;

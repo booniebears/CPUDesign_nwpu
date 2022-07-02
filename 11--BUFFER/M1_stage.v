@@ -78,7 +78,15 @@ module m1_stage(
     input           DTLB_d, 
     input           DTLB_v,
     output          isUncache,
-    output          TLB_Buffer_Flush_Final
+    output          TLB_Buffer_Flush_Final,
+    output reg          DTLB_Buffer_found  ,
+    output reg  [ 3:0]  DTLB_Buffer_index  ,
+    output reg  [19:0]  DTLB_Buffer_pfn    ,
+    output reg  [ 2:0]  DTLB_Buffer_c      ,
+    output reg          DTLB_Buffer_d      ,
+    output reg          DTLB_Buffer_v      ,
+    output reg          DTLB_Buffer_read   ,
+    output reg          DTLB_Buffer_store   
 );
 wire  [31:0]  DTLB_RAddr;//实地址
 reg           m1s_valid;
@@ -191,7 +199,7 @@ CP0_Reg u_CP0_Reg(
     .m1s_result          (m1s_alu_result),
     .m1s_bd              (m1s_bd),
     .m1s_ex              (m1s_ex),
-    .m1s_alu_result      (m1s_alu_result),
+   // .m1s_alu_result      (m1s_alu_result),
     .ext_int             (ext_int),
     .Exctype             (m1s_Exctype),
     .m1s_pc              (m1s_pc),
@@ -243,6 +251,7 @@ wire DTLB_EX_Modified    ;
 wire DTLB_Buffer_Wr  ;
 wire DTLB_Buffer_Stall;
 wire DTLB_Buffer_Valid_m1s;
+
 DTLB_stage DTLB(
         .clk                 (clk                 ),
         .reset               (reset               ),
@@ -266,7 +275,15 @@ DTLB_stage DTLB(
         .TLB_Buffer_Flush    (TLB_Buffer_Flush_Final ),
         .DTLB_Buffer_Wr      (DTLB_Buffer_Wr      ),
         .DTLB_Buffer_Stall   (DTLB_Buffer_Stall   ),
-        .DTLB_Buffer_Valid_m1s   (DTLB_Buffer_Valid_m1s   )
+        .DTLB_Buffer_Valid_m1s   (DTLB_Buffer_Valid_m1s   ),
+        .DTLB_Buffer_found (  DTLB_Buffer_found ) ,
+        .DTLB_Buffer_index (  DTLB_Buffer_index ) ,
+        .DTLB_Buffer_pfn   (  DTLB_Buffer_pfn   ) ,
+        .DTLB_Buffer_c     (  DTLB_Buffer_c     ) ,
+        .DTLB_Buffer_d     (  DTLB_Buffer_d     ) ,
+        .DTLB_Buffer_v     (  DTLB_Buffer_v     ) ,
+        .DTLB_Buffer_read  (  DTLB_Buffer_read  ) ,
+        .DTLB_Buffer_store (  DTLB_Buffer_store )   
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
@@ -305,7 +322,7 @@ assign data_wdata = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 assign TLB_Buffer_Flush          = (m1s_inst_tlbwi ||m1s_inst_tlbr );
-assign TLB_Buffer_Flush_Final    = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;//当一条TLBW发生在MEM级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer，然后就会反复TLBStall
+assign TLB_Buffer_Flush_Final    = (~m1s_ready_go)? 1'b0 : TLB_Buffer_Flush;//当一条TLBW发生在MEM级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer，然后就会反复TLBStall
 
 /******************例外处理部分********************/
 assign flush        = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
