@@ -275,7 +275,7 @@ always @(*) begin
     else
         dirty_we[0] = 1'b0;
 end
-assign dirty_index = reqbuffer_data_index;
+assign dirty_index = (write_state == WRITE_START) ? writebuffer_data_index : reqbuffer_data_index;
 assign dirty_wbit  = (dcache_state == REFILL) ? 1'b0 : 1'b1;
 
 //tagv lutram
