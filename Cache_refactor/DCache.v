@@ -58,7 +58,8 @@ parameter  LOOKUP         = 3'd0,
            WRITEBACK      = 3'd2,
            MISSCLEAN      = 3'd3,
            REFILL         = 3'd4,
-           REFILLDONE     = 3'd5;
+           REFILLDONE     = 3'd5,
+           WAITSTORE      = 3'd6;
 
 //define Uncache FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
@@ -68,8 +69,8 @@ parameter  UNCACHE_LOOKUP = 3'd0,
            UNCACHE_DONE   = 3'd4;
 
 //define Cache Write FSM
-parameter  WRITE_IDLE     = 1'b0,
-           WRITE_START    = 1'b1;
+parameter  WRITE_IDLE     = 1'd0,
+           WRITE_START    = 1'd1;
 
 reg [2:0] dcache_state;
 reg [2:0] dcache_nextstate;
@@ -80,6 +81,7 @@ reg       write_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
+wire                   reqbuffer_flush;
 reg                    reqbuffer_data_valid;
 reg                    reqbuffer_data_op;
 reg [INDEX_WIDTH-1:0]  reqbuffer_data_index;
@@ -130,6 +132,7 @@ reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdata一拍延时
 
 wire                     uncache_busy;
 wire                     dcache_busy;
+wire                     write_busy;
 
 //与CPU流水线的交互接口
 generate
@@ -141,7 +144,9 @@ endgenerate
 //TODO:之后添加多路组相连
 assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[0];
 assign uncache_busy = (uncache_state == UNCACHE_DONE | uncache_state == UNCACHE_LOOKUP) ? 1'b0 : 1'b1;
-assign dcache_busy  = reqbuffer_data_valid & ~delayed_cache_hit & ~reqbuffer_data_isUncache;
+assign dcache_busy  = reqbuffer_data_valid & ~reqbuffer_data_isUncache & 
+                      (~delayed_cache_hit | (delayed_cache_hit & reqbuffer_data_op));
+                    //sw并且hit,要阻塞在MEM
 assign busy         = uncache_busy | dcache_busy;
 
 //TODO:之后添加多路组相连
@@ -228,17 +233,18 @@ always @(posedge clk) begin //writebuffer
         writebuffer_data_wdata  <= 0;
     end
     else if(writebuffer_en)begin
-        writebuffer_data_index  <= reqbuffer_data_index ;
+        writebuffer_data_index  <= reqbuffer_data_index;
         writebuffer_data_hit    <= delayed_hit; 
-        writebuffer_data_tag    <= reqbuffer_data_tag   ;
+        writebuffer_data_tag    <= reqbuffer_data_tag;
         writebuffer_data_offset <= reqbuffer_data_offset;
         writebuffer_data_wdata  <= dcache_write_data ;
     end
 end
 
-assign reqbuffer_en = data_valid;
+assign reqbuffer_en    = data_valid;
+assign reqbuffer_flush = reqbuffer_data_op & reqbuffer_data_valid & delayed_cache_hit;
 always @(posedge clk) begin //reqbuffer
-    if(reset) begin
+    if(reset | reqbuffer_flush) begin
         reqbuffer_data_valid     <= 0;
         reqbuffer_data_op        <= 0;
         reqbuffer_data_index     <= 0;
@@ -248,7 +254,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_wstrb     <= 0;
         reqbuffer_data_isUncache <= 0;
     end
-    else begin
+    else if(reqbuffer_en) begin
         reqbuffer_data_valid     <= data_valid ;
         reqbuffer_data_op        <= data_op    ;
         reqbuffer_data_index     <= data_index ;
@@ -285,10 +291,12 @@ assign tagv_wdata = {reqbuffer_data_tag,1'b1};
 
 //data ram
 always @(*) begin
+    data_we[0] = 0; //触发该always块逻辑后,先清空为0
     if(dcache_state == REFILL & dcache_ret_valid)
         data_we[0] = {WORDS_PER_LINE{1'b1}};
-    else if(write_state == WRITE_START)
+    else if(write_state == WRITE_START) begin
         data_we[0][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
+    end
     else
         data_we[0] = {WORDS_PER_LINE{1'b0}};
 end
@@ -446,8 +454,12 @@ always @(*) begin //Cache 不处理Uncache和store类指令
                     else
                         dcache_nextstate = MISSCLEAN;
                 end
-                else
-                    dcache_nextstate = LOOKUP;
+                else begin
+                    // if(reqbuffer_data_op)
+                    //     dcache_nextstate = WAITSTORE;
+                    // else
+                        dcache_nextstate = LOOKUP;
+                end
             end
 
         MISSDIRTY:
@@ -476,7 +488,14 @@ always @(*) begin //Cache 不处理Uncache和store类指令
         
         REFILLDONE:
             dcache_nextstate = LOOKUP;
-            
+        //     if(reqbuffer_data_op)
+        //         dcache_nextstate = WAITSTORE;
+        //     else
+        //         dcache_nextstate = LOOKUP;
+        
+        // WAITSTORE:
+        //     dcache_nextstate = LOOKUP;
+
         default: dcache_nextstate = LOOKUP;
     endcase
 end

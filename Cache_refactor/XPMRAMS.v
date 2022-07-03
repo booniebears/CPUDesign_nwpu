@@ -109,7 +109,7 @@ module simple_port_ram #(
    reg valid;
    reg [DATA_WIDTH-1 : 0]  doutb_bypass;
    wire [DATA_WIDTH-1 : 0] doutb_byram ;
-   always @( posedge clk) begin
+   always @(posedge clk) begin
       if (enb) begin//如果是读端口读使能打开
          if (wea & ena & addra == addrb) begin//那么检测是否需要写优先
             valid <= 1'b1;

@@ -458,7 +458,8 @@ id_stage id_stage(
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .mfc0_stall         (mfc0_stall         ),
     .ds_ex              (ds_ex              ),
-    .icache_busy        (icache_busy        )
+    .icache_busy        (icache_busy        ),
+    .dcache_busy        (dcache_busy        )
 );
 // EXE stage
 exe_stage exe_stage(

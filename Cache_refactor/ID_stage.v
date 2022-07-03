@@ -38,7 +38,8 @@ module id_stage(
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     output       mfc0_stall,   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
     output       ds_ex,         //输出例外信号给PREIF阶段
-    input        icache_busy
+    input        icache_busy,
+    input        dcache_busy
 );
 
 reg         ds_valid   ;
@@ -697,6 +698,6 @@ assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
-assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy; 
+assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 
 
 endmodule
