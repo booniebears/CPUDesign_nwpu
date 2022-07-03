@@ -10,7 +10,7 @@ module alu(
     output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
     output        isMul, //指令要用到乘法器
     output        isDiv, //该信号为1表明乘法运算完毕
-    output reg    mul_finished, //该信号为1表明乘法运算完毕
+    output        mul_finished, //该信号为1表明乘法运算完毕
     output        Overflow_ex, //有整型溢出置为1
     input         es_ex,
     input         m1s_ex
@@ -251,14 +251,16 @@ always @(posedge clk) begin
 end
 
 assign isMul = op_mult | op_multu | op_madd | op_maddu | op_msub | op_msubu | op_mul;
-always @(posedge clk) begin //STAGE3的下一拍(IDLE)可以放行mul
-    if(reset)
-        mul_finished <= 1'b0;
-    if(mul_state == MUL_STAGE3)
-        mul_finished <= 1'b1;
-    else
-        mul_finished <= 1'b0;
-end
+// always @(posedge clk) begin //STAGE3的下一拍(IDLE)可以放行mul
+//     if(reset)
+//         mul_finished <= 1'b0;
+//     if(mul_state == MUL_STAGE3)
+//         mul_finished <= 1'b1;
+//     else
+//         mul_finished <= 1'b0;
+// end
+
+assign mul_finished = (mul_state == MUL_STAGE3);
 
 always @(*) begin
     case (mul_state)

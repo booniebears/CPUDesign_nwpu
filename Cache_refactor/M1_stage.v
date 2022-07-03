@@ -114,6 +114,8 @@ wire [3:0]  sram_wen;
 wire[31:0]  sram_wdata;//位数问题！
 wire        temp_m1s_ex;
 wire        TLB_Buffer_Flush;
+
+
 assign {
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
