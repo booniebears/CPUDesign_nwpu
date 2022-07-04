@@ -192,9 +192,9 @@ assign es_alu_src1 = es_src1_is_sa  ? {27'b0, es_imm[10:6]} :
                                       es_rs_value;
 
 //lab6修改 对于es_src2_is_imm,非立即数:2'b00 立即数零扩展:2'b01 立即数有符号扩展:2'b10 
-assign es_alu_src2 = es_src2_is_imm==2'b01 ? {16'b0 , es_imm[15:0]}:
-                     es_src2_is_imm==2'b10 ? {{16{es_imm[15]}}, es_imm[15:0]}:
-                     es_src2_is_8          ? 32'd8 : es_rt_value;
+assign es_alu_src2 = es_src2_is_imm == 2'b01 ? {16'b0 , es_imm[15:0]}:
+                     es_src2_is_imm == 2'b10 ? {{16{es_imm[15]}}, es_imm[15:0]}:
+                     es_src2_is_8            ? 32'd8 : es_rt_value;
 
 //lab7 处理送入DM存储器的数据 store指令共五类
 assign sram_wdata = inst_is_sb  ? {4{es_rt_value[7:0]}}:

@@ -658,13 +658,6 @@ assign br_taken =  (  inst_beq  &  rs_eq_rt
                    || inst_bltzal & rsltz
                    ) & ds_valid; 
 
-// always @(posedge clk) begin
-//     if(reset) br_taken_r <= 1'b0;
-//     else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
-//     else if(fs_to_ds_valid) br_taken_r <= 1'b0;
-// end
-// assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
-
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
                    | inst_bgezal | inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
