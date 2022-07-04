@@ -251,14 +251,6 @@ always @(posedge clk) begin
 end
 
 assign isMul = op_mult | op_multu | op_madd | op_maddu | op_msub | op_msubu | op_mul;
-// always @(posedge clk) begin //STAGE3的下一拍(IDLE)可以放行mul
-//     if(reset)
-//         mul_finished <= 1'b0;
-//     if(mul_state == MUL_STAGE3)
-//         mul_finished <= 1'b1;
-//     else
-//         mul_finished <= 1'b0;
-// end
 
 assign mul_finished = (mul_state == MUL_STAGE3);
 

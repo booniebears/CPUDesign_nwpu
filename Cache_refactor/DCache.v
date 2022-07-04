@@ -1,7 +1,7 @@
 module DCache #(
     parameter  DATA_WIDTH      = 32, 
     parameter  CACHELINE_WIDTH = 128, 
-    parameter  ASSOC_NUM       = 1, //组相连数
+    parameter  ASSOC_NUM       = 2, //组相连数
     parameter  WORDS_PER_LINE  = 4, //一行4字
     parameter  WAY_SIZE        = 4*1024*8, //一路Cache 容量大小
     parameter  BLOCK_NUMS      = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //一路Cache块数=256
@@ -58,8 +58,7 @@ parameter  LOOKUP         = 3'd0,
            WRITEBACK      = 3'd2,
            MISSCLEAN      = 3'd3,
            REFILL         = 3'd4,
-           REFILLDONE     = 3'd5,
-           WAITSTORE      = 3'd6;
+           REFILLDONE     = 3'd5;
 
 //define Uncache FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
@@ -108,9 +107,9 @@ reg                      delayed_cache_hit; //cache_hit延时
 wire                     delayed_hit_wr;
 wire                     data_read_en;
 
-reg                      tagv_we[ASSOC_NUM-1:0] ;   
+reg  [ASSOC_NUM-1:0]     dirty_we; 
+reg  [ASSOC_NUM-1:0]     tagv_we ;   
 reg [WORDS_PER_LINE-1:0] data_we[ASSOC_NUM-1:0]; //精确到字
-reg                      dirty_we[ASSOC_NUM-1:0]; 
 
 wire [INDEX_WIDTH-1:0]   dirty_index;
 wire [INDEX_WIDTH-1:0]   tagv_index;
@@ -130,6 +129,10 @@ wire [DATA_WIDTH-1:0]    dcache_write_data;
 reg  [DATA_WIDTH-1:0]    uncache_rdata;
 reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdata一拍延时
 
+wire [$clog2(ASSOC_NUM)-1:0] sel_way;   
+wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
+reg                          plru_en;
+
 wire                     uncache_busy;
 wire                     dcache_busy;
 wire                     write_busy;
@@ -141,23 +144,24 @@ generate
         assign dcache_rdata_sel[n] = dcache_rdata[n][reqbuffer_data_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
-//TODO:之后添加多路组相连
-assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[0];
+//TODO:之后改成四路组相连
+assign sel_way      = delayed_hit[0] ? 1'b0 : 1'b1;
+assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[sel_way];
 assign uncache_busy = (uncache_state == UNCACHE_DONE | uncache_state == UNCACHE_LOOKUP) ? 1'b0 : 1'b1;
 assign dcache_busy  = reqbuffer_data_valid & ~reqbuffer_data_isUncache & 
                       (~delayed_cache_hit | (delayed_cache_hit & reqbuffer_data_op));
                     //sw并且hit,要阻塞在MEM
 assign busy         = uncache_busy | dcache_busy;
 
-//TODO:之后添加多路组相连
+//TODO:之后改成四路组相连
 assign dcache_write_data[7:0]   = reqbuffer_data_wstrb[0] ? reqbuffer_data_wdata[7:0] :
-                                                            dcache_rdata_sel[0][7:0];
+                                                            dcache_rdata_sel[sel_way][7:0];
 assign dcache_write_data[15:8]  = reqbuffer_data_wstrb[1] ? reqbuffer_data_wdata[15:8] :
-                                                            dcache_rdata_sel[0][15:8];
+                                                            dcache_rdata_sel[sel_way][15:8];
 assign dcache_write_data[23:16] = reqbuffer_data_wstrb[2] ? reqbuffer_data_wdata[23:16] :
-                                                            dcache_rdata_sel[0][23:16];
+                                                            dcache_rdata_sel[sel_way][23:16];
 assign dcache_write_data[31:24] = reqbuffer_data_wstrb[3] ? reqbuffer_data_wdata[31:24] :
-                                                            dcache_rdata_sel[0][31:24]; 
+                                                            dcache_rdata_sel[sel_way][31:24]; 
 
 //与AXI的交互接口
 //dcache AXI
@@ -165,7 +169,7 @@ assign dcache_rd_req   = (dcache_state == MISSCLEAN);
 assign dcache_rd_addr  = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
 assign dcache_wr_req   = (dcache_state == MISSDIRTY);
 //TODO:考虑多路组相连情况
-assign dcache_wr_addr  = {delayed_tag_rdata[0],reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}}; 
+assign dcache_wr_addr  = {delayed_tag_rdata[sel_way],reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}}; 
 generate //TODO:考虑多路组相连情况
     genvar u;
     for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
@@ -204,7 +208,7 @@ generate
 endgenerate
 assign cache_hit  = |hit;
 assign delayed_hit_wr = (dcache_state == REFILLDONE) ? 1'b1 : data_valid;
-always @(posedge clk) begin //TODO:delayed_hit之后用于片选Cache的一路
+always @(posedge clk) begin
     if(reset) begin
         delayed_cache_hit <= 1'b0;
         delayed_hit       <= 0;
@@ -268,37 +272,44 @@ end
 
 //dirty lutram
 always @(*) begin
-    if(dcache_state == REFILL & dcache_ret_valid)
-        dirty_we[0] = 1'b1; //TODO:之后使用多路组相连需要调整,使用LRU算法
+    dirty_we = 0;
+    if(dcache_state == REFILL & dcache_ret_valid) begin
+        dirty_we[plru[reqbuffer_data_index]]   = 1'b1;
+    end
     else if(write_state == WRITE_START)
-        dirty_we[0] = 1'b1;
+        dirty_we    = delayed_hit;
     else
-        dirty_we[0] = 1'b0;
+        dirty_we    = 0;
 end
 assign dirty_index = (write_state == WRITE_START) ? writebuffer_data_index : reqbuffer_data_index;
 assign dirty_wbit  = (dcache_state == REFILL) ? 1'b0 : 1'b1;
 
 //tagv lutram
 always @(*) begin
+    tagv_we = 0;
     if(dcache_state == REFILL & dcache_ret_valid)
-        tagv_we[0] = 1'b1; //TODO:之后使用多路组相连需要调整,使用LRU算法
+        tagv_we[plru[reqbuffer_data_index]] = 1'b1; 
     else
-        tagv_we[0] = 1'b0;
+        tagv_we = 0;
 end
+
 assign tagv_index = (dcache_state == REFILL || dcache_state == REFILLDONE) 
                     ? reqbuffer_data_index : data_index;
 assign tagv_wdata = {reqbuffer_data_tag,1'b1};
 
 //data ram
-always @(*) begin
+always @(*) begin //TODO:之后修改为四路组相连
     data_we[0] = 0; //触发该always块逻辑后,先清空为0
+    data_we[1] = 0; //触发该always块逻辑后,先清空为0
     if(dcache_state == REFILL & dcache_ret_valid)
-        data_we[0] = {WORDS_PER_LINE{1'b1}};
+        data_we[plru[reqbuffer_data_index]] = {WORDS_PER_LINE{1'b1}};
     else if(write_state == WRITE_START) begin
-        data_we[0][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
+        data_we[sel_way][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
     end
-    else
+    else begin
         data_we[0] = {WORDS_PER_LINE{1'b0}};
+        data_we[1] = {WORDS_PER_LINE{1'b0}};
+    end
 end
 assign write_index = (dcache_state == REFILL) ? reqbuffer_data_index : writebuffer_data_index;
 generate
@@ -366,6 +377,30 @@ generate
                 .doutb(dcache_rdata[i][j])
             );
     end
+end
+endgenerate
+
+always @(posedge clk) begin
+    if(reset)
+        plru_en <= 1'b0;
+    else if(~data_valid & ~busy)  
+        plru_en <= 1'b0;
+    else if(data_valid)
+        plru_en <= 1'b1;
+end
+
+generate
+    genvar a;
+    for (a = 0; a < BLOCK_NUMS; a = a + 1) begin
+        PLRU #(
+            .ASSOC_NUM(ASSOC_NUM)
+        ) U_PLRU(
+            .clk         (clk        ),
+            .reset       (reset      ),
+            .delayed_hit (delayed_hit),
+            .update      (plru_en & (a == reqbuffer_data_index)),
+            .plru        (plru[a]    ) 
+        );
     end
 endgenerate
 
@@ -449,16 +484,13 @@ always @(*) begin //Cache 不处理Uncache和store类指令
             end
             else begin
                 if(reqbuffer_data_valid & ~delayed_cache_hit) begin
-                    if(dirty_rbit[0]) //TODO:考虑多路情况
+                    if(dirty_rbit[plru[reqbuffer_data_index]]) //TODO:考虑多路情况
                         dcache_nextstate = MISSDIRTY;
                     else
                         dcache_nextstate = MISSCLEAN;
                 end
                 else begin
-                    // if(reqbuffer_data_op)
-                    //     dcache_nextstate = WAITSTORE;
-                    // else
-                        dcache_nextstate = LOOKUP;
+                    dcache_nextstate = LOOKUP;
                 end
             end
 
@@ -488,13 +520,6 @@ always @(*) begin //Cache 不处理Uncache和store类指令
         
         REFILLDONE:
             dcache_nextstate = LOOKUP;
-        //     if(reqbuffer_data_op)
-        //         dcache_nextstate = WAITSTORE;
-        //     else
-        //         dcache_nextstate = LOOKUP;
-        
-        // WAITSTORE:
-        //     dcache_nextstate = LOOKUP;
 
         default: dcache_nextstate = LOOKUP;
     endcase

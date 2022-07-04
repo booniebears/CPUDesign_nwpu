@@ -2,7 +2,7 @@
 
 module Icache #(
     parameter  DATA_WIDTH     = 32, 
-    parameter  ASSOC_NUM      = 1, //组相连数
+    parameter  ASSOC_NUM      = 2, //组相连数
     parameter  WORDS_PER_LINE = 4, //一行4字
     parameter  WAY_SIZE       = 4*1024*8, //一路Cache 容量大小
     parameter  BLOCK_NUMS     = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //一路Cache块数=256
@@ -19,7 +19,6 @@ module Icache #(
     input [INDEX_WIDTH-1:0]   inst_index,
     input [TAG_WIDTH-1:0]     inst_tag,
     input [OFFSET_WIDTH-1:0]  inst_offset,
-    // input                     flush, //TODO:当流水线flush(出现异常),rdata直接置零
     output                    icache_busy,
     output [DATA_WIDTH-1:0]   inst_rdata,
 
@@ -50,7 +49,7 @@ reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
 
 wire [ASSOC_NUM-1:0]   hit;
 wire                   cache_hit;
-// reg  [ASSOC_NUM-1:0]   delayed_hit; //hit延时
+reg  [ASSOC_NUM-1:0]   delayed_hit; //hit延时
 reg                    delayed_cache_hit; //cache_hit延时
 wire                   delayed_hit_wr;
 wire                   data_read_en;
@@ -65,6 +64,9 @@ wire [DATA_WIDTH-1:0]  icache_wdata[WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]  icache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]  icache_rdata_sel[ASSOC_NUM-1:0];
 
+wire [$clog2(ASSOC_NUM)-1:0] sel_way;  //TODO:之后改成四路组相连             
+wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
+
 //与CPU流水线的交互接口
 generate
     genvar n;
@@ -72,8 +74,9 @@ generate
         assign icache_rdata_sel[n] = icache_rdata[n][reqbuffer_inst_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
-assign icache_busy    = reqbuffer_inst_valid & ~delayed_cache_hit;
-assign inst_rdata     = reqbuffer_inst_valid ? icache_rdata_sel[0] : 32'b0; //TODO:一路组相连暂不考虑delayed_hit对路的片选
+assign icache_busy = reqbuffer_inst_valid & ~delayed_cache_hit;
+assign sel_way     = delayed_hit[0] ? 1'b0 : 1'b1; //TODO:之后改成四路组相连
+assign inst_rdata  = reqbuffer_inst_valid ? icache_rdata_sel[sel_way] : 32'b0; 
 
 //与AXI总线接口的交互接口
 assign icache_rd_req  = (icache_state == MISS);
@@ -89,14 +92,14 @@ generate
 endgenerate
 assign cache_hit  = |hit;
 assign delayed_hit_wr = (icache_state == REFILLDONE) ? 1'b1 : inst_valid;
-always @(posedge clk) begin //TODO:delayed_hit之后用于片选Cache的一路
+always @(posedge clk) begin //delayed_hit用于PLRU片选Cache的一路
     if(reset) begin
         delayed_cache_hit <= 1'b0;
-        // delayed_hit       <= 1'b0;
+        delayed_hit       <= 0;
     end
     else if(delayed_hit_wr) begin
         delayed_cache_hit <= cache_hit;
-        // delayed_hit       <= hit;
+        delayed_hit       <= hit;
     end
 end
 
@@ -119,20 +122,24 @@ end
 
 //硬件资源输入信号赋值
 always @(*) begin
-    if(icache_state == REFILL & icache_ret_valid) 
-        tagv_we[0] = 1'b1; //TODO:之后使用多路组相连需要调整,使用LRU算法
+    if(icache_state == REFILL & icache_ret_valid) begin
+        tagv_we = 0;
+        tagv_we[plru[reqbuffer_inst_index]] = 1'b1;
+    end
     else
-        tagv_we    = 0;
+        tagv_we = 0;
 end
 assign index_addr = (icache_state == MISS | icache_state == REFILL 
                     | icache_state == REFILLDONE) ? reqbuffer_inst_index : inst_index;
 assign tagv_wdata = {reqbuffer_inst_tag,1'b1};
 
 always @(*) begin
-    if(icache_state == REFILL & icache_ret_valid)
-        data_we[0] = 1'b1; //TODO:之后使用多路组相连需要调整,使用LRU算法
+    if(icache_state == REFILL & icache_ret_valid) begin
+        data_we = 0;
+        data_we[plru[reqbuffer_inst_index]] = 1'b1; 
+    end
     else
-        data_we    = 0;
+        data_we = 0;
 end
 generate//
     genvar m;
@@ -181,6 +188,21 @@ generate
                 .doutb(icache_rdata[i][j])//第i路 第j个bank
             );
         end
+    end
+endgenerate
+
+generate
+    genvar t;
+    for (t = 0; t < BLOCK_NUMS; t = t + 1) begin
+        PLRU #(
+            .ASSOC_NUM(ASSOC_NUM)
+        ) U_PLRU(
+            .clk         (clk        ),
+            .reset       (reset      ),
+            .delayed_hit (delayed_hit),
+            .update      (reqbuffer_inst_valid & (t == reqbuffer_inst_index)),
+            .plru        (plru[t]    ) 
+        );
     end
 endgenerate
 
