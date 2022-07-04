@@ -32,3 +32,6 @@ This CPU design is based on mips instruction set.
 上传到study_record中对应的部分，有问题一起解决。我本人每周会写周报，总结大家一周成果，同时分享一些我的感想，以及未来规划。
 我希望到时候这个repository能多多看到各位的贡献。
 
+注：指令测试链接在此：
+https://github.com/oscourse-tsinghua/cpu-testcase
+
