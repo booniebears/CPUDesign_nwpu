@@ -6,9 +6,11 @@ module mem_stage(
     //allowin
     input         ws_allowin,
     output        ms_allowin,
-    //from es
-    input         es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus,
+    input   [31:0]      CP0_data,
+    input         ms_inst_mfc0,
+    //from m1s
+    input         m1s_to_ms_valid,
+    input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //to ws
     output        ms_to_ws_valid,
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
@@ -16,16 +18,16 @@ module mem_stage(
     input  [                 31:0] data_rdata,//TODO:data_rdata换成从DCache读回来的数据rdata
     output [ 4:0] MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output [31:0] MEM_result, //MEM阶段 ms_final_result  
-    input         flush, //flush=1时表明需要处理异常
-    output        ms_ex, //判定MEM阶段是否有被标记为例外的指令
-    output        ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
-    output        ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
+    //input         flush, //flush=1时表明需要处理异常
+    output        ms_ex//判定MEM阶段是否有被标记为例外的指令
+    //output        ms_inst_mfc0, //MEM阶段指令为mfc0 前递到ID阶段
+    //output        ms_inst_eret //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 );
 
 reg         ms_valid;
 wire        ms_ready_go;
 
-reg [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
+reg [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus_r;
 wire        ms_res_from_mem;
 wire        ms_gr_we;
 wire [ 4:0] ms_dest;
@@ -43,23 +45,18 @@ wire [31:0] mem_result_lhu;
 wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
 //lab8添加
-wire [2:0] ms_sel;
-wire [4:0] ms_mfc0_rd; 
-wire ms_inst_mtc0;
-wire ms_bd;
-wire [4:0] ms_ExcCode;
-wire [31:0] ms_data_sram_addr;
+// wire [2:0] ms_sel;
+// wire [4:0] ms_mfc0_rd; 
+// wire ms_inst_mtc0;
+// wire ms_bd;
+ //wire [4:0] ms_ExcCode;
+//wire [31:0] ms_data_sram_addr;
 
 assign {
-        ms_data_sram_addr,//164:133 
-        ms_mfc0_rd     ,  //132:128
-        ms_ex          ,  //127:127
-        ms_ExcCode     ,  //126:122 
-        ms_bd          ,  //121:121
-        ms_inst_eret   ,  //120:120
-        ms_sel         ,  //119:117 
-        ms_inst_mtc0   ,  //116:116 
-        ms_inst_mfc0   ,  //115:115
+        //ms_data_sram_addr,//164:133 
+        ms_inst_mfc0   ,
+        CP0_data       ,
+        ms_ex          ,  //127:127                                 
         ms_rt_value    ,  //114:83
         ms_mem_inst    ,  //82:71
         ms_res_from_mem,  //70:70
@@ -67,21 +64,14 @@ assign {
         ms_dest        ,  //68:64
         ms_alu_result  ,  //63:32
         ms_pc             //31:0
-       } = es_to_ms_bus_r;
+       } = m1s_to_ms_bus_r;
 
 wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
-                       ms_data_sram_addr,//119:88
-                       ms_mfc0_rd     ,  //87:83
+                       //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //82:82
-                       ms_ExcCode     ,  //81:77 
-                       ms_bd          ,  //76:76
-                       ms_inst_eret   ,  //75:75
-                       ms_sel         ,  //74:72
-                       ms_inst_mtc0   ,  //71:71
-                       ms_inst_mfc0   ,  //70:70
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
                        ms_final_result,  //63:32 --写RF的数据
@@ -133,17 +123,17 @@ always @(posedge clk) begin
         ms_valid <= 1'b0;
     end
     else if (ms_allowin) begin
-        ms_valid <= es_to_ms_valid;
+        ms_valid <= m1s_to_ms_valid;
     end
 end
 
 always @(posedge clk ) begin
     if (reset)
-        es_to_ms_bus_r <= 0;
-    else if (flush) //清除流水线
-        es_to_ms_bus_r <= 0;
-    else if (es_to_ms_valid && ms_allowin) begin
-        es_to_ms_bus_r <= es_to_ms_bus;
+        m1s_to_ms_bus_r <= 0;
+    //else if (flush) //清除流水线
+    //    m1s_to_ms_bus_r <= 0;
+    else if (m1s_to_ms_valid && ms_allowin) begin
+        m1s_to_ms_bus_r <= m1s_to_ms_bus;
     end
 end
 
@@ -154,8 +144,9 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[6]) ? mem_result_lwl :
                   (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
-assign ms_final_result = ms_res_from_mem ? mem_data
-                                         : ms_alu_result;
+assign ms_final_result = ms_res_from_mem ? mem_data:
+                         ms_inst_mfc0    ? CP0_data :
+                                         ms_alu_result;
                                          
 //lab4添加
 assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
