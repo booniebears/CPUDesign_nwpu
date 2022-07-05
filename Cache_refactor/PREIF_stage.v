@@ -136,12 +136,8 @@ always @(*) begin
         inst_valid = 1'b1;
     else if(prefs_pc[1:0] != 2'b00)
         inst_valid = 1'b0;
-    else if(~icache_busy & ps_allowin) begin
-        // if(br_taken & ~br_stall) 
-        //     inst_valid = 1'b0;
-        // else
-            inst_valid = 1'b1;
-    end
+    else if(~icache_busy & ps_allowin) 
+        inst_valid = 1'b1;
     else
         inst_valid = 1'b0;
 end

@@ -811,7 +811,6 @@ module AXI_Interface(
     output    [127:0] dcache_ret_data, 
     input             dcache_wr_req, 
     input   [31:0]    dcache_wr_addr,     
-    // input   [ 3:0] dcache_wr_strb, 
     input  [127:0]    dcache_wr_data, 
     output            dcache_wr_rdy,
     output            dcache_wr_valid, 

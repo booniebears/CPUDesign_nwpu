@@ -169,11 +169,12 @@ assign dcache_rd_req   = (dcache_state == MISSCLEAN);
 assign dcache_rd_addr  = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
 assign dcache_wr_req   = (dcache_state == MISSDIRTY);
 //TODO:考虑多路组相连情况
-assign dcache_wr_addr  = {delayed_tag_rdata[sel_way],reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}}; 
+assign dcache_wr_addr  = {delayed_tag_rdata[plru[reqbuffer_data_index]],reqbuffer_data_index,
+                         {OFFSET_WIDTH{1'b0}}}; 
 generate //TODO:考虑多路组相连情况
     genvar u;
     for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
-        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[0][u];
+        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[plru[reqbuffer_data_index]][u];
     end
 endgenerate
 
@@ -299,8 +300,8 @@ assign tagv_wdata = {reqbuffer_data_tag,1'b1};
 
 //data ram
 always @(*) begin //TODO:之后修改为四路组相连
-    data_we[0] = 0; //触发该always块逻辑后,先清空为0
-    data_we[1] = 0; //触发该always块逻辑后,先清空为0
+    data_we[0] = {WORDS_PER_LINE{1'b0}}; //触发该always块逻辑后,先清空为0
+    data_we[1] = {WORDS_PER_LINE{1'b0}}; //触发该always块逻辑后,先清空为0
     if(dcache_state == REFILL & dcache_ret_valid)
         data_we[plru[reqbuffer_data_index]] = {WORDS_PER_LINE{1'b1}};
     else if(write_state == WRITE_START) begin

@@ -117,8 +117,8 @@ wire        TLB_Buffer_Flush;
 wire        debug_sw;
 wire        debug_lw;
 
-// assign debug_sw = (data_index == 8'h26) & m1s_mem_we & data_valid;
-// assign debug_lw = (data_index == 8'h26) & m1s_load_op & data_valid;
+assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
+assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
 
 assign {
         sram_wdata      ,  //174:143
@@ -280,7 +280,7 @@ DTLB_stage DTLB(
 always @(*) begin
     if(m1s_ex | m1s_inst_eret)
         data_valid = 1'b0;
-    else if((m1s_load_op | m1s_mem_we) & ~dcache_busy & ms_allowin)
+    else if((m1s_load_op | m1s_mem_we) & ~dcache_busy & ms_allowin & m1s_valid)
         data_valid = 1'b1;
     else
         data_valid = 1'b0;
