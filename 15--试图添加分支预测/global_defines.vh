@@ -1,22 +1,25 @@
 `ifndef MYCPU_H
     `define MYCPU_H
     `define BR_BUS_WD       34 
-    //FS_TO_DS_BUS_WDÔ­À´ÊÇ64,lab8ÐÞ¸ÄÎª71(¼ÓÈëfs_bd,fs_ex,fs_ExcCode)
+    //FS_TO_DS_BUS_WDÔ­ï¿½ï¿½ï¿½ï¿½64,lab8ï¿½Þ¸ï¿½Îª71(ï¿½ï¿½ï¿½ï¿½fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 40
+    `define BPU_TO_PS_BUS_WD 33
+    `define BPU_TO_DS_BUS_WD 35
     `define FS_TO_DS_BUS_WD 71
-    //DS_TO_ES_BUS_WDÔ­À´ÊÇ136,lab6ÐÞ¸ÄÎª137(src2_is_imm±äÎª2Î»¿í),ÐÞ¸ÄÎª145(¼ÓÈëmf_mtºÍmult_div)
-    //lab7ÔÙ´ÎÐÞ¸ÄÎª157(Ìí¼Ómem_controlÇø±ð²»Í¬µÄ´æÈ¡ÊýÖ¸Áî),lab8ÐÞ¸ÄÎª174(¼ÓÈëmfc0,mtc0,eretÖ¸Áî
-    //ºÍmfc0_rd,sel¶Î;¼ÓÈëds_bd,ds_ex,ds_ExcCode,Overflow_inst)
+    //DS_TO_ES_BUS_WDÔ­ï¿½ï¿½ï¿½ï¿½136,lab6ï¿½Þ¸ï¿½Îª137(src2_is_immï¿½ï¿½Îª2Î»ï¿½ï¿½),ï¿½Þ¸ï¿½Îª145(ï¿½ï¿½ï¿½ï¿½mf_mtï¿½ï¿½mult_div)
+    //lab7ï¿½Ù´ï¿½ï¿½Þ¸ï¿½Îª157(ï¿½ï¿½ï¿½ï¿½mem_controlï¿½ï¿½ï¿½ï¿½Í¬ï¿½Ä´ï¿½È¡ï¿½ï¿½Ö¸ï¿½ï¿½),lab8ï¿½Þ¸ï¿½Îª174(ï¿½ï¿½ï¿½ï¿½mfc0,mtc0,eretÖ¸ï¿½ï¿½
+    //ï¿½ï¿½mfc0_rd,selï¿½ï¿½;ï¿½ï¿½ï¿½ï¿½ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
     `define DS_TO_ES_BUS_WD 203
-    //Ô­Îª70,lab7ÐÞ¸ÄÎª115,lab8ÐÞ¸ÄÎª133(¼ÓÈëmfc0,mtc0,eretÖ¸ÁîºÍmfc0_rd,sel¶Î;¼ÓÈëes_bd,es_ex,es_ExcCode;)
-    //lab9ÐÞ¸ÄÎª165(¼ÓÈëdata_sram_addr)
+    //Ô­Îª70,lab7ï¿½Þ¸ï¿½Îª115,lab8ï¿½Þ¸ï¿½Îª133(ï¿½ï¿½ï¿½ï¿½mfc0,mtc0,eretÖ¸ï¿½ï¿½ï¿½mfc0_rd,selï¿½ï¿½;ï¿½ï¿½ï¿½ï¿½es_bd,es_ex,es_ExcCode;)
+    //lab9ï¿½Þ¸ï¿½Îª165(ï¿½ï¿½ï¿½ï¿½data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
+    `define BRESULT_WD 69
     `define M1_TO_MS_BUS_WD 161
-    //Ô­Îª70,lab8ÐÞ¸ÄÎª88(¼ÓÈëmfc0,mtc0,eretÖ¸ÁîºÍmfc0_rd,sel¶Î;¼ÓÈëms_bd,ms_ex,ms_ExcCode)
-    //lab9ÐÞ¸ÄÎª120(¼ÓÈëdata_sram_addr)
+    //Ô­Îª70,lab8ï¿½Þ¸ï¿½Îª88(ï¿½ï¿½ï¿½ï¿½mfc0,mtc0,eretÖ¸ï¿½ï¿½ï¿½mfc0_rd,selï¿½ï¿½;ï¿½ï¿½ï¿½ï¿½ms_bd,ms_ex,ms_ExcCode)
+    //lab9ï¿½Þ¸ï¿½Îª120(ï¿½ï¿½ï¿½ï¿½data_sram_addr)
     `define MS_TO_WS_BUS_WD 83
     `define WS_TO_RF_BUS_WD 38
-    //CP0¼Ä´æÆ÷¶ÔÓ¦µÄµØÖ·(8Î»)
+    //CP0ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Äµï¿½Ö·(8Î»)
     `define Index_RegAddr    8'h00
     `define Random_RegAddr   8'h08
     `define Entrylo0_RegAddr 8'h10
@@ -35,23 +38,23 @@
     `define EBase_RegAddr    8'h79
     `define Config_RegAddr   8'h80
     `define Config1_RegAddr  8'h81
-    //ExcCode±àÂë¼°Æä¶ÔÓ¦ÀýÍâÀàÐÍ Attention:ÉÐÎ´Ó³Éä£¬ÓÐÎó!
-    `define Int                 5'b00000 //ÖÐ¶Ï
-    `define ITLB_EX_Refill      5'b00010 //TLBÀýÍâ(È¡Ö¸»ò¶ÁÊý¾Ý)
-    `define ITLB_EX_Invalid     5'b00011 //TLBÀýÍâ(È¡Ö¸»ò¶ÁÊý¾Ý)
-    `define DTLB_EX_RD_Refill   5'b00100 //TLBÀýÍâ(È¡Ö¸»ò¶ÁÊý¾Ý)
-    `define DTLB_EX_RD_Invalid  5'b00101 //TLBÀýÍâ(È¡Ö¸»ò¶ÁÊý¾Ý)
-    `define DTLB_EX_WR_Refill   5'b00110 //TLBÀýÍâ(Ð´Êý¾Ý)
+    //ExcCodeï¿½ï¿½ï¿½ë¼°ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Attention:ï¿½ï¿½Î´Ó³ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½!
+    `define Int                 5'b00000 //ï¿½Ð¶ï¿½
+    `define ITLB_EX_Refill      5'b00010 //TLBï¿½ï¿½ï¿½ï¿½(È¡Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    `define ITLB_EX_Invalid     5'b00011 //TLBï¿½ï¿½ï¿½ï¿½(È¡Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    `define DTLB_EX_RD_Refill   5'b00100 //TLBï¿½ï¿½ï¿½ï¿½(È¡Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    `define DTLB_EX_RD_Invalid  5'b00101 //TLBï¿½ï¿½ï¿½ï¿½(È¡Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+    `define DTLB_EX_WR_Refill   5'b00110 //TLBï¿½ï¿½ï¿½ï¿½(Ð´ï¿½ï¿½ï¿½ï¿½)
     `define DTLB_EX_WR_Invalid  5'b00111
     `define DTLB_EX_Modified    5'b01000
-    `define AdEL                5'b01001 //µØÖ·´íÀýÍâ(¶ÁÊý¾Ý/È¡Ö¸Áî)
-    `define AdES                5'b01010 //µØÖ·´íÀýÍâ(Ð´Êý¾Ý)
-    `define Sys                 5'b01011 //syscallÏµÍ³µ÷ÓÃÀýÍâ
-    `define Bp                  5'b01100 //break¶ÏµãÀýÍâ
-    `define RI                  5'b01101 //±£ÁôÖ¸Áî(Î´¶¨ÒåÖ¸Áî)ÀýÍâ
-    `define Ov                  5'b01110 //ËãÊõÒç³öÀýÍâ
-    `define NO_EX               5'b11111 //Ê±ÖÓÖÐ¶ÏÀýÍâ
-    //¶¨Òå¸´Î»ÓëÀýÍâÈë¿Ú
+    `define AdEL                5'b01001 //ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½/È¡Ö¸ï¿½ï¿½)
+    `define AdES                5'b01010 //ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(Ð´ï¿½ï¿½ï¿½ï¿½)
+    `define Sys                 5'b01011 //syscallÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    `define Bp                  5'b01100 //breakï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½
+    `define RI                  5'b01101 //ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½(Î´ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½
+    `define Ov                  5'b01110 //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    `define NO_EX               5'b11111 //Ê±ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½
+    //ï¿½ï¿½ï¿½å¸´Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     `define RESET_PC            32'hbfc0_0000
     `define REFILL_EX_PC        32'hbfc0_0200
     `define GENERAL_EX_PC       32'hbfc0_0380

@@ -1,8 +1,8 @@
 `include "global_defines.vh"
-//µÚ65¸ö²âÊÔµãÊ§°ÜÔ­Òò£º1.exccodeÎ´×÷¶ÔÓ¦2.±ØÐëÒýÈëflush-r£¬ÑÓ³¤flush×÷ÓÃÊ±¼ä£¬3.mfc0¼ÇÂ¼ÅÔÂ·
+//ï¿½ï¿½65ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½Ê§ï¿½ï¿½Ô­ï¿½ï¿½1.exccodeÎ´ï¿½ï¿½ï¿½ï¿½Ó¦2.ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½flush-rï¿½ï¿½ï¿½Ó³ï¿½flushï¿½ï¿½ï¿½ï¿½Ê±ï¿½ä£¬3.mfc0ï¿½ï¿½Â¼ï¿½ï¿½Â·
 module mycpu_top(
-    // Íâ²¿ÖÐ¶ÏÐÅºÅ
-    input  [ 5:0]   ext_int, //6¸öÍâ²¿Ó²¼þÖÐ¶ÏÊäÈë
+    // ï¿½â²¿ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    input  [ 5:0]   ext_int, //6ï¿½ï¿½ï¿½â²¿Ó²ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½ï¿½
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -65,24 +65,27 @@ wire          m1s_to_ms_valid;
 wire          ms_to_ws_valid;
 wire  [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus;
 wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
+wire  [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
 wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
+wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
+wire  [`BRESULT_WD      -1:0] BResult;
 wire         is_branch;
 
-wire  [ 4:0] EXE_dest; // EXE½×¶ÎÐ´RFµØÖ· Í¨¹ýÅÔÂ·ËÍµ½ID½×¶Î
+wire  [ 4:0] EXE_dest; // EXEï¿½×¶ï¿½Ð´RFï¿½ï¿½Ö· Í¨ï¿½ï¿½ï¿½ï¿½Â·ï¿½Íµï¿½IDï¿½×¶ï¿½
 wire  [ 4:0] M1s_dest;
-wire  [ 4:0] MEM_dest; // MEM½×¶ÎÐ´RFµØÖ· Í¨¹ýÅÔÂ·ËÍµ½ID½×¶Î
-wire  [ 4:0] WB_dest; // WB½×¶ÎÐ´RFµØÖ· Í¨¹ýÅÔÂ·ËÍµ½ID½×¶Î
-wire  [31:0] EXE_result; //EXE½×¶Î es_alu_result
+wire  [ 4:0] MEM_dest; // MEMï¿½×¶ï¿½Ð´RFï¿½ï¿½Ö· Í¨ï¿½ï¿½ï¿½ï¿½Â·ï¿½Íµï¿½IDï¿½×¶ï¿½
+wire  [ 4:0] WB_dest; // WBï¿½×¶ï¿½Ð´RFï¿½ï¿½Ö· Í¨ï¿½ï¿½ï¿½ï¿½Â·ï¿½Íµï¿½IDï¿½×¶ï¿½
+wire  [31:0] EXE_result; //EXEï¿½×¶ï¿½ es_alu_result
 wire  [31:0] M1s_result;
-wire  [31:0] MEM_result; //MEM½×¶Î ms_final_result 
-wire  [31:0] WB_result; //WB½×¶Î ws_final_result
-wire         es_load_op; //EXE½×¶Î ÅÐ¶¨ÊÇ·ñÎªloadÖ¸Áî
-wire         m1s_load_op; //M1½×¶Î ÅÐ¶¨ÊÇ·ñÎªloadÖ¸Áî
+wire  [31:0] MEM_result; //MEMï¿½×¶ï¿½ ms_final_result 
+wire  [31:0] WB_result; //WBï¿½×¶ï¿½ ws_final_result
+wire         es_load_op; //EXEï¿½×¶ï¿½ ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ÎªloadÖ¸ï¿½ï¿½
+wire         m1s_load_op; //M1ï¿½×¶ï¿½ ï¿½Ð¶ï¿½ï¿½Ç·ï¿½ÎªloadÖ¸ï¿½ï¿½
 
 wire         flush;
 // wire         flush_r;
@@ -94,10 +97,10 @@ wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
-wire         CP0_Status_IE_out; //IE=1,È«¾ÖÖÐ¶ÏÊ¹ÄÜ¿ªÆô
-wire         CP0_Status_EXL_out; //EXL=0,Ã»ÓÐÀýÍâÕýÔÚ´¦Àí
-wire  [ 7:0] CP0_Status_IM_out; //IM¶ÔÓ¦¸÷¸öÖÐ¶ÏÔ´ÆÁ±ÎÎ»
-wire  [ 7:0] CP0_Cause_IP_out; //´ý´¦ÀíÖÐ¶Ï±êÊ¶
+wire         CP0_Status_IE_out; //IE=1,È«ï¿½ï¿½ï¿½Ð¶ï¿½Ê¹ï¿½Ü¿ï¿½ï¿½ï¿½
+wire         CP0_Status_EXL_out; //EXL=0,Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½
+wire  [ 7:0] CP0_Status_IM_out; //IMï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Î»
+wire  [ 7:0] CP0_Cause_IP_out; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½Ê¶
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
@@ -110,37 +113,37 @@ wire         ITLB_d;
 wire         ITLB_v;
 wire  [31:0] prefs_pc;
 
-//AXIºÍCacheµÄ½»»¥ÐÅºÅ
+//AXIï¿½ï¿½Cacheï¿½Ä½ï¿½ï¿½ï¿½ï¿½Åºï¿½
 wire         icache_rd_req;
 wire  [31:0] icache_rd_addr;
 wire         icache_rd_rdy;
-wire         icache_ret_valid; //´«ÊäÍê³Éºóret_validÖÃ1
+wire         icache_ret_valid; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ret_validï¿½ï¿½1
 wire [127:0] icache_ret_data;
 wire         dcache_rd_req;
 wire  [31:0] dcache_rd_addr; 
 wire         dcache_rd_rdy;
-wire         dcache_ret_valid; //´«ÊäÍê³Éºóret_validÖÃ1
+wire         dcache_ret_valid; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ret_validï¿½ï¿½1
 wire [127:0] dcache_ret_data; 
 wire         dcache_wr_req;
 wire  [31:0] dcache_wr_addr;     
-wire [127:0] dcache_wr_data; //Ò»´ÎÐ´Ò»¸öcache lineµÄÊý¾Ý
+wire [127:0] dcache_wr_data; //Ò»ï¿½ï¿½Ð´Ò»ï¿½ï¿½cache lineï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire         dcache_wr_rdy;
 wire         dcache_wr_valid;
 
-//AXIºÍUncache(DCache)µÄ½»»¥ÐÅºÅ
+//AXIï¿½ï¿½Uncache(DCache)ï¿½Ä½ï¿½ï¿½ï¿½ï¿½Åºï¿½
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
 wire         udcache_rd_rdy; 
-wire         udcache_ret_valid; //´«ÊäÍê³Éºóret_validÖÃ1
-wire  [31:0] udcache_ret_data; //Ò»´ÎÒ»¸ö×Ö
+wire         udcache_ret_valid; //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Éºï¿½ret_validï¿½ï¿½1
+wire  [31:0] udcache_ret_data; //Ò»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
 wire         udcache_wr_req; 
 wire  [31:0] udcache_wr_addr;     
 wire  [ 3:0] udcache_wr_strb; 
-wire  [31:0] udcache_wr_data; //Ò»´ÎÒ»¸ö×Ö
+wire  [31:0] udcache_wr_data; //Ò»ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
 wire         udcache_wr_rdy; 
 wire         udcache_wr_valid; 
 
-//CPUºÍICacheµÄ½»»¥ÐÅºÅÈçÏÂ;±¾ÈËÄ¿Ç°Ã»ÓÐÊµÏÖ¡¶CPUÉè¼ÆÊµÕ½¡·ÖÐµÄwstrbºÍwdata
+//CPUï¿½ï¿½ICacheï¿½Ä½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½;ï¿½ï¿½ï¿½ï¿½Ä¿Ç°Ã»ï¿½ï¿½Êµï¿½Ö¡ï¿½CPUï¿½ï¿½ï¿½ÊµÕ½ï¿½ï¿½ï¿½Ðµï¿½wstrbï¿½ï¿½wdata
 //wire         inst_valid;
 wire  [ 7:0] inst_index;
 wire  [19:0] inst_tag;
@@ -149,7 +152,7 @@ wire         icache_busy;
 wire  [31:0] inst_rdata;
 wire         inst_valid_end;
 
-//CPUºÍDCacheµÄ½»»¥ÐÅºÅÈçÏÂ;
+//CPUï¿½ï¿½DCacheï¿½Ä½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½;
 wire         data_valid;
 wire         data_op;
 wire  [ 7:0] data_index;
@@ -157,42 +160,42 @@ wire  [19:0] data_tag;
 wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
-// wire         data_addr_ok; //DCacheÄÜ¹»½ÓÊÕCPU·¢³öµÄvalidÐÅºÅ,ÔòÖÃÎª1(¿´DCache×´Ì¬»ú)
+// wire         data_addr_ok; //DCacheï¿½Ü¹ï¿½ï¿½ï¿½ï¿½ï¿½CPUï¿½ï¿½ï¿½ï¿½ï¿½ï¿½validï¿½Åºï¿½,ï¿½ï¿½ï¿½ï¿½Îª1(ï¿½ï¿½DCache×´Ì¬ï¿½ï¿½)
 // wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire         isUncache;
 wire         dcache_busy;
 
-/********************TLB-CP0½»»¥ÐÅºÅÈçÏÂ********************/
-wire           m1s_inst_tlbwi  ; //Ð´Ê¹ÄÜ:¶ÔÓ¦inst_tlbwi
-wire           m1s_inst_tlbp   ; //²éÑ¯:¶ÔÓ¦inst_tlbp
-wire           tlb_to_cp0_found; //tlb²éÕÒÊÇ·ñ³É¹¦
-wire  [18:0]   tlb_to_cp0_vpn2 ; //ÒÔÏÂÎªtlbÐ´ÈëµÄÊý¾Ý
+/********************TLB-CP0ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½********************/
+wire           m1s_inst_tlbwi  ; //Ð´Ê¹ï¿½ï¿½:ï¿½ï¿½Ó¦inst_tlbwi
+wire           m1s_inst_tlbp   ; //ï¿½ï¿½Ñ¯:ï¿½ï¿½Ó¦inst_tlbp
+wire           tlb_to_cp0_found; //tlbï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½É¹ï¿½
+wire  [18:0]   tlb_to_cp0_vpn2 ; //ï¿½ï¿½ï¿½ï¿½ÎªtlbÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [7:0]    tlb_to_cp0_asid ;
 wire  [3:0]    tlb_to_cp0_index; 
-wire  [19:0]   tlb_to_cp0_pfn0 ; //ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ð´ÈëtlbµÄÊý¾Ý
+wire  [19:0]   tlb_to_cp0_pfn0 ; //ï¿½ï¿½ï¿½ï¿½Îªentrylo0ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½tlbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [2:0]    tlb_to_cp0_c0   ;
 wire           tlb_to_cp0_d0   ;
 wire           tlb_to_cp0_v0   ;
 wire           tlb_to_cp0_g0   ;
-wire  [19:0]   tlb_to_cp0_pfn1 ; //ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ð´ÈëtlbµÄÊý¾Ý
+wire  [19:0]   tlb_to_cp0_pfn1 ; //ï¿½ï¿½ï¿½ï¿½Îªentrylo1ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½tlbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [2:0]    tlb_to_cp0_c1   ;
 wire           tlb_to_cp0_d1   ;
 wire           tlb_to_cp0_v1   ;
 wire           tlb_to_cp0_g1   ;
-wire  [18:0]   cp0_to_tlb_vpn2 ; //ÒÔÏÂÎªtlb¶Á³öµÄÊý¾Ý
+wire  [18:0]   cp0_to_tlb_vpn2 ; //ï¿½ï¿½ï¿½ï¿½Îªtlbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [7:0]    cp0_to_tlb_asid ;
-wire  [19:0]   cp0_to_tlb_pfn0 ; //ÒÔÏÂÎªentrylo0¼Ä´æÆ÷¶Á³öµÄtlbµÄÊý¾Ý
+wire  [19:0]   cp0_to_tlb_pfn0 ; //ï¿½ï¿½ï¿½ï¿½Îªentrylo0ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tlbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [2:0]    cp0_to_tlb_c0   ;
 wire           cp0_to_tlb_d0   ;
 wire           cp0_to_tlb_v0   ;
 wire           cp0_to_tlb_g0   ;
-wire  [19:0]   cp0_to_tlb_pfn1 ; //ÒÔÏÂÎªentrylo1¼Ä´æÆ÷¶Á³öµÄtlbµÄÊý¾Ý
+wire  [19:0]   cp0_to_tlb_pfn1 ; //ï¿½ï¿½ï¿½ï¿½Îªentrylo1ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tlbï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 wire  [2:0]    cp0_to_tlb_c1   ;
 wire           cp0_to_tlb_d1   ;
 wire           cp0_to_tlb_v1   ;
 wire           cp0_to_tlb_g1   ;
-wire  [3:0]    cp0_to_tlb_index; //tlbwrÖ¸ÁîµÄË÷ÒýÖµ
+wire  [3:0]    cp0_to_tlb_index; //tlbwrÖ¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
 wire  [31:0]   m1s_alu_result  ;
 wire           DTLB_found        ;
 wire  [3:0]    DTLB_index     ;
@@ -200,13 +203,13 @@ wire  [19:0]   DTLB_pfn       ;
 wire  [2:0]    DTLB_c         ;
 wire           DTLB_d         ;
 wire           DTLB_v         ;
-/********************TLB-CP0½»»¥ÐÅºÅÈçÉÏ********************/
+/********************TLB-CP0ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½********************/
 wire          TLB_Buffer_Flush;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
     .resetn  (aresetn  ),
-    //AXI¹æ·¶¶¨ÒåµÄÐÅºÅ
+    //AXIï¿½æ·¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½
     .arid    (arid     ),
     .araddr  (araddr   ),
     .arlen   (arlen    ),
@@ -243,8 +246,8 @@ AXI_Interface U_AXI_Interface(
     .bresp   (bresp    ),
     .bvalid  (bvalid   ),
     .bready  (bready   ),
-    //TODO:ÕâÀïÐèÒªCacheµÄ½ÓÏß,×¢ÒâÐÅºÅÒýÓÃ
-    //Attention:·¢ÇëÇóÔÚIFºÍEXE½×¶Î´¦Àí
+    //TODO:ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒªCacheï¿½Ä½ï¿½ï¿½ï¿½,×¢ï¿½ï¿½ï¿½Åºï¿½ï¿½ï¿½ï¿½ï¿½
+    //Attention:ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½IFï¿½ï¿½EXEï¿½×¶Î´ï¿½ï¿½ï¿½
     .icache_rd_req    (icache_rd_req    ),
     .icache_rd_addr   (icache_rd_addr   ),
     .icache_rd_rdy    (icache_rd_rdy    ),
@@ -368,7 +371,7 @@ DCache U_DCache(
     .udcache_wr_data     (udcache_wr_data   ),
     .udcache_wr_rdy      (udcache_wr_rdy    ),
     .udcache_wr_valid    (udcache_wr_valid  ),
-    .isUncache           (isUncache         ) 
+    .isUncache           (1'b1         ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
@@ -376,6 +379,7 @@ pre_if_stage pre_if_stage(
     .reset            (reset            ),
     .fs_allowin       (fs_allowin       ),
     .br_bus           (br_bus           ),
+    .BPU_to_ps_bus    (BPU_to_ps_bus    ),
     .ps_to_fs_bus     (ps_to_fs_bus     ),
     .ps_to_fs_valid   (ps_to_fs_valid   ),
     .flush            (flush            ),
@@ -409,9 +413,12 @@ if_stage if_stage(
     .ps_to_fs_valid (ps_to_fs_valid ),
     //brbus
     .fs_bd          (is_branch      ),
+    .BResult        (BResult        ),
+    .BPU_to_ps_bus  (BPU_to_ps_bus  ),
     //outputs
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
+    .BPU_to_ds_bus  (BPU_to_ds_bus  ),
     .flush          (flush          ),
     // .flush_r        (flush_r        ),
     .icache_busy    (icache_busy    ),
@@ -430,11 +437,13 @@ id_stage id_stage(
     //from fs        
     .fs_to_ds_valid     (fs_to_ds_valid     ),
     .fs_to_ds_bus       (fs_to_ds_bus       ),
+    .BPU_to_ds_bus      (BPU_to_ds_bus      ),
     //to es        
     .ds_to_es_valid     (ds_to_es_valid     ),
     .ds_to_es_bus       (ds_to_es_bus       ),
     //to fs        
     .br_bus             (br_bus             ),
+    .BResult            (BResult            ),
     .is_branch          (is_branch          ),
     //to rf: for write back
     .ws_to_rf_bus       (ws_to_rf_bus       ),

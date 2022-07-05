@@ -10,10 +10,14 @@ module if_stage(
     input                          ps_to_fs_valid,
     //brbus
     input                          fs_bd, 
+    input [`BRESULT_WD  -1:0]      BResult,
+    //to ps
+    output [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds
     output                         fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
-    input                          flush, //flush=1时表明需要处理异常
+    output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus,
+    input                          flush, //flush=1时锟斤拷锟斤拷锟斤拷要锟斤拷锟斤拷锟届常
     input                          icache_busy,
     input  [31:0]                  inst_rdata
 );
@@ -40,6 +44,9 @@ assign {
     ps_Exctype
 } = ps_to_fs_bus_r;
 
+wire [31:0] prefs_pc;
+assign prefs_pc = ps_to_fs_bus[37:6];
+
 assign fs_ready_go    = ~icache_busy;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
 assign fs_to_ds_valid = fs_valid && fs_ready_go;
@@ -62,6 +69,11 @@ always @(posedge clk) begin
         ps_to_fs_bus_r <= ps_to_fs_bus;
 end
 
+wire [31:0] BPU_target;
+wire BPU_valid;
+wire predict_valid;
+assign predict_valid = BPU_valid & fs_valid;
+
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
                        fs_Exctype, //69:65
@@ -70,11 +82,31 @@ assign fs_to_ds_bus = {
                        fs_pc       //31:0
                        };
 
+assign BPU_to_ps_bus = {
+                        BPU_target  ,//32:1
+                        predict_valid //0
+                        };
+
 assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
 assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
-//在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
-assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
+//锟斤拷ID锟阶讹拷锟斤拷一锟斤拷确实锟斤拷效锟斤拷锟斤拷转指锟斤拷时,锟斤拷fs_pc锟斤拷位为锟斤拷转指锟筋本锟斤拷(锟斤拷锟斤拷锟斤拷nop指锟筋处锟斤拷),锟斤拷证EPC写锟斤拷锟斤拷确
+// assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
+assign fs_pc      = fs_bdd ? 0 : temp_fs_pc;
+
+BPU u_BPU(
+    .clk                (clk),
+    .reset              (reset),
+    .fs_pc              (temp_fs_pc),
+    .flush              (flush),
+    .BResult            (BResult),
+    //***********output************//
+    .target             (BPU_target),
+    .BPU_valid          (BPU_valid),
+    .BPU_to_ds_bus      (BPU_to_ds_bus)
+);
+
+
 
 endmodule

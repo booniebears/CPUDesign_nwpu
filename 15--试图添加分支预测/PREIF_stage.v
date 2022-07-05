@@ -7,22 +7,23 @@ module pre_if_stage(
     input                          fs_allowin, 
     //brbus
     input  [`BR_BUS_WD       -1:0] br_bus, 
+    input  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     output                         ps_to_fs_valid,
 
-    input                          flush, //flush=1时表明需要处理异常
-    input                          flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
-    input  [31:0]                  CP0_EPC_out, //CP0寄存器中,EPC的值
+    input                          flush, //flush=1时锟斤拷锟斤拷锟斤拷要锟斤拷锟斤拷锟届常
+    input                          flush_refill, //锟斤拷知PRE-IF锟阶讹拷 M!锟阶段达拷锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷TLB Refill
+    input  [31:0]                  CP0_EPC_out, //CP0锟侥达拷锟斤拷锟斤拷,EPC锟斤拷值
     input                          m1s_inst_eret,
 
-    //CPU和ICache的交互信号如下
+    //CPU锟斤拷ICache锟侥斤拷锟斤拷锟脚猴拷锟斤拷锟斤拷
  
     output     [ 7:0]              inst_index,
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
-    //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
+    //锟斤拷锟斤拷锟斤拷转指锟斤拷锟斤拷ID锟阶讹拷时锟斤拷锟斤拷锟接迟诧拷锟斤拷锟斤拷锟揭伙拷锟街革拷锟斤拷丫锟斤拷锟斤拷锟絧refs_pc锟斤拷锟斤拷,锟斤拷锟斤拷锟斤拷锟叫讹拷时锟斤拷要校锟斤拷
     output reg [31:0]              prefs_pc,
     input                          ITLB_found,
     input      [ 3:0]              ITLB_index,
@@ -38,9 +39,9 @@ module pre_if_stage(
 wire         ps_ready_go;
 wire         ps_allowin;
 
-wire [31:0]  ITLB_RAddr; //实地址
+wire [31:0]  ITLB_RAddr; //实锟斤拷址
 wire         ps_ex;
-wire         ADEL_ex;//处理取指令地址错例外ADEL
+wire         ADEL_ex;//锟斤拷锟斤拷取指锟斤拷锟街凤拷锟斤拷锟斤拷锟紸DEL
 wire         ITLB_EX_Refill;
 wire         ITLB_EX_Invalid;
 wire [4:0]   ps_Exctype;
@@ -55,8 +56,13 @@ reg          flush_delayed;
 
 wire         br_taken;
 wire [ 31:0] br_target;
-wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
-wire         prefs_bdd; //跳转指令的下下条
+wire         br_stall;      //ID锟阶段硷拷獾絙ranch指锟斤拷,锟斤拷锟斤拷load指锟斤拷锟斤拷EXE锟阶讹拷,锟睫凤拷使锟斤拷forward,锟斤拷锟斤拷锟斤拷停
+wire         prefs_bdd; //锟斤拷转指锟斤拷锟斤拷锟斤拷锟斤拷锟?
+
+wire [31:0]  BPU_target;
+wire         BPU_valid;
+
+assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 
 assign {br_stall,br_taken,br_target} = br_bus; 
 
@@ -83,6 +89,8 @@ always @(*) begin //nextpc
     end
     else if(br_taken)
         nextpc = br_target;
+    else if(BPU_valid)
+        nextpc = BPU_target;
     else
         nextpc = seq_pc;
 end
@@ -120,7 +128,7 @@ assign ps_Exctype = ADEL_ex         ? `AdEL            :
                     ITLB_EX_Refill  ? `ITLB_EX_Refill  : 
                     ITLB_EX_Invalid ? `ITLB_EX_Invalid : `NO_EX;
 
-/*******************CPU与ICache的交互信号赋值如下******************/
+/*******************CPU锟斤拷ICache锟侥斤拷锟斤拷锟脚号革拷值锟斤拷锟斤拷******************/
 always @(posedge clk) begin
     if(reset) 
         flush_delayed <= 1'b0;
@@ -130,7 +138,7 @@ always @(posedge clk) begin
         flush_delayed <= 1'b0;
 end
 
-assign prefs_bdd = br_taken; //br_taken = 1,表明prefs_pc对应指令是跳转指令的下下条
+assign prefs_bdd = br_taken; //br_taken = 1,锟斤拷锟斤拷prefs_pc锟斤拷应指锟斤拷锟斤拷锟斤拷转指锟斤拷锟斤拷锟斤拷锟斤拷锟?
 always @(*) begin
     if(flush_delayed & ~icache_busy)
         inst_valid = 1'b1;
@@ -148,5 +156,5 @@ end
 
 assign inst_valid_end = inst_valid && ITLB_Buffer_Valid_ps;
 assign {inst_tag,inst_index,inst_offset} = ITLB_RAddr;
-/*******************CPU与ICache的交互信号赋值如上******************/
+/*******************CPU锟斤拷ICache锟侥斤拷锟斤拷锟脚号革拷值锟斤拷锟斤拷******************/
 endmodule
