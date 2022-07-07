@@ -64,8 +64,6 @@ end
 always @(posedge clk) begin
     if (reset)
         ms_to_ws_bus_r <= 0;
-   //else if (flush) //清除流水线
-   //    ms_to_ws_bus_r <= 0;
     else if (ms_to_ws_valid && ws_allowin) begin
         ms_to_ws_bus_r <= ms_to_ws_bus;
     end

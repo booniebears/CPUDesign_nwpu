@@ -65,7 +65,6 @@ wire         BPU_valid;
 assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 
 assign {br_stall,br_taken,br_target} = br_bus; 
-
 assign ps_ready_go    = ~icache_busy;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;

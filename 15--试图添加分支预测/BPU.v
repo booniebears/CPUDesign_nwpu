@@ -27,8 +27,8 @@ reg BPU_br_stall;
 reg BPU_br_taken;
 reg [31:0] BPU_br_target;
 
-always @(posedge clk) begin
-    {   BPU_ds_pc,      //跳转指令的PC
+always @(posedge clk ) begin 
+       {BPU_ds_pc,      //跳转指令的PC
         BPU_old_Count,  //跳转指令PC跳转次数的历史记录，2位饱和计数器，需更新后再写入PHT
         BPU_is_branch,  //PC是否是跳转指令
         BPU_br_stall,  // 当判断阶段已到exe阶段时，此信号可删除
@@ -106,8 +106,9 @@ end
 /*************************************************************************/
 
 assign target = BPU_ret_addr;
-assign BPU_valid = PHT_hit;
-assign Count = BPU_Count_reg;
+//assign BPU_valid = PHT_hit;
+assign BPU_valid = BPU_valid_reg;
+//assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;
 assign index_addr = PHT_we ? PHT_wr_index : PHT_rd_index;

@@ -1,8 +1,8 @@
 `include "global_defines.vh"
-//��65�����Ե�ʧ��ԭ��1.exccodeδ����Ӧ2.��������flush-r���ӳ�flush����ʱ�䣬3.mfc0��¼��·
+//锟斤拷65锟斤拷锟斤拷锟皆碉拷失锟斤拷原锟斤拷1.exccode未锟斤拷锟斤拷应2.锟斤拷锟斤拷锟斤拷锟斤拷flush-r锟斤拷锟接筹拷flush锟斤拷锟斤拷时锟戒，3.mfc0锟斤拷录锟斤拷路
 module mycpu_top(
-    // �ⲿ�ж��ź�
-    input  [ 5:0]   ext_int, //6���ⲿӲ���ж�����
+    // 锟解部锟叫讹拷锟脚猴拷
+    input  [ 5:0]   ext_int, //6锟斤拷锟解部硬锟斤拷锟叫讹拷锟斤拷锟斤拷
     input           aclk,
     input           aresetn,
     output [ 3:0]   arid   ,
@@ -76,19 +76,18 @@ wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
 wire  [`BRESULT_WD      -1:0] BResult;
 wire         is_branch;
 
-wire  [ 4:0] EXE_dest; // EXE�׶�дRF��ַ ͨ����·�͵�ID�׶�
+wire  [ 4:0] EXE_dest; // EXE锟阶讹拷写RF锟斤拷址 通锟斤拷锟斤拷路锟酵碉拷ID锟阶讹拷
 wire  [ 4:0] M1s_dest;
-wire  [ 4:0] MEM_dest; // MEM�׶�дRF��ַ ͨ����·�͵�ID�׶�
-wire  [ 4:0] WB_dest; // WB�׶�дRF��ַ ͨ����·�͵�ID�׶�
-wire  [31:0] EXE_result; //EXE�׶� es_alu_result
+wire  [ 4:0] MEM_dest; // MEM锟阶讹拷写RF锟斤拷址 通锟斤拷锟斤拷路锟酵碉拷ID锟阶讹拷
+wire  [ 4:0] WB_dest; // WB锟阶讹拷写RF锟斤拷址 通锟斤拷锟斤拷路锟酵碉拷ID锟阶讹拷
+wire  [31:0] EXE_result; //EXE锟阶讹拷 es_alu_result
 wire  [31:0] M1s_result;
-wire  [31:0] MEM_result; //MEM�׶� ms_final_result 
-wire  [31:0] WB_result; //WB�׶� ws_final_result
-wire         es_load_op; //EXE�׶� �ж��Ƿ�Ϊloadָ��
-wire         m1s_load_op; //M1�׶� �ж��Ƿ�Ϊloadָ��
+wire  [31:0] MEM_result; //MEM锟阶讹拷 ms_final_result 
+wire  [31:0] WB_result; //WB锟阶讹拷 ws_final_result
+wire         es_load_op; //EXE锟阶讹拷 锟叫讹拷锟角凤拷为load指锟斤拷
+wire         m1s_load_op; //M1锟阶讹拷 锟叫讹拷锟角凤拷为load指锟斤拷
 
 wire         flush;
-// wire         flush_r;
 wire         flush_refill;
 wire         ds_ex; 
 wire         es_ex; 
@@ -97,10 +96,10 @@ wire         ms_ex;
 wire         ws_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
-wire         CP0_Status_IE_out; //IE=1,ȫ���ж�ʹ�ܿ���
-wire         CP0_Status_EXL_out; //EXL=0,û���������ڴ���
-wire  [ 7:0] CP0_Status_IM_out; //IM��Ӧ�����ж�Դ����λ
-wire  [ 7:0] CP0_Cause_IP_out; //�������жϱ�ʶ
+wire         CP0_Status_IE_out; //IE=1,全锟斤拷锟叫讹拷使锟杰匡拷锟斤拷
+wire         CP0_Status_EXL_out; //EXL=0,没锟斤拷锟斤拷锟斤拷锟斤拷锟节达拷锟斤拷
+wire  [ 7:0] CP0_Status_IM_out; //IM锟斤拷应锟斤拷锟斤拷锟叫讹拷源锟斤拷锟斤拷位
+wire  [ 7:0] CP0_Cause_IP_out; //锟斤拷锟斤拷锟斤拷锟叫断憋拷识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
@@ -113,37 +112,37 @@ wire         ITLB_d;
 wire         ITLB_v;
 wire  [31:0] prefs_pc;
 
-//AXI��Cache�Ľ����ź�
+//AXI锟斤拷Cache锟侥斤拷锟斤拷锟脚猴拷
 wire         icache_rd_req;
 wire  [31:0] icache_rd_addr;
 wire         icache_rd_rdy;
-wire         icache_ret_valid; //������ɺ�ret_valid��1
+wire         icache_ret_valid; //锟斤拷锟斤拷锟斤拷珊锟絩et_valid锟斤拷1
 wire [127:0] icache_ret_data;
 wire         dcache_rd_req;
 wire  [31:0] dcache_rd_addr; 
 wire         dcache_rd_rdy;
-wire         dcache_ret_valid; //������ɺ�ret_valid��1
+wire         dcache_ret_valid; //锟斤拷锟斤拷锟斤拷珊锟絩et_valid锟斤拷1
 wire [127:0] dcache_ret_data; 
 wire         dcache_wr_req;
 wire  [31:0] dcache_wr_addr;     
-wire [127:0] dcache_wr_data; //һ��дһ��cache line������
+wire [127:0] dcache_wr_data; //一锟斤拷写一锟斤拷cache line锟斤拷锟斤拷锟斤拷
 wire         dcache_wr_rdy;
 wire         dcache_wr_valid;
 
-//AXI��Uncache(DCache)�Ľ����ź�
+//AXI锟斤拷Uncache(DCache)锟侥斤拷锟斤拷锟脚猴拷
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
 wire         udcache_rd_rdy; 
-wire         udcache_ret_valid; //������ɺ�ret_valid��1
-wire  [31:0] udcache_ret_data; //һ��һ����
+wire         udcache_ret_valid; //锟斤拷锟斤拷锟斤拷珊锟絩et_valid锟斤拷1
+wire  [31:0] udcache_ret_data; //一锟斤拷一锟斤拷锟斤拷
 wire         udcache_wr_req; 
 wire  [31:0] udcache_wr_addr;     
 wire  [ 3:0] udcache_wr_strb; 
-wire  [31:0] udcache_wr_data; //һ��һ����
+wire  [31:0] udcache_wr_data; //一锟斤拷一锟斤拷锟斤拷
 wire         udcache_wr_rdy; 
 wire         udcache_wr_valid; 
 
-//CPU��ICache�Ľ����ź�����;����Ŀǰû��ʵ�֡�CPU���ʵս���е�wstrb��wdata
+//CPU锟斤拷ICache锟侥斤拷锟斤拷锟脚猴拷锟斤拷锟斤拷;锟斤拷锟斤拷目前没锟斤拷实锟街★拷CPU锟斤拷锟绞嫡斤拷锟斤拷械锟絯strb锟斤拷wdata
 //wire         inst_valid;
 wire  [ 7:0] inst_index;
 wire  [19:0] inst_tag;
@@ -152,7 +151,7 @@ wire         icache_busy;
 wire  [31:0] inst_rdata;
 wire         inst_valid_end;
 
-//CPU��DCache�Ľ����ź�����;
+//CPU锟斤拷DCache锟侥斤拷锟斤拷锟脚猴拷锟斤拷锟斤拷;
 wire         data_valid;
 wire         data_op;
 wire  [ 7:0] data_index;
@@ -160,42 +159,42 @@ wire  [19:0] data_tag;
 wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
-// wire         data_addr_ok; //DCache�ܹ�����CPU������valid�ź�,����Ϊ1(��DCache״̬��)
+// wire         data_addr_ok; //DCache锟杰癸拷锟斤拷锟斤拷CPU锟斤拷锟斤拷锟斤拷valid锟脚猴拷,锟斤拷锟斤拷为1(锟斤拷DCache状态锟斤拷)
 // wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire         isUncache;
 wire         dcache_busy;
 
-/********************TLB-CP0�����ź�����********************/
-wire           m1s_inst_tlbwi  ; //дʹ��:��Ӧinst_tlbwi
-wire           m1s_inst_tlbp   ; //��ѯ:��Ӧinst_tlbp
-wire           tlb_to_cp0_found; //tlb�����Ƿ�ɹ�
-wire  [18:0]   tlb_to_cp0_vpn2 ; //����Ϊtlbд�������
+/********************TLB-CP0锟斤拷锟斤拷锟脚猴拷锟斤拷锟斤拷********************/
+wire           m1s_inst_tlbwi  ; //写使锟斤拷:锟斤拷应inst_tlbwi
+wire           m1s_inst_tlbp   ; //锟斤拷询:锟斤拷应inst_tlbp
+wire           tlb_to_cp0_found; //tlb锟斤拷锟斤拷锟角凤拷晒锟�
+wire  [18:0]   tlb_to_cp0_vpn2 ; //锟斤拷锟斤拷为tlb写锟斤拷锟斤拷锟斤拷锟�
 wire  [7:0]    tlb_to_cp0_asid ;
 wire  [3:0]    tlb_to_cp0_index; 
-wire  [19:0]   tlb_to_cp0_pfn0 ; //����Ϊentrylo0�Ĵ���д��tlb������
+wire  [19:0]   tlb_to_cp0_pfn0 ; //锟斤拷锟斤拷为entrylo0锟侥达拷锟斤拷写锟斤拷tlb锟斤拷锟斤拷锟斤拷
 wire  [2:0]    tlb_to_cp0_c0   ;
 wire           tlb_to_cp0_d0   ;
 wire           tlb_to_cp0_v0   ;
 wire           tlb_to_cp0_g0   ;
-wire  [19:0]   tlb_to_cp0_pfn1 ; //����Ϊentrylo1�Ĵ���д��tlb������
+wire  [19:0]   tlb_to_cp0_pfn1 ; //锟斤拷锟斤拷为entrylo1锟侥达拷锟斤拷写锟斤拷tlb锟斤拷锟斤拷锟斤拷
 wire  [2:0]    tlb_to_cp0_c1   ;
 wire           tlb_to_cp0_d1   ;
 wire           tlb_to_cp0_v1   ;
 wire           tlb_to_cp0_g1   ;
-wire  [18:0]   cp0_to_tlb_vpn2 ; //����Ϊtlb����������
+wire  [18:0]   cp0_to_tlb_vpn2 ; //锟斤拷锟斤拷为tlb锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷
 wire  [7:0]    cp0_to_tlb_asid ;
-wire  [19:0]   cp0_to_tlb_pfn0 ; //����Ϊentrylo0�Ĵ���������tlb������
+wire  [19:0]   cp0_to_tlb_pfn0 ; //锟斤拷锟斤拷为entrylo0锟侥达拷锟斤拷锟斤拷锟斤拷锟斤拷tlb锟斤拷锟斤拷锟斤拷
 wire  [2:0]    cp0_to_tlb_c0   ;
 wire           cp0_to_tlb_d0   ;
 wire           cp0_to_tlb_v0   ;
 wire           cp0_to_tlb_g0   ;
-wire  [19:0]   cp0_to_tlb_pfn1 ; //����Ϊentrylo1�Ĵ���������tlb������
+wire  [19:0]   cp0_to_tlb_pfn1 ; //锟斤拷锟斤拷为entrylo1锟侥达拷锟斤拷锟斤拷锟斤拷锟斤拷tlb锟斤拷锟斤拷锟斤拷
 wire  [2:0]    cp0_to_tlb_c1   ;
 wire           cp0_to_tlb_d1   ;
 wire           cp0_to_tlb_v1   ;
 wire           cp0_to_tlb_g1   ;
-wire  [3:0]    cp0_to_tlb_index; //tlbwrָ�������ֵ
+wire  [3:0]    cp0_to_tlb_index; //tlbwr指锟斤拷锟斤拷锟斤拷锟街�
 wire  [31:0]   m1s_alu_result  ;
 wire           DTLB_found        ;
 wire  [3:0]    DTLB_index     ;
@@ -203,13 +202,13 @@ wire  [19:0]   DTLB_pfn       ;
 wire  [2:0]    DTLB_c         ;
 wire           DTLB_d         ;
 wire           DTLB_v         ;
-/********************TLB-CP0�����ź�����********************/
+/********************TLB-CP0锟斤拷锟斤拷锟脚猴拷锟斤拷锟斤拷********************/
 wire          TLB_Buffer_Flush;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
     .resetn  (aresetn  ),
-    //AXI�淶������ź�
+    //AXI锟芥范锟斤拷锟斤拷锟斤拷藕锟�
     .arid    (arid     ),
     .araddr  (araddr   ),
     .arlen   (arlen    ),
@@ -246,8 +245,8 @@ AXI_Interface U_AXI_Interface(
     .bresp   (bresp    ),
     .bvalid  (bvalid   ),
     .bready  (bready   ),
-    //TODO:������ҪCache�Ľ���,ע���ź�����
-    //Attention:��������IF��EXE�׶δ���
+    //TODO:锟斤拷锟斤拷锟斤拷要Cache锟侥斤拷锟斤拷,注锟斤拷锟脚猴拷锟斤拷锟斤拷
+    //Attention:锟斤拷锟斤拷锟斤拷锟斤拷IF锟斤拷EXE锟阶段达拷锟斤拷
     .icache_rd_req    (icache_rd_req    ),
     .icache_rd_addr   (icache_rd_addr   ),
     .icache_rd_rdy    (icache_rd_rdy    ),
@@ -285,7 +284,6 @@ Icache U_Icache(
     .inst_index       (inst_index       ),
     .inst_tag         (inst_tag         ),
     .inst_offset      (inst_offset      ),
-    // .flush            (flush     ),
     .icache_busy      (icache_busy      ),
     .inst_rdata       (inst_rdata       ),
 
@@ -420,12 +418,8 @@ if_stage if_stage(
     .fs_to_ds_bus   (fs_to_ds_bus   ),
     .BPU_to_ds_bus  (BPU_to_ds_bus  ),
     .flush          (flush          ),
-    // .flush_r        (flush_r        ),
     .icache_busy    (icache_busy    ),
     .inst_rdata     (inst_rdata     )
-    // .ds_ex          (ds_ex          ),
-    // .es_ex          (es_ex          ),
-    // .m1s_ex         (m1s_ex         )
 );
 // ID stage
 id_stage id_stage(
