@@ -14,11 +14,10 @@ module mem_stage(
     //to ws
     output         ms_to_ws_valid,
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
-    input  [ 31:0] data_rdata, //TODO:data_rdata���ɴ�DCache������������rdata
+    input  [ 31:0] data_rdata, //TODO:data_rdata换成从DCache读回来的数据rdata
     input          dcache_busy,
-    output [ 4:0]  MEM_dest, // MEM�׶�дRF��ַ ͨ����·�͵�ID�׶�
-    output [31:0]  MEM_result, //MEM�׶� ms_final_result  
-    output         ms_ex//�ж�MEM�׶��Ƿ��б����Ϊ�����ָ��
+    output [ 4:0]  MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
+    output [31:0]  MEM_result //MEM阶段 ms_final_result  
 );
 
 reg         ms_valid;
@@ -30,7 +29,8 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
-//lab7����
+wire        ms_ex;
+
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
 wire 		load_sign_lb;
@@ -61,14 +61,14 @@ wire [31:0] ms_final_result;
 assign ms_to_ws_bus = {
                        //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //82:82
-                       ms_gr_we       ,  //69:69 --дRFʹ��
-                       ms_dest        ,  //68:64 --дRF�ĵ�ַ
-                       ms_final_result,  //63:32 --дRF������
-                       ms_pc             //31:0 --MEM�׶� PCֵ
+                       ms_gr_we       ,  //69:69 --写RF使能
+                       ms_dest        ,  //68:64 --写RF的地址
+                       ms_final_result,  //63:32 --写RF的数据
+                       ms_pc             //31:0 --MEM阶段 PC值
                       };
 
-//lab7����
-//TODO:data_rdata���ɴ�DCache������������rdata
+//lab7添加
+//TODO:data_rdata换成从DCache读回来的数据rdata
 assign load_sign_lb         = (ms_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
                               (ms_alu_result[1:0] == 2'd1) ? data_rdata[15] :
                               (ms_alu_result[1:0] == 2'd2) ? data_rdata[23] :
@@ -101,9 +101,6 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]  
                               (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
                                                              {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
-
-
-
 assign ms_ready_go    = ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -119,8 +116,6 @@ end
 always @(posedge clk ) begin
     if (reset)
         m1s_to_ms_bus_r <= 0;
-    //else if (flush) //�����ˮ��
-    //    m1s_to_ms_bus_r <= 0;
     else if (m1s_to_ms_valid && ms_allowin) begin
         m1s_to_ms_bus_r <= m1s_to_ms_bus;
     end
@@ -131,13 +126,13 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[4]) ? mem_result_lh  :
                   (ms_mem_inst[5]) ? mem_result_lhu : 
                   (ms_mem_inst[6]) ? mem_result_lwl :
-                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw��Ӧdata_rdata
+                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
 assign ms_final_result = ms_res_from_mem ? mem_data:
                          ms_inst_mfc0    ? CP0_data :
                                          ms_alu_result;
                                          
-//lab4����
-assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //дRF��ַͨ����·�͵�ID�׶� ע�⿼��ms_valid��Ч��
-assign MEM_result = ms_final_result; //ms_final_result������DM��ֵ,Ҳ������MEM�׶�ALU����ֵ,forward��ID�׶�
+//lab4添加
+assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
+assign MEM_result = ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 endmodule

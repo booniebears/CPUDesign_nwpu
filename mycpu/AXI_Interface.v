@@ -1,14 +1,14 @@
 // `include "global_defines.vh"
 // `include "AXICache_defines.vh"
-// //Attention:AXIºÍCACHEÏà¹Ø¶¨Òå¿ÉÒÔĞ´µ½AXICache_defines.vhÎÄ¼şÖĞ
+// //Attention:AXIå’ŒCACHEç›¸å…³å®šä¹‰å¯ä»¥å†™åˆ°AXICache_defines.vhæ–‡ä»¶ä¸­
 
 // module AXI_Interface (
-// /*******************AXI¶¨ÒåĞÅºÅÈçÏÂ******************/
-// //Attention:arlenÉÏ¡¶CPUÉè¼ÆÊµÕ½¡·µÄ¶¨ÒåÓĞµãÎÊÌâ,ÕâÀï²ÉÓÃËÄÎ»¿í¼´¿É;
-// //Attention:icache_ret_data/dcache_ret_dataÎ»¿íÕâÀï¸ÄÎª128Î»(Ò»¸öCache line);
+// /*******************AXIå®šä¹‰ä¿¡å·å¦‚ä¸‹******************/
+// //Attention:arlenä¸Šã€ŠCPUè®¾è®¡å®æˆ˜ã€‹çš„å®šä¹‰æœ‰ç‚¹é—®é¢˜,è¿™é‡Œé‡‡ç”¨å››ä½å®½å³å¯;
+// //Attention:icache_ret_data/dcache_ret_dataä½å®½è¿™é‡Œæ”¹ä¸º128ä½(ä¸€ä¸ªCache line);
 //     input         clk,
 //     input         resetn,
-//     //ar¶ÁÇëÇóÍ¨µÀ
+//     //arè¯»è¯·æ±‚é€šé“
 //     output [ 3:0] arid,
 //     output [31:0] araddr,
 //     output [ 3:0] arlen,
@@ -19,14 +19,14 @@
 //     output [ 2:0] arprot,
 //     output        arvalid,
 //     input         arready,
-//     //r¶ÁÏìÓ¦Í¨µÀ
+//     //rè¯»å“åº”é€šé“
 //     input  [ 3:0] rid,
 //     input  [31:0] rdata,
 //     input  [ 1:0] rresp,
 //     input         rlast,
 //     input         rvalid,
 //     output        rready,
-//     //awĞ´ÇëÇóÍ¨µÀ
+//     //awå†™è¯·æ±‚é€šé“
 //     output [ 3:0] awid,
 //     output [31:0] awaddr,
 //     output [ 3:0] awlen,
@@ -37,59 +37,59 @@
 //     output [ 2:0] awprot,
 //     output        awvalid,
 //     input         awready,
-//     //wĞ´Êı¾İÍ¨µÀ
+//     //wå†™æ•°æ®é€šé“
 //     output [ 3:0] wid,
 //     output [31:0] wdata,
 //     output [ 3:0] wstrb,
 //     output        wlast,
 //     output        wvalid,
 //     input         wready,
-//     //bĞ´ÏìÓ¦Í¨µÀ
+//     //bå†™å“åº”é€šé“
 //     input  [ 3:0] bid,
 //     input  [ 1:0] bresp,
 //     input         bvalid,
 //     output        bready,
-// /*******************AXI¶¨ÒåĞÅºÅÈçÉÏ******************/
+// /*******************AXIå®šä¹‰ä¿¡å·å¦‚ä¸Š******************/
 
-// /*******************AXIÓëCacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÏÂ******************/
-// //Attention:±¾ÈËÄ¿Ç°Ã»ÓĞÊµÏÖ¡¶CPUÉè¼ÆÊµÕ½¡·ÖĞµÄrd_type,ret_lastºÍwr_type,²»¹ıUncache¿ÉÄÜ»áÊµÏÖ;
-//     //ºÍICache½»»¥
+// /*******************AXIä¸Cacheçš„äº¤äº’ä¿¡å·å®šä¹‰å¦‚ä¸‹******************/
+// //Attention:æœ¬äººç›®å‰æ²¡æœ‰å®ç°ã€ŠCPUè®¾è®¡å®æˆ˜ã€‹ä¸­çš„rd_type,ret_lastå’Œwr_type,ä¸è¿‡Uncacheå¯èƒ½ä¼šå®ç°;
+//     //å’ŒICacheäº¤äº’
 //     input             icache_rd_req, 
 //     input  [31:0]     icache_rd_addr, 
 //     output            icache_rd_rdy, 
-//     output reg        icache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
+//     output reg        icache_ret_valid, //ä¼ è¾“å®Œæˆåret_validç½®1
 //     output [127:0]    icache_ret_data,
-//     //ºÍDCache½»»¥
+//     //å’ŒDCacheäº¤äº’
 //     input             dcache_rd_req, 
 //     input   [31:0]    dcache_rd_addr, 
 //     output            dcache_rd_rdy, 
-//     output   reg      dcache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
+//     output   reg      dcache_ret_valid, //ä¼ è¾“å®Œæˆåret_validç½®1
 //     output [127:0]    dcache_ret_data, 
 //     input             dcache_wr_req, 
 //     input   [31:0]    dcache_wr_addr,     
-//     // input   [ 3:0] dcache_wr_strb, //TODO:¸Ğ¾õÓÃ²»µ½?
-//     input  [127:0]    dcache_wr_data, //Ò»´ÎĞ´Ò»¸öcache lineµÄÊı¾İ
+//     // input   [ 3:0] dcache_wr_strb, //TODO:æ„Ÿè§‰ç”¨ä¸åˆ°?
+//     input  [127:0]    dcache_wr_data, //ä¸€æ¬¡å†™ä¸€ä¸ªcache lineçš„æ•°æ®
 //     output            dcache_wr_rdy,
-//     output reg        dcache_wr_valid, //Attention:AXIĞ´ÍêºóÒªÖÃÎª1,Í¨ÖªCPU¶Ë
-//     //ºÍUncache(DCache)½»»¥
+//     output reg        dcache_wr_valid, //Attention:AXIå†™å®Œåè¦ç½®ä¸º1,é€šçŸ¥CPUç«¯
+//     //å’ŒUncache(DCache)äº¤äº’
 //     input             udcache_rd_req, 
 //     input      [31:0] udcache_rd_addr, 
 //     output            udcache_rd_rdy, 
-//     output reg        udcache_ret_valid, //´«ÊäÍê³Éºóret_validÖÃ1
-//     output reg [31:0] udcache_ret_data, //Ò»´ÎÒ»¸ö×Ö
+//     output reg        udcache_ret_valid, //ä¼ è¾“å®Œæˆåret_validç½®1
+//     output reg [31:0] udcache_ret_data, //ä¸€æ¬¡ä¸€ä¸ªå­—
 //     input             udcache_wr_req, 
 //     input      [31:0] udcache_wr_addr,     
 //     input      [ 3:0] udcache_wr_strb, 
-//     input      [31:0] udcache_wr_data, //Ò»´ÎÒ»¸ö×Ö
+//     input      [31:0] udcache_wr_data, //ä¸€æ¬¡ä¸€ä¸ªå­—
 //     output            udcache_wr_rdy,   
-//     output reg        udcache_wr_valid //Attention:AXIĞ´ÍêºóÒªÖÃÎª1,Í¨ÖªCPU¶Ë
-// /*******************AXIÓëCacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÉÏ******************/
+//     output reg        udcache_wr_valid //Attention:AXIå†™å®Œåè¦ç½®ä¸º1,é€šçŸ¥CPUç«¯
+// /*******************AXIä¸Cacheçš„äº¤äº’ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 // );
 
-// //Function:AXI¿ØÖÆÄ£¿é ÊµÏÖAXI½Ó¿ÚºÍÔ¶¶Ëaxi_ram½»»¥;ºÍCacheÓëUncache½»»¥;
+// //Function:AXIæ§åˆ¶æ¨¡å— å®ç°AXIæ¥å£å’Œè¿œç«¯axi_ramäº¤äº’;å’ŒCacheä¸Uncacheäº¤äº’;
 
-// /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÏÂ******************/
-// //Attention: ·ÃÎÊÖ¸Áî´æ´¢Æ÷,Ì¸²»ÉÏĞ´ÇëÇó/Ğ´Êı¾İ/Ğ´ÏìÓ¦,ËùÒÔÕâÀïÃ»ÓĞ¶¨Òå
+// /*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸‹******************/
+// //Attention: è®¿é—®æŒ‡ä»¤å­˜å‚¨å™¨,è°ˆä¸ä¸Šå†™è¯·æ±‚/å†™æ•°æ®/å†™å“åº”,æ‰€ä»¥è¿™é‡Œæ²¡æœ‰å®šä¹‰
 // wire [ 3:0] inst_arid;
 // wire [31:0] inst_araddr;
 // wire [ 3:0] inst_arlen;
@@ -100,14 +100,14 @@
 // wire [ 2:0] inst_arprot;
 // wire        inst_arvalid;
 // wire        inst_arready;
-// //r¶ÁÏìÓ¦Í¨µÀ
+// //rè¯»å“åº”é€šé“
 // wire [ 3:0] inst_rid;
 // wire [31:0] inst_rdata;
 // wire [ 1:0] inst_rresp;
 // wire        inst_rlast;
 // wire        inst_rvalid;
 // wire        inst_rready;
-// //awĞ´ÇëÇóÍ¨µÀ
+// //awå†™è¯·æ±‚é€šé“
 // wire [ 3:0] inst_awid;
 // wire [31:0] inst_awaddr;
 // wire [ 3:0] inst_awlen;
@@ -118,22 +118,22 @@
 // wire [ 2:0] inst_awprot;
 // wire        inst_awvalid;
 // wire        inst_awready;
-// //wĞ´Êı¾İÍ¨µÀ
+// //wå†™æ•°æ®é€šé“
 // wire [ 3:0] inst_wid;
 // wire [31:0] inst_wdata;
 // wire [ 3:0] inst_wstrb;
 // wire        inst_wlast;
 // wire        inst_wvalid;
 // wire        inst_wready;
-// //bĞ´ÏìÓ¦Í¨µÀ
+// //bå†™å“åº”é€šé“
 // wire [ 3:0] inst_bid;
 // wire [ 1:0] inst_bresp;
 // wire        inst_bvalid;
 // wire        inst_bready;
 
-// /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
+// /*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 
-// /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÏÂ******************/
+// /*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸‹******************/
 // wire [ 3:0] data_arid;
 // wire [31:0] data_araddr;
 // wire [ 3:0] data_arlen;
@@ -144,14 +144,14 @@
 // wire [ 2:0] data_arprot;
 // wire        data_arvalid;
 // wire        data_arready;
-// //r¶ÁÏìÓ¦Í¨µÀ
+// //rè¯»å“åº”é€šé“
 // wire [ 3:0] data_rid;
 // wire [31:0] data_rdata;
 // wire [ 1:0] data_rresp;
 // wire        data_rlast;
 // wire        data_rvalid;
 // wire        data_rready;
-// //awĞ´ÇëÇóÍ¨µÀ
+// //awå†™è¯·æ±‚é€šé“
 // wire [ 3:0] data_awid;
 // wire [31:0] data_awaddr;
 // wire [ 3:0] data_awlen;
@@ -162,21 +162,21 @@
 // wire [ 2:0] data_awprot;
 // wire        data_awvalid;
 // wire        data_awready;
-// //wĞ´Êı¾İÍ¨µÀ
+// //wå†™æ•°æ®é€šé“
 // wire [ 3:0] data_wid;
 // reg  [31:0] data_wdata;
 // wire [ 3:0] data_wstrb;
 // wire        data_wlast;
 // wire        data_wvalid;
 // wire        data_wready;
-// //bĞ´ÏìÓ¦Í¨µÀ
+// //bå†™å“åº”é€šé“
 // wire [ 3:0] data_bid;
 // wire [ 1:0] data_bresp;
 // wire        data_bvalid;
 // wire        data_bready;
-// /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
+// /*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 
-// /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÏÂ******************/
+// /*******************Uncache(å¯¹åº”DCache)å¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸‹******************/
 // wire [ 3:0] udata_arid;
 // wire [31:0] udata_araddr;
 // wire [ 3:0] udata_arlen;
@@ -187,14 +187,14 @@
 // wire [ 2:0] udata_arprot;
 // wire        udata_arvalid;
 // wire        udata_arready;
-// //r¶ÁÏìÓ¦Í¨µÀ
+// //rè¯»å“åº”é€šé“
 // wire [ 3:0] udata_rid;
 // wire [31:0] udata_rdata;
 // wire [ 1:0] udata_rresp;
 // wire        udata_rlast;
 // wire        udata_rvalid;
 // wire        udata_rready;
-// //awĞ´ÇëÇóÍ¨µÀ
+// //awå†™è¯·æ±‚é€šé“
 // wire [ 3:0] udata_awid;
 // wire [31:0] udata_awaddr;
 // wire [ 3:0] udata_awlen;
@@ -205,28 +205,28 @@
 // wire [ 2:0] udata_awprot;
 // wire        udata_awvalid;
 // wire        udata_awready;
-// //wĞ´Êı¾İÍ¨µÀ
+// //wå†™æ•°æ®é€šé“
 // wire [ 3:0] udata_wid;
 // reg  [31:0] udata_wdata;
 // wire [ 3:0] udata_wstrb;
 // wire        udata_wlast;
 // wire        udata_wvalid;
 // wire        udata_wready;
-// //bĞ´ÏìÓ¦Í¨µÀ
+// //bå†™å“åº”é€šé“
 // wire [ 3:0] udata_bid;
 // wire [ 1:0] udata_bresp;
 // wire        udata_bvalid;
 // wire        udata_bready;
-// /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¶¨ÒåÈçÉÏ******************/
+// /*******************Uncache(å¯¹åº”DCache)å¯¹åº”çš„AXIç«¯å£ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 
-// //×´Ì¬»ú¶¨Òå
+// //çŠ¶æ€æœºå®šä¹‰
 // reg  [ 2:0] I_RD_state,I_RD_nextstate;
 // reg  [ 2:0] D_RD_state,D_RD_nextstate; 
 // reg  [ 2:0] D_WR_state,D_WR_nextstate;
 // reg  [ 1:0] UD_RD_state,UD_RD_nextstate; 
 // reg  [ 1:0] UD_WR_state,UD_WR_nextstate; 
 
-// //Ëø´æÆ÷
+// //é”å­˜å™¨
 // reg  [31:0] ff_inst_araddr; 
 // reg  [31:0] ff_data_araddr;
 // reg  [31:0] ff_data_awaddr;
@@ -236,8 +236,8 @@
 // reg [127:0] ff_icache_ret_data;
 // reg [127:0] ff_dcache_ret_data;
 
-// /*******************AXIÓëICache/DCache/UncacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÏÂ******************/
-// //Attention:°Ñret_validÉèÖÃ³ÉregÀàĞÍ,ÊÇÎªÁË±£Ö¤ret_valid¸ßµçÆ½ºÍ·µ»ØµÄÊı¾İÔÚÍ¬Ò»¸öÊ±ÖÓÉÏÉıÑØ·µ»Ø
+// /*******************AXIä¸ICache/DCache/Uncacheçš„äº¤äº’ä¿¡å·å®šä¹‰å¦‚ä¸‹******************/
+// //Attention:æŠŠret_validè®¾ç½®æˆregç±»å‹,æ˜¯ä¸ºäº†ä¿è¯ret_validé«˜ç”µå¹³å’Œè¿”å›çš„æ•°æ®åœ¨åŒä¸€ä¸ªæ—¶é’Ÿä¸Šå‡æ²¿è¿”å›
 // always @(posedge clk) begin
 //     if(~resetn) 
 //         icache_ret_valid <= 1'b0;
@@ -318,50 +318,50 @@
 //         udcache_ret_data <= udata_rdata;
 // end
 
-// //ÊéÉÏÊÇÒªÇówr_rdyÏÈÓÚwr_reqÖÃ1;ÄÇrd_rdy´ó¸ÅÍ¬Àí?? ¸öÈËÈÏÎªrd_rdyĞÅºÅ¶ÔÓÚCacheÉè¼ÆÓ°Ïì½ÏĞ¡
+// //ä¹¦ä¸Šæ˜¯è¦æ±‚wr_rdyå…ˆäºwr_reqç½®1;é‚£rd_rdyå¤§æ¦‚åŒç†?? ä¸ªäººè®¤ä¸ºrd_rdyä¿¡å·å¯¹äºCacheè®¾è®¡å½±å“è¾ƒå°
 // assign icache_rd_rdy   = (I_RD_state  == `I_RD_IDLE)  ? 1'b1 : 1'b0;
 // assign dcache_rd_rdy   = (D_RD_state  == `D_RD_IDLE)  ? 1'b1 : 1'b0;
 // assign dcache_wr_rdy   = (D_WR_state  == `D_WR_IDLE)  ? 1'b1 : 1'b0;
 // assign udcache_rd_rdy  = (UD_RD_state == `UD_RD_IDLE) ? 1'b1 : 1'b0;
 // assign udcache_wr_rdy  = (UD_WR_state == `UD_WR_IDLE) ? 1'b1 : 1'b0;
 
-// /*******************AXIÓëICache/DCache/UncacheµÄ½»»¥ĞÅºÅ¶¨ÒåÈçÉÏ******************/
+// /*******************AXIä¸ICache/DCache/Uncacheçš„äº¤äº’ä¿¡å·å®šä¹‰å¦‚ä¸Š******************/
 
-// /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÏÂ******************/
-// //Attention:AXI×ÜÏßÒªÇó,master¶ËÒ»µ©·¢ÆğÄ³Ò»µØÖ·»òÕßÊı¾İ´«ÊäµÄÇëÇó(req),ÔÚÎÕÊÖ³É¹¦Ö®Ç°,²»µÃ¸ü¸Ä´«ÊäµÄµØÖ·/Êı¾İ
-// //Òò´Ë,¶ÔÓÚ´Ë´¦µÄ¶ÁÇëÇó¶ÔÓ¦µÄµØÖ·,ÎÒÃÇĞèÒªËø´æ²Ù×÷,ÔÚreq·¢³öºó,ÏÈ°Ñaddr±£´æÆğÀ´²»±ä;DCacheµÄÊı¾İºÍµØÖ·Í¬Àí¡£
+// /*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸‹******************/
+// //Attention:AXIæ€»çº¿è¦æ±‚,masterç«¯ä¸€æ—¦å‘èµ·æŸä¸€åœ°å€æˆ–è€…æ•°æ®ä¼ è¾“çš„è¯·æ±‚(req),åœ¨æ¡æ‰‹æˆåŠŸä¹‹å‰,ä¸å¾—æ›´æ”¹ä¼ è¾“çš„åœ°å€/æ•°æ®
+// //å› æ­¤,å¯¹äºæ­¤å¤„çš„è¯»è¯·æ±‚å¯¹åº”çš„åœ°å€,æˆ‘ä»¬éœ€è¦é”å­˜æ“ä½œ,åœ¨reqå‘å‡ºå,å…ˆæŠŠaddrä¿å­˜èµ·æ¥ä¸å˜;DCacheçš„æ•°æ®å’Œåœ°å€åŒç†ã€‚
 // always @(posedge clk) begin //inst_araddr
 //     if(~resetn) 
 //         ff_inst_araddr <= 32'b0;
-//     else if(I_RD_state == `I_RD_IDLE && icache_rd_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Öinst_araddr²»±ä
+//     else if(I_RD_state == `I_RD_IDLE && icache_rd_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åå°±é”å­˜,ä¿æŒinst_araddrä¸å˜
 //         ff_inst_araddr <= icache_rd_addr;
 //     else if(I_RD_state == `I_AR_SHAKE && I_RD_nextstate == `I_R_SHAKE1)
 //         ff_inst_araddr <= 32'b0;
 // end
 // assign inst_araddr  = ff_inst_araddr;
 
-// //TODO:ÏÂÃæCacheÉú³ÉµÄAXIĞÅºÅ,¿ÉÄÜ»á´æÔÚÊ±ĞòÉÏÑÓ³Ù½Ï¶àµÄÎÊÌâ£¬ºóÆÚĞèÒª½â¾ö
+// //TODO:ä¸‹é¢Cacheç”Ÿæˆçš„AXIä¿¡å·,å¯èƒ½ä¼šå­˜åœ¨æ—¶åºä¸Šå»¶è¿Ÿè¾ƒå¤šçš„é—®é¢˜ï¼ŒåæœŸéœ€è¦è§£å†³
 // assign inst_arid    = 4'b0000;
-// assign inst_arlen   = 4'b0011; //ËÄ´Î´«Êä
-// assign inst_arsize  = 3'b010; //Ò»´Î4 bytes
+// assign inst_arlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+// assign inst_arsize  = 3'b010; //ä¸€æ¬¡4 bytes
 // assign inst_arburst = 2'b01;
 // assign inst_arlock  = 2'b00;
 // assign inst_arcache = 4'b0000;
 // assign inst_arprot  = 3'b000;
-// assign inst_arvalid = (I_RD_state == `I_AR_SHAKE) ? 1'b1 : 1'b0; //inst_arvalid±Èicache_rd_reqÍíÒ»ÖÜÆÚ
+// assign inst_arvalid = (I_RD_state == `I_AR_SHAKE) ? 1'b1 : 1'b0; //inst_arvalidæ¯”icache_rd_reqæ™šä¸€å‘¨æœŸ
 
 // assign inst_rready  = (I_RD_state == `I_R_SHAKE1 || I_RD_state == `I_R_SHAKE2 ||
 //                        I_RD_state == `I_R_SHAKE3 || I_RD_state == `I_R_SHAKE4) ? 1'b1 : 1'b0;
 
 
 
-// /*******************ICache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÉÏ******************/
+// /*******************ICacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸Š******************/
 
-// /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÏÂ******************/
+// /*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸‹******************/
 // always @(posedge clk) begin //data_araddr
 //     if(~resetn) 
 //         ff_data_araddr <= 32'b0;
-//     else if(D_RD_state == `D_RD_IDLE && dcache_rd_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Ödata_araddr²»±ä
+//     else if(D_RD_state == `D_RD_IDLE && dcache_rd_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åå°±é”å­˜,ä¿æŒdata_araddrä¸å˜
 //         ff_data_araddr <= dcache_rd_addr;
 //     else if(D_RD_state == `D_AR_SHAKE && D_RD_nextstate == `D_R_SHAKE1)
 //         ff_data_araddr <= 32'b0;
@@ -371,7 +371,7 @@
 // always @(posedge clk) begin //data_awaddr
 //     if(~resetn) 
 //         ff_data_awaddr <= 32'b0;
-//     else if(D_WR_state == `D_WR_IDLE && dcache_wr_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Ödata_awaddr²»±ä
+//     else if(D_WR_state == `D_WR_IDLE && dcache_wr_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åå°±é”å­˜,ä¿æŒdata_awaddrä¸å˜
 //         ff_data_awaddr <= dcache_wr_addr;
 //     else if(D_WR_state == `D_AW_SHAKE && D_WR_nextstate == `D_W_SHAKE1)
 //         ff_data_awaddr <= 32'b0;
@@ -385,10 +385,10 @@
 //         ff_dcache_wr_data <= dcache_wr_data;
 // end
 
-// always @(posedge clk) begin //data_wdata ´ÓÒ»¸öCache lineÖĞÒÀ´Î»ñÈ¡
+// always @(posedge clk) begin //data_wdata ä»ä¸€ä¸ªCache lineä¸­ä¾æ¬¡è·å–
 //     if(~resetn)
 //         data_wdata <= 32'b0;
-//     else if(D_WR_nextstate == `D_W_SHAKE1) //Õâ¸ö¿ÉÒÔ¿´nextstate
+//     else if(D_WR_nextstate == `D_W_SHAKE1) //è¿™ä¸ªå¯ä»¥çœ‹nextstate
 //         data_wdata <= ff_dcache_wr_data[31:0];
 //     else if(D_WR_nextstate == `D_W_SHAKE2)
 //         data_wdata <= ff_dcache_wr_data[63:32];
@@ -399,42 +399,42 @@
 // end
 
 // assign data_arid    = 4'b0001;
-// assign data_arlen   = 4'b0011; //ËÄ´Î´«Êä
-// assign data_arsize  = 3'b010; //Ò»´Î4 bytes
+// assign data_arlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+// assign data_arsize  = 3'b010; //ä¸€æ¬¡4 bytes
 // assign data_arburst = 2'b01;
 // assign data_arlock  = 2'b00;
 // assign data_arcache = 4'b0000;
 // assign data_arprot  = 3'b000;
-// assign data_arvalid = (D_RD_state == `D_AR_SHAKE) ? 1'b1 : 1'b0; //data_arvalid±Èdcache_rd_reqÍíÒ»ÖÜÆÚ
+// assign data_arvalid = (D_RD_state == `D_AR_SHAKE) ? 1'b1 : 1'b0; //data_arvalidæ¯”dcache_rd_reqæ™šä¸€å‘¨æœŸ
 
 // assign data_rready  = (D_RD_state == `D_R_SHAKE1 || D_RD_state == `D_R_SHAKE2 ||
 //                        D_RD_state == `D_R_SHAKE3 || D_RD_state == `D_R_SHAKE4) ? 1'b1 : 1'b0;
 
 // assign data_awid    = 4'b0001;
-// assign data_awlen   = 4'b0011; //ËÄ´Î´«Êä
-// assign data_awsize  = 3'b010; //Ò»´Î4 bytes
+// assign data_awlen   = 4'b0011; //å››æ¬¡ä¼ è¾“
+// assign data_awsize  = 3'b010; //ä¸€æ¬¡4 bytes
 // assign data_awburst = 2'b01;
 // assign data_awlock  = 2'b00; 
 // assign data_awcache = 4'b0000;
 // assign data_awprot  = 3'b000;
-// assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalid±Èdcache_wr_reqÍíÒ»ÖÜÆÚ
+// assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1 : 1'b0; //data_awvalidæ¯”dcache_wr_reqæ™šä¸€å‘¨æœŸ
 
 // assign data_wid     = 4'b0001;
-// assign data_wstrb   = 4'b1111; //Attention:¶ÔÓÚÔ¶³ÌµÄaxi_ram,wstrb±ØÈ»ÊÇÈ«²¿ÓĞĞ§µÄ;Ğ´DCache¾ÍÊÇÁíÒ»»ØÊÂÁË
-// //Attention:¿ÉÒÔÖ¤Ã÷,´ËÊ±´«Êä×îºóÒ»¸ö×Ö,Í¬Ê±Í¨¹ı¿ØÖÆdata_wvalid¿ÉÒÔ±£Ö¤wlastÖ»ÔÚÒ»¸öÊ±ÖÓÉÏÉıÑØ×÷ÓÃ
+// assign data_wstrb   = 4'b1111; //Attention:å¯¹äºè¿œç¨‹çš„axi_ram,wstrbå¿…ç„¶æ˜¯å…¨éƒ¨æœ‰æ•ˆçš„;å†™DCacheå°±æ˜¯å¦ä¸€å›äº‹äº†
+// //Attention:å¯ä»¥è¯æ˜,æ­¤æ—¶ä¼ è¾“æœ€åä¸€ä¸ªå­—,åŒæ—¶é€šè¿‡æ§åˆ¶data_wvalidå¯ä»¥ä¿è¯wlaståªåœ¨ä¸€ä¸ªæ—¶é’Ÿä¸Šå‡æ²¿ä½œç”¨
 // //TODO:
 // assign data_wlast   = (D_WR_state == `D_W_SHAKE4 && data_wvalid && data_wready) ? 1'b1 : 1'b0;
 // assign data_wvalid  = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 ||
 //                        D_WR_state == `D_W_SHAKE3 || D_WR_state == `D_W_SHAKE4) & data_wready ? 1'b1 : 1'b0;
 
-// assign data_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
-// /*******************DCache¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÉÏ******************/
+// assign data_bready  = 1'b1; //å¯ä»¥å§‹ç»ˆç½®ä¸º1
+// /*******************DCacheå¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸Š******************/
 
-// /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÏÂ******************/
+// /*******************Uncache(å¯¹åº”DCache)å¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸‹******************/
 // always @(posedge clk) begin //udata_araddr
 //     if(~resetn) 
 //         ff_udata_araddr <= 32'b0;
-//     else if(UD_RD_state == `UD_RD_IDLE && udcache_rd_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Öudata_araddr²»±ä
+//     else if(UD_RD_state == `UD_RD_IDLE && udcache_rd_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åå°±é”å­˜,ä¿æŒudata_araddrä¸å˜
 //         ff_udata_araddr <= udcache_rd_addr;
 //     else if(UD_RD_state == `UD_AR_SHAKE && UD_RD_nextstate == `UD_R_SHAKE)
 //         ff_udata_araddr <= 32'b0;
@@ -444,40 +444,40 @@
 // always @(posedge clk) begin //udata_awaddr
 //     if(~resetn) 
 //         ff_udata_awaddr <= 32'b0;
-//     else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //´ËÊ±ÒÑ¾­·¢Æğ´«Êä;Ö®ºó¾ÍËø´æ,±£³Öudata_awaddr²»±ä
+//     else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //æ­¤æ—¶å·²ç»å‘èµ·ä¼ è¾“;ä¹‹åå°±é”å­˜,ä¿æŒudata_awaddrä¸å˜
 //         ff_udata_awaddr <= udcache_wr_addr;
 //     else if(UD_WR_state == `UD_AW_SHAKE && UD_WR_nextstate == `UD_W_SHAKE)
 //         ff_udata_awaddr <= 32'b0;
 // end
 // assign udata_awaddr  = ff_udata_awaddr;
 
-// always @(posedge clk) begin //udata_wdata Ö±½ÓĞ´Ò»¸ö×Öµ½Ô¶¶Ëaxi_ram ÅäºÏÏÂÃæµÄudata_wstrb
+// always @(posedge clk) begin //udata_wdata ç›´æ¥å†™ä¸€ä¸ªå­—åˆ°è¿œç«¯axi_ram é…åˆä¸‹é¢çš„udata_wstrb
 //     if(~resetn)
 //         udata_wdata <= 32'b0;
-//     else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //Attention:Óëawaddr±£³ÖÒ»ÖÂ¡£²»ÄÜÕÕ°ádata_wdata
+//     else if(UD_WR_state == `UD_WR_IDLE && udcache_wr_req) //Attention:ä¸awaddrä¿æŒä¸€è‡´ã€‚ä¸èƒ½ç…§æ¬data_wdata
 //         udata_wdata <= udcache_wr_data;
 // end
 
 // assign udata_araddr  = ff_udata_araddr;
 // assign udata_arid    = 4'b0011;
-// assign udata_arlen   = 4'b0000; //Ò»´Î´«Êä
-// assign udata_arsize  = 3'b010; //Ò»´Î4 bytes
+// assign udata_arlen   = 4'b0000; //ä¸€æ¬¡ä¼ è¾“
+// assign udata_arsize  = 3'b010; //ä¸€æ¬¡4 bytes
 // assign udata_arburst = 2'b01;
 // assign udata_arlock  = 2'b00;
 // assign udata_arcache = 4'b0000;
 // assign udata_arprot  = 3'b000;
-// //udata_arvalid±Èudcache_rd_reqÍíÒ»ÖÜÆÚ
+// //udata_arvalidæ¯”udcache_rd_reqæ™šä¸€å‘¨æœŸ
 // assign udata_arvalid = (UD_RD_state == `UD_AR_SHAKE) ? 1'b1 : 1'b0; 
 // assign udata_rready  = (UD_RD_state == `UD_R_SHAKE) ? 1'b1 : 1'b0;
 
 // assign udata_awid    = 4'b0011;
-// assign udata_awlen   = 4'b0000; //Ò»´Î´«Êä
-// assign udata_awsize  = 3'b010; //Ò»´Î4 bytes
+// assign udata_awlen   = 4'b0000; //ä¸€æ¬¡ä¼ è¾“
+// assign udata_awsize  = 3'b010; //ä¸€æ¬¡4 bytes
 // assign udata_awburst = 2'b01;
 // assign udata_awlock  = 2'b00; 
 // assign udata_awcache = 4'b0000;
 // assign udata_awprot  = 3'b000;
-// //udata_awvalid±Èudcache_wr_reqÍíÒ»ÖÜÆÚ
+// //udata_awvalidæ¯”udcache_wr_reqæ™šä¸€å‘¨æœŸ
 // assign udata_awvalid = (UD_WR_state == `UD_AW_SHAKE) ? 1'b1 : 1'b0; 
 
 // assign udata_wid     = 4'b0001;
@@ -485,11 +485,11 @@
 // assign udata_wlast   = (UD_WR_state == `UD_W_SHAKE && udata_wvalid && udata_wready) ? 1'b1 : 1'b0;
 // assign udata_wvalid  = (UD_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;
 
-// assign udata_bready  = 1'b1; //¿ÉÒÔÊ¼ÖÕÖÃÎª1
-// /*******************Uncache(¶ÔÓ¦DCache)¶ÔÓ¦µÄAXI¶Ë¿ÚĞÅºÅ¸³ÖµÈçÉÏ******************/
+// assign udata_bready  = 1'b1; //å¯ä»¥å§‹ç»ˆç½®ä¸º1
+// /*******************Uncache(å¯¹åº”DCache)å¯¹åº”çš„AXIç«¯å£ä¿¡å·èµ‹å€¼å¦‚ä¸Š******************/
 
-// /*******************AXI-Cache×´Ì¬»úÈçÏÂ******************/
-// //TODO:×´Ì¬»úµÄ×ªÒÆÌõ¼ş»òĞí¿ÉÒÔ¼ò»¯£¬ºóÆÚ´¦Àí
+// /*******************AXI-CacheçŠ¶æ€æœºå¦‚ä¸‹******************/
+// //TODO:çŠ¶æ€æœºçš„è½¬ç§»æ¡ä»¶æˆ–è®¸å¯ä»¥ç®€åŒ–ï¼ŒåæœŸå¤„ç†
 // //ICache Read
 // always @(posedge clk) begin
 //     if(~resetn) 
@@ -516,7 +516,7 @@
 //             if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_R_SHAKE4;
 //             else I_RD_nextstate <= `I_R_SHAKE3;
 //         `I_R_SHAKE4:
-//         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËI_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+//         //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†I_R_SHAKE4å¦‚æœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æŸ,ä¸å¿…è€ƒè™‘rlast
 //             if(inst_rvalid & inst_rready) I_RD_nextstate <= `I_RD_IDLE;
 //             else I_RD_nextstate <= `I_R_SHAKE4;  
 //         default: I_RD_nextstate <= `I_RD_IDLE;
@@ -549,7 +549,7 @@
 //             if(data_rvalid & data_rready) D_RD_nextstate <= `D_R_SHAKE4;
 //             else D_RD_nextstate <= `D_R_SHAKE3;
 //         `D_R_SHAKE4:
-//         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_R_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+//         //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†D_R_SHAKE4å¦‚æœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æŸ,ä¸å¿…è€ƒè™‘rlast
 //             if(data_rvalid & data_rready) D_RD_nextstate <= `D_RD_IDLE;
 //             else D_RD_nextstate <= `D_R_SHAKE4;
 //         default: D_RD_nextstate <= `D_RD_IDLE;
@@ -582,7 +582,7 @@
 //             if(data_wvalid & data_wready) D_WR_nextstate <= `D_W_SHAKE4;
 //             else D_WR_nextstate <= `D_W_SHAKE3;
 //         `D_W_SHAKE4: 
-//         //Attention:ÒòÎª¹æ¶¨ÁËCache lineÊÇËÄ¸ö×Ö,ËùÒÔµ½ÁËD_W_SHAKE4Èç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇwlast
+//         //Attention:å› ä¸ºè§„å®šäº†Cache lineæ˜¯å››ä¸ªå­—,æ‰€ä»¥åˆ°äº†D_W_SHAKE4å¦‚æœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æŸ,ä¸å¿…è€ƒè™‘wlast
 //             if(data_wvalid & data_wready) D_WR_nextstate <= `D_B_SHAKE;
 //             else D_WR_nextstate <= `D_W_SHAKE4;
 //         `D_B_SHAKE:
@@ -609,7 +609,7 @@
 //             if(udata_arvalid & udata_arready) UD_RD_nextstate <= `UD_R_SHAKE;
 //             else UD_RD_nextstate <= `UD_AR_SHAKE;
 //         `UD_R_SHAKE:
-//         //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_R_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇrlast
+//         //Attention:å› ä¸ºUncacheåªä¼ è¾“ä¸€ä¸ªå­—,æ‰€ä»¥åˆ°äº†UD_R_SHAKEå¦‚æœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æŸ,ä¸å¿…è€ƒè™‘rlast
 //             if(udata_rvalid & udata_rready) UD_RD_nextstate <= `UD_RD_IDLE;
 //             else UD_RD_nextstate <= `UD_R_SHAKE;
 //         default: UD_RD_nextstate <= `UD_RD_IDLE;
@@ -633,7 +633,7 @@
 //             if(udata_awvalid & udata_awready) UD_WR_nextstate <= `UD_W_SHAKE;
 //             else UD_WR_nextstate <= `UD_AW_SHAKE;
 //         `UD_W_SHAKE:
-//         //Attention:ÒòÎªUncacheÖ»´«ÊäÒ»¸ö×Ö,ËùÒÔµ½ÁËUD_W_SHAKEÈç¹ûÓĞÎÕÊÖ±ØÈ»´«Êä½áÊø,²»±Ø¿¼ÂÇwlast
+//         //Attention:å› ä¸ºUncacheåªä¼ è¾“ä¸€ä¸ªå­—,æ‰€ä»¥åˆ°äº†UD_W_SHAKEå¦‚æœæœ‰æ¡æ‰‹å¿…ç„¶ä¼ è¾“ç»“æŸ,ä¸å¿…è€ƒè™‘wlast
 //             if(udata_wvalid & udata_wready) UD_WR_nextstate <= `UD_B_SHAKE;
 //             else UD_WR_nextstate <= `UD_W_SHAKE;
 //         `UD_B_SHAKE:
@@ -642,11 +642,11 @@
 //         default: UD_WR_nextstate <= `UD_WR_IDLE;
 //     endcase
 // end
-// /*******************AXI-Cache×´Ì¬»úÈçÉÏ******************/
+// /*******************AXI-CacheçŠ¶æ€æœºå¦‚ä¸Š******************/
 
 
-// //axi_crossbar:¸ºÔğÖÙ²ÃĞÅºÅ
-// //Attention:ÓÅÏÈ¼¶ÎªDCache>ICache
+// //axi_crossbar:è´Ÿè´£ä»²è£ä¿¡å·
+// //Attention:ä¼˜å…ˆçº§ä¸ºDCache>ICache
 // assign  inst_awid     = 0;
 // assign  inst_awaddr   = 0;
 // assign  inst_awlen    = 0;
@@ -678,7 +678,7 @@
 //     .s_axi_awlock  ({inst_awlock  ,data_awlock  ,udata_awlock }),
 //     .s_axi_awcache ({inst_awcache ,data_awcache ,udata_awcache}),
 //     .s_axi_awprot  ({inst_awprot  ,data_awprot  ,udata_awprot }),
-//     .s_axi_awqos   (12'b0                                      ), //Ã»ÓÃ
+//     .s_axi_awqos   (12'b0                                      ), //æ²¡ç”¨
 //     .s_axi_awvalid ({inst_awvalid ,data_awvalid ,udata_awvalid}),
 //     .s_axi_awready ({inst_awready ,data_awready ,udata_awready}),
 
@@ -702,7 +702,7 @@
 //     .s_axi_arlock  ({inst_arlock  ,data_arlock  ,udata_arlock }),
 //     .s_axi_arcache ({inst_arcache ,data_arcache ,udata_arcache}),
 //     .s_axi_arprot  ({inst_arprot  ,data_arprot  ,udata_arprot }),
-//     .s_axi_arqos   (12'b0                                      ), //Ã»ÓÃ
+//     .s_axi_arqos   (12'b0                                      ), //æ²¡ç”¨
 //     .s_axi_arvalid ({inst_arvalid ,data_arvalid ,udata_arvalid}),
 //     .s_axi_arready ({inst_arready ,data_arready ,udata_arready}),
 
@@ -721,7 +721,7 @@
 //     .m_axi_awlock  (awlock ),
 //     .m_axi_awcache (awcache),
 //     .m_axi_awprot  (awprot ),
-//     .m_axi_awqos   (       ), //Ö±½ÓÖÃ¿Õ
+//     .m_axi_awqos   (       ), //ç›´æ¥ç½®ç©º
 //     .m_axi_awvalid (awvalid),
 //     .m_axi_awready (awready),
 //     .m_axi_wid     (wid    ),
@@ -742,7 +742,7 @@
 //     .m_axi_arlock  (arlock ),
 //     .m_axi_arcache (arcache),
 //     .m_axi_arprot  (arprot ),
-//     .m_axi_arqos   (       ), //Ö±½ÓÖÃ¿Õ
+//     .m_axi_arqos   (       ), //ç›´æ¥ç½®ç©º
 //     .m_axi_arvalid (arvalid),
 //     .m_axi_arready (arready),
 //     .m_axi_rid     (rid    ),
@@ -811,7 +811,6 @@ module AXI_Interface(
     output    [127:0] dcache_ret_data, 
     input             dcache_wr_req, 
     input   [31:0]    dcache_wr_addr,     
-    // input   [ 3:0] dcache_wr_strb, 
     input  [127:0]    dcache_wr_data, 
     output            dcache_wr_rdy,
     output            dcache_wr_valid, 
@@ -830,151 +829,151 @@ module AXI_Interface(
 );
 
 // Icache 
-    wire  [ 3: 0] ibus_arid;
-    wire  [31: 0] ibus_araddr;
-    wire  [ 3: 0] ibus_arlen;
-    wire  [ 2: 0] ibus_arsize;
-    wire  [ 1: 0] ibus_arburst;
-    wire  [ 1: 0] ibus_arlock;
-    wire  [ 3: 0] ibus_arcache; 
-    wire  [ 2: 0] ibus_arprot;
-    wire          ibus_arvalid;
-    wire          ibus_arready;
-    wire  [ 3: 0] ibus_rid;
-    wire  [31: 0] ibus_rdata;
-    wire  [ 1: 0] ibus_rresp;
-    wire          ibus_rlast;
-    wire          ibus_rvalid;
-    wire          ibus_rready;
-    wire  [ 3: 0] ibus_awid;
-    wire  [31: 0] ibus_awaddr;
-    wire  [ 3: 0] ibus_awlen;
-    wire  [ 2: 0] ibus_awsize;
-    wire  [ 1: 0] ibus_awburst;
-    wire  [ 1: 0] ibus_awlock;
-    wire  [ 3: 0] ibus_awcache;
-    wire  [ 2: 0] ibus_awprot;
-    wire          ibus_awvalid;
-    wire          ibus_awready;
-    wire  [ 3: 0] ibus_wid;
-    wire  [31: 0] ibus_wdata;
-    wire  [ 3: 0] ibus_wstrb;
-    wire          ibus_wlast;
-    wire          ibus_wvalid;
-    wire          ibus_wready;
-    wire  [ 3: 0] ibus_bid;
-    wire  [ 1: 0] ibus_bresp;
-    wire          ibus_bvalid;
-    wire          ibus_bready;
+    wire  [ 3: 0] inst_arid;
+    wire  [31: 0] inst_araddr;
+    wire  [ 3: 0] inst_arlen;
+    wire  [ 2: 0] inst_arsize;
+    wire  [ 1: 0] inst_arburst;
+    wire  [ 1: 0] inst_arlock;
+    wire  [ 3: 0] inst_arcache; 
+    wire  [ 2: 0] inst_arprot;
+    wire          inst_arvalid;
+    wire          inst_arready;
+    wire  [ 3: 0] inst_rid;
+    wire  [31: 0] inst_rdata;
+    wire  [ 1: 0] inst_rresp;
+    wire          inst_rlast;
+    wire          inst_rvalid;
+    wire          inst_rready;
+    wire  [ 3: 0] inst_awid;
+    wire  [31: 0] inst_awaddr;
+    wire  [ 3: 0] inst_awlen;
+    wire  [ 2: 0] inst_awsize;
+    wire  [ 1: 0] inst_awburst;
+    wire  [ 1: 0] inst_awlock;
+    wire  [ 3: 0] inst_awcache;
+    wire  [ 2: 0] inst_awprot;
+    wire          inst_awvalid;
+    wire          inst_awready;
+    wire  [ 3: 0] inst_wid;
+    wire  [31: 0] inst_wdata;
+    wire  [ 3: 0] inst_wstrb;
+    wire          inst_wlast;
+    wire          inst_wvalid;
+    wire          inst_wready;
+    wire  [ 3: 0] inst_bid;
+    wire  [ 1: 0] inst_bresp;
+    wire          inst_bvalid;
+    wire          inst_bready;
 
 // Dcache 
-    wire  [ 3: 0] dbus_arid;
-    wire  [31: 0] dbus_araddr;
-    wire  [ 3: 0] dbus_arlen;
-    wire  [ 2: 0] dbus_arsize;
-    wire  [ 1: 0] dbus_arburst;
-    wire  [ 1: 0] dbus_arlock;
-    wire  [ 3: 0] dbus_arcache;
-    wire  [ 2: 0] dbus_arprot;
-    wire          dbus_arvalid;
-    wire          dbus_arready;
-    wire  [ 3: 0] dbus_rid;
-    wire  [31: 0] dbus_rdata;
-    wire  [ 1: 0] dbus_rresp;
-    wire          dbus_rlast;
-    wire          dbus_rvalid;
-    wire          dbus_rready;
-    wire  [ 3: 0] dbus_awid;
-    wire  [31: 0] dbus_awaddr;
-    wire  [ 3: 0] dbus_awlen;
-    wire  [ 2: 0] dbus_awsize;
-    wire  [ 1: 0] dbus_awburst;
-    wire  [ 1: 0] dbus_awlock;
-    wire  [ 3: 0] dbus_awcache;
-    wire  [ 2: 0] dbus_awprot;
-    wire          dbus_awvalid;
-    wire          dbus_awready;
-    wire  [ 3: 0] dbus_wid;
-    wire  [31: 0] dbus_wdata;
-    wire  [ 3: 0] dbus_wstrb;
-    wire          dbus_wlast;
-    wire          dbus_wvalid;
-    wire          dbus_wready;
-    wire  [ 3: 0] dbus_bid;
-    wire  [ 1: 0] dbus_bresp;
-    wire          dbus_bvalid;
-    wire          dbus_bready;
+    wire  [ 3: 0] data_arid;
+    wire  [31: 0] data_araddr;
+    wire  [ 3: 0] data_arlen;
+    wire  [ 2: 0] data_arsize;
+    wire  [ 1: 0] data_arburst;
+    wire  [ 1: 0] data_arlock;
+    wire  [ 3: 0] data_arcache;
+    wire  [ 2: 0] data_arprot;
+    wire          data_arvalid;
+    wire          data_arready;
+    wire  [ 3: 0] data_rid;
+    wire  [31: 0] data_rdata;
+    wire  [ 1: 0] data_rresp;
+    wire          data_rlast;
+    wire          data_rvalid;
+    wire          data_rready;
+    wire  [ 3: 0] data_awid;
+    wire  [31: 0] data_awaddr;
+    wire  [ 3: 0] data_awlen;
+    wire  [ 2: 0] data_awsize;
+    wire  [ 1: 0] data_awburst;
+    wire  [ 1: 0] data_awlock;
+    wire  [ 3: 0] data_awcache;
+    wire  [ 2: 0] data_awprot;
+    wire          data_awvalid;
+    wire          data_awready;
+    wire  [ 3: 0] data_wid;
+    wire  [31: 0] data_wdata;
+    wire  [ 3: 0] data_wstrb;
+    wire          data_wlast;
+    wire          data_wvalid;
+    wire          data_wready;
+    wire  [ 3: 0] data_bid;
+    wire  [ 1: 0] data_bresp;
+    wire          data_bvalid;
+    wire          data_bready;
 // Uncache 
-    wire  [ 3: 0] ubus_arid;
-    wire  [31: 0] ubus_araddr;
-    wire  [ 3: 0] ubus_arlen;
-    wire  [ 2: 0] ubus_arsize;
-    wire  [ 1: 0] ubus_arburst;
-    wire  [ 1: 0] ubus_arlock;
-    wire  [ 3: 0] ubus_arcache;
-    wire  [ 2: 0] ubus_arprot;
-    wire          ubus_arvalid;
-    wire          ubus_arready;
-    wire  [ 3: 0] ubus_rid;
-    wire  [31: 0] ubus_rdata;
-    wire  [ 1: 0] ubus_rresp;
-    wire          ubus_rlast;
-    wire          ubus_rvalid;
-    wire          ubus_rready;
-    wire  [ 3: 0] ubus_awid;
-    wire  [31: 0] ubus_awaddr;
-    wire  [ 3: 0] ubus_awlen;
-    wire  [ 2: 0] ubus_awsize;
-    wire  [ 1: 0] ubus_awburst;
-    wire  [ 1: 0] ubus_awlock;
-    wire  [ 3: 0] ubus_awcache;
-    wire  [ 2: 0] ubus_awprot;
-    wire          ubus_awvalid;
-    wire          ubus_awready;
-    wire  [ 3: 0] ubus_wid;
-    wire  [31: 0] ubus_wdata;
-    wire  [ 3: 0] ubus_wstrb;
-    wire          ubus_wlast;
-    wire          ubus_wvalid;
-    wire          ubus_wready;
-    wire  [ 3: 0] ubus_bid;
-    wire  [ 1: 0] ubus_bresp;
-    wire          ubus_bvalid;
-    wire          ubus_bready;
+    wire  [ 3: 0] udata_arid;
+    wire  [31: 0] udata_araddr;
+    wire  [ 3: 0] udata_arlen;
+    wire  [ 2: 0] udata_arsize;
+    wire  [ 1: 0] udata_arburst;
+    wire  [ 1: 0] udata_arlock;
+    wire  [ 3: 0] udata_arcache;
+    wire  [ 2: 0] udata_arprot;
+    wire          udata_arvalid;
+    wire          udata_arready;
+    wire  [ 3: 0] udata_rid;
+    wire  [31: 0] udata_rdata;
+    wire  [ 1: 0] udata_rresp;
+    wire          udata_rlast;
+    wire          udata_rvalid;
+    wire          udata_rready;
+    wire  [ 3: 0] udata_awid;
+    wire  [31: 0] udata_awaddr;
+    wire  [ 3: 0] udata_awlen;
+    wire  [ 2: 0] udata_awsize;
+    wire  [ 1: 0] udata_awburst;
+    wire  [ 1: 0] udata_awlock;
+    wire  [ 3: 0] udata_awcache;
+    wire  [ 2: 0] udata_awprot;
+    wire          udata_awvalid;
+    wire          udata_awready;
+    wire  [ 3: 0] udata_wid;
+    wire  [31: 0] udata_wdata;
+    wire  [ 3: 0] udata_wstrb;
+    wire          udata_wlast;
+    wire          udata_wvalid;
+    wire          udata_wready;
+    wire  [ 3: 0] udata_bid;
+    wire  [ 1: 0] udata_bresp;
+    wire          udata_bvalid;
+    wire          udata_bready;
     
-    reg   [  2:0] I_RD_pre_state;
-    reg   [  2:0] I_RD_next_state;
+    reg   [  2:0] I_RD_state;
+    reg   [  2:0] I_RD_nextstate;
     wire  [  2:0] I_RD_DataReady;
     reg   [ 31:0] I_RD_Addr;
     reg   [127:0] AXI_I_RData;
 
-    reg   [  2:0] D_RD_pre_state;
-    reg   [  2:0] D_RD_next_state;
-    wire  [ 2:0]  D_RD_DataReady;
-    reg  [ 31:0]  D_RD_Addr;
-    reg  [ 127:0] AXI_D_RData;
+    reg   [  2:0] D_RD_state;
+    reg   [  2:0] D_RD_nextstate;
+    wire  [  2:0] D_RD_DataReady;
+    reg   [ 31:0] D_RD_Addr;
+    reg   [127:0] AXI_D_RData;
 
-    reg    [2:0]  D_WR_pre_state;
-    reg    [2:0]  D_WR_next_state;
-    reg   [31:0]  D_WR_Addr;
+    reg   [  2:0] D_WR_state;
+    reg   [  2:0] D_WR_nextstate;
+    reg   [ 31:0] D_WR_Addr;
     reg   [127:0] AXI_D_WData;
 
-    reg     [1:0] U_RD_pre_state;
-    reg     [1:0] U_RD_next_state;
-    reg    [31:0] U_RD_Addr;
-    reg    [31:0] AXI_U_RData;
+    reg   [  1:0] U_RD_state;
+    reg   [  1:0] U_RD_nextstate;
+    reg   [ 31:0] U_RD_Addr;
+    reg   [ 31:0] AXI_U_RData;
 
-    reg     [2:0] U_WR_pre_state;
-    reg     [2:0] U_WR_next_state;
-    reg    [31:0] U_WR_Addr;
-    reg    [31:0] AXI_U_WData;
-    //I$ RD
+    reg   [  2:0] U_WR_state;
+    reg   [  2:0] U_WR_nextstate;
+    reg   [ 31:0] U_WR_Addr;
+    reg   [ 31:0] AXI_U_WData;
+
     always @(posedge clk) begin
         if (~resetn) begin
             I_RD_Addr <= 0;
         end 
         else begin  
-            if (icache_rd_req == 1'b1 && I_RD_pre_state == `I_RD_EMPTY) begin
+            if (icache_rd_req == 1'b1 && I_RD_state == `I_RD_IDLE) begin
                 I_RD_Addr <= icache_rd_addr;
             end 
         end 
@@ -986,7 +985,7 @@ module AXI_Interface(
             D_RD_Addr <= 0;
         end 
         else begin  
-            if (dcache_rd_req == 1'b1 && D_RD_pre_state == `D_RD_EMPTY) begin
+            if (dcache_rd_req == 1'b1 && D_RD_state == `D_RD_IDLE) begin
                 D_RD_Addr <= dcache_rd_addr;
             end
         end 
@@ -999,7 +998,7 @@ module AXI_Interface(
             AXI_D_WData <= 0;
         end 
         else begin  
-            if (dcache_wr_req && D_WR_pre_state == `D_WR_EMPTY) begin
+            if (dcache_wr_req && D_WR_state == `D_WR_IDLE) begin
                 D_WR_Addr   <= dcache_wr_addr;
                 AXI_D_WData <= dcache_wr_data;
             end 
@@ -1012,7 +1011,7 @@ module AXI_Interface(
             U_RD_Addr <= 0;
         end 
         else begin  
-            if (udcache_rd_req == 1'b1 && U_RD_pre_state == `U_RD_EMPTY) begin
+            if (udcache_rd_req == 1'b1 && U_RD_state == `UD_RD_IDLE) begin
                 U_RD_Addr <= udcache_rd_addr;
             end
         end 
@@ -1025,7 +1024,7 @@ module AXI_Interface(
             AXI_U_WData <= 0;
         end 
         else begin  
-            if (udcache_wr_req == 1'b1 && U_WR_pre_state == `U_WR_EMPTY) begin
+            if (udcache_wr_req == 1'b1 && U_WR_state == `UD_WR_IDLE) begin
                 U_WR_Addr   <= udcache_wr_addr;
                 AXI_U_WData <= udcache_wr_data;
             end 
@@ -1033,192 +1032,190 @@ module AXI_Interface(
     end
 
 /********************* ibus ******************/
-    // master -> slave
-    assign ibus_arid     = 4'b0000;
-    assign ibus_arlen    = 4'b0011;      
-    assign ibus_arsize   = 3'b010;       
-    assign ibus_arburst  = 2'b01;
-    assign ibus_arlock   = 2'b00;
-    assign ibus_arcache  = 0;
-    assign ibus_arprot   = 0;
-    
+    //ar
+    assign inst_arid     = 4'b0000;
+    assign inst_arlen    = 4'b0011;      
+    assign inst_arsize   = 3'b010;       
+    assign inst_arburst  = 2'b01;
+    assign inst_arlock   = 2'b00;
+    assign inst_arcache  = 0;
+    assign inst_arprot   = 0;
 
-    // master -> slave
-    assign ibus_awid     = 0;           
-    assign ibus_awlen    = 0;
-    assign ibus_awsize   = 0;
-    assign ibus_awburst  = 0;
-    assign ibus_awlock   = 0;
-    assign ibus_awcache  = 0;
-    assign ibus_awprot   = 0;
-    assign ibus_awvalid  = 0;
-    assign ibus_awaddr   = 0;
-    // master -> slave
-    assign ibus_wid      = 0;
-    assign ibus_wdata    = 0;
-    assign ibus_wstrb    = 0;
-    assign ibus_wlast    = 0;
-    assign ibus_wvalid   = 0;
-    assign ibus_bready   = 0;
+    //aw,w(å¯¹äºinst å…¨éƒ¨èµ‹é›¶)
+    assign inst_awid     = 0;           
+    assign inst_awlen    = 0;
+    assign inst_awsize   = 0;
+    assign inst_awburst  = 0;
+    assign inst_awlock   = 0;
+    assign inst_awcache  = 0;
+    assign inst_awprot   = 0;
+    assign inst_awvalid  = 0;
+    assign inst_awaddr   = 0;
+    assign inst_wid      = 0;
+    assign inst_wdata    = 0;
+    assign inst_wstrb    = 0;
+    assign inst_wlast    = 0;
+    assign inst_wvalid   = 0;
+    assign inst_bready   = 0;
 
 
 /********************* dbus ******************/
-    assign dbus_arid     = 4'b0001;
-    assign dbus_arlen    = 4'b0011;
-    assign dbus_arsize   = 3'b010;
-    assign dbus_arburst  = 2'b01;
-    assign dbus_arlock   = 0;
-    assign dbus_arcache  = 0;
-    assign dbus_arprot   = 0;
+    assign data_arid     = 4'b0001;
+    assign data_arlen    = 4'b0011;
+    assign data_arsize   = 3'b010;
+    assign data_arburst  = 2'b01;
+    assign data_arlock   = 0;
+    assign data_arcache  = 0;
+    assign data_arprot   = 0;
 
-    assign dbus_awid     = 4'b0001;
-    assign dbus_awlen    = 4'b0011;        
-    assign dbus_awsize   = 3'b010;         
-    assign dbus_awburst  = 2'b01;          
-    assign dbus_awlock   = 0;
-    assign dbus_awcache  = 0;
-    assign dbus_awprot   = 0;
+    assign data_awid     = 4'b0001;
+    assign data_awlen    = 4'b0011;        
+    assign data_awsize   = 3'b010;         
+    assign data_awburst  = 2'b01;          
+    assign data_awlock   = 0;
+    assign data_awcache  = 0;
+    assign data_awprot   = 0;
 
-    assign dbus_wid     = 4'b0001;
-    assign dbus_wstrb   = 4'b1111;
-    assign dbus_bready  = 1'b1;
+    assign data_wid     = 4'b0001;
+    assign data_wstrb   = 4'b1111;
+    assign data_bready  = 1'b1;
 
 /********************* ubus ******************/
-    assign ubus_arid     = 4'b0011;
-    assign ubus_arlen    = 4'b0000; 
-    assign ubus_arsize   = 3'b010; 
-    assign ubus_arburst  = 2'b01;
-    assign ubus_arlock   = 0;
-    assign ubus_arcache  = 0;
-    assign ubus_arprot   = 0;
+    assign udata_arid     = 4'b0011;
+    assign udata_arlen    = 4'b0000; 
+    assign udata_arsize   = 3'b010; 
+    assign udata_arburst  = 2'b01;
+    assign udata_arlock   = 0;
+    assign udata_arcache  = 0;
+    assign udata_arprot   = 0;
 
 
-    assign ubus_awid     = 4'b0011;
-    assign ubus_awlen    = 4'b0000;        
-    assign ubus_awsize   = 3'b010;         
-    assign ubus_awburst  = 2'b01;          
-    assign ubus_awlock   = 0;
-    assign ubus_awcache  = 0;
-    assign ubus_awprot   = 0;
+    assign udata_awid     = 4'b0011;
+    assign udata_awlen    = 4'b0000;        
+    assign udata_awsize   = 3'b010;         
+    assign udata_awburst  = 2'b01;          
+    assign udata_awlock   = 0;
+    assign udata_awcache  = 0;
+    assign udata_awprot   = 0;
 
 
-    assign ubus_wid     = 4'b0001;
-    assign ubus_wstrb   = udcache_wr_strb;  
-    assign ubus_bready  = 1'b1;
+    assign udata_wid     = 4'b0001;
+    assign udata_wstrb   = udcache_wr_strb;  
+    assign udata_bready  = 1'b1;
 
-    assign icache_rd_rdy  = (I_RD_pre_state == `I_RD_EMPTY ) ? 1'b1 : 1'b0;
-    assign dcache_rd_rdy  = (D_RD_pre_state == `D_RD_EMPTY ) ? 1'b1 : 1'b0;
-    assign dcache_wr_rdy  = (D_WR_pre_state == `D_WR_EMPTY )  ? 1'b1 : 1'b0;
-    assign udcache_rd_rdy = (U_RD_pre_state == `U_RD_EMPTY ) ? 1'b1 : 1'b0;
-    assign udcache_wr_rdy = (U_WR_pre_state == `U_WR_EMPTY )  ? 1'b1 : 1'b0;
+    assign icache_rd_rdy  = (I_RD_state == `I_RD_IDLE ) ? 1'b1 : 1'b0;
+    assign dcache_rd_rdy  = (D_RD_state == `D_RD_IDLE ) ? 1'b1 : 1'b0;
+    assign dcache_wr_rdy  = (D_WR_state == `D_WR_IDLE )  ? 1'b1 : 1'b0;
+    assign udcache_rd_rdy = (U_RD_state == `UD_RD_IDLE ) ? 1'b1 : 1'b0;
+    assign udcache_wr_rdy = (U_WR_state == `UD_WR_IDLE )  ? 1'b1 : 1'b0;
 
 // FSM -- Icache RD 
     always @(posedge clk) begin
         if (~resetn) begin
-            I_RD_pre_state  <= `I_RD_EMPTY;
+            I_RD_state  <= `I_RD_IDLE;
         end 
         else begin  
-            I_RD_pre_state <= I_RD_next_state;
+            I_RD_state <= I_RD_nextstate;
         end
     end
 
     assign I_RD_DataReady = 
-        (I_RD_pre_state == `I_RD_WAIT1 && ibus_rvalid == 1'b1 && ibus_rready == 1'b1) ? 3'd1 :
-        (I_RD_pre_state == `I_RD_WAIT2 && ibus_rvalid == 1'b1 && ibus_rready == 1'b1) ? 3'd2 :
-        (I_RD_pre_state == `I_RD_WAIT3 && ibus_rvalid == 1'b1 && ibus_rready == 1'b1) ? 3'd3 :
-        (I_RD_pre_state == `I_RD_WAIT4 && ibus_rvalid == 1'b1 && ibus_rready == 1'b1) ? 3'd4 :
-                                                                                        3'd0 ;
+        (I_RD_state == `I_R_SHAKE1 && inst_rvalid == 1'b1 && inst_rready == 1'b1) ? 3'd1 :
+        (I_RD_state == `I_R_SHAKE2 && inst_rvalid == 1'b1 && inst_rready == 1'b1) ? 3'd2 :
+        (I_RD_state == `I_R_SHAKE3 && inst_rvalid == 1'b1 && inst_rready == 1'b1) ? 3'd3 :
+        (I_RD_state == `I_R_SHAKE4 && inst_rvalid == 1'b1 && inst_rready == 1'b1) ? 3'd4 :
+                                                                                    3'd0 ;
     always @(*)begin
-        case (I_RD_pre_state)
-            `I_RD_EMPTY:begin
+        case (I_RD_state)
+            `I_RD_IDLE:begin
                 if (icache_rd_req == 1'b1) begin
-                    I_RD_next_state <= `I_RD_RECREQ;
+                    I_RD_nextstate = `I_AR_SHAKE;
                 end
                 else begin
-                    I_RD_next_state <= `I_RD_EMPTY;
+                    I_RD_nextstate = `I_RD_IDLE;
                 end
             end
-            `I_RD_RECREQ:begin
-                if (ibus_arvalid == 1'b1 && ibus_arready == 1'b1) begin
-                    I_RD_next_state <= `I_RD_WAIT1;
+            `I_AR_SHAKE:begin
+                if (inst_arvalid == 1'b1 && inst_arready == 1'b1) begin
+                    I_RD_nextstate = `I_R_SHAKE1;
                 end else begin
-                    I_RD_next_state <= `I_RD_RECREQ;
+                    I_RD_nextstate = `I_AR_SHAKE;
                 end
             end
-            `I_RD_WAIT1:begin
-                if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
-                    I_RD_next_state <= `I_RD_WAIT2;
+            `I_R_SHAKE1:begin
+                if (inst_rvalid == 1'b1 && inst_rready == 1'b1) begin
+                    I_RD_nextstate = `I_R_SHAKE2;
                 end
                 else begin
-                    I_RD_next_state <= `I_RD_WAIT1;
+                    I_RD_nextstate = `I_R_SHAKE1;
                 end
             end
-            `I_RD_WAIT2:begin
-                if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
-                    I_RD_next_state <= `I_RD_WAIT3;
+            `I_R_SHAKE2:begin
+                if (inst_rvalid == 1'b1 && inst_rready == 1'b1) begin
+                    I_RD_nextstate = `I_R_SHAKE3;
                 end
                 else begin
-                    I_RD_next_state <= `I_RD_WAIT2;
+                    I_RD_nextstate = `I_R_SHAKE2;
                 end
             end
-            `I_RD_WAIT3:begin
-                if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1) begin
-                    I_RD_next_state <= `I_RD_WAIT4;
+            `I_R_SHAKE3:begin
+                if (inst_rvalid == 1'b1 && inst_rready == 1'b1) begin
+                    I_RD_nextstate = `I_R_SHAKE4;
                 end
                 else begin
-                    I_RD_next_state <= `I_RD_WAIT3;
+                    I_RD_nextstate = `I_R_SHAKE3;
                 end
             end
-            `I_RD_WAIT4:begin
-                if (ibus_rvalid == 1'b1 && ibus_rready == 1'b1 && ibus_rlast == 1'b1) begin
-                    I_RD_next_state <= `I_RD_FINISH;
+            `I_R_SHAKE4:begin
+                if (inst_rvalid == 1'b1 && inst_rready == 1'b1 && inst_rlast == 1'b1) begin
+                    I_RD_nextstate = `I_R_FINISH;
                 end
                 else begin
-                    I_RD_next_state <= `I_RD_WAIT4;
+                    I_RD_nextstate = `I_R_SHAKE4;
                 end
             end
-            `I_RD_FINISH: begin
-                I_RD_next_state     <= `I_RD_EMPTY;
+            `I_R_FINISH: begin
+                I_RD_nextstate     = `I_RD_IDLE;
             end
             default:begin
-                I_RD_next_state     <= `I_RD_EMPTY;
+                I_RD_nextstate     = `I_RD_IDLE;
             end
         endcase
     end
 
     // araddr & arvalid
-    assign ibus_arvalid = (I_RD_pre_state == `I_RD_RECREQ) ? 1'b1 : 1'b0;
-    assign ibus_araddr  = (I_RD_pre_state == `I_RD_RECREQ) ? I_RD_Addr : 32'b0;
+    assign inst_arvalid = (I_RD_state == `I_AR_SHAKE) ? 1'b1 : 1'b0;
+    assign inst_araddr  = (I_RD_state == `I_AR_SHAKE) ? I_RD_Addr : 32'b0;
 
     // rready 
-    assign ibus_rready = (I_RD_pre_state == `I_RD_WAIT1 || I_RD_pre_state == `I_RD_WAIT2 
-                 || I_RD_pre_state == `I_RD_WAIT3 || I_RD_pre_state == `I_RD_WAIT4) ? 1'b1 : 1'b0;
+    assign inst_rready = (I_RD_state == `I_R_SHAKE1 || I_RD_state == `I_R_SHAKE2 
+                 || I_RD_state == `I_R_SHAKE3 || I_RD_state == `I_R_SHAKE4) ? 1'b1 : 1'b0;
 
     //ret_valid & ret_rdata
-    assign icache_ret_valid = (I_RD_pre_state == `I_RD_FINISH) ? 1'b1 : 1'b0;
-    assign icache_ret_data  = (I_RD_pre_state == `I_RD_FINISH) ? AXI_I_RData : 0;
+    assign icache_ret_valid = (I_RD_state == `I_R_FINISH) ? 1'b1 : 1'b0;
+    assign icache_ret_data  = (I_RD_state == `I_R_FINISH) ? AXI_I_RData : 0;
 
     // AXI burst
     always @(posedge clk) begin
         if (~resetn) begin
             AXI_I_RData  <= 128'b0; 
         end 
-        else if(I_RD_pre_state == `I_RD_EMPTY) begin
+        else if(I_RD_state == `I_RD_IDLE) begin
             AXI_I_RData  <= 128'b0; 
         end
         else if (I_RD_DataReady != 3'd0) begin
             case (I_RD_DataReady)
                 3'd1:begin
-                    AXI_I_RData[31:0]   <= ibus_rdata;
+                    AXI_I_RData[31:0]   <= inst_rdata;
                 end
                 3'd2:begin
-                    AXI_I_RData[63:32]  <= ibus_rdata;
+                    AXI_I_RData[63:32]  <= inst_rdata;
                 end
                 3'd3:begin
-                    AXI_I_RData[95:64]  <= ibus_rdata;
+                    AXI_I_RData[95:64]  <= inst_rdata;
                 end
                 3'd4:begin
-                    AXI_I_RData[127:96] <= ibus_rdata;
+                    AXI_I_RData[127:96] <= inst_rdata;
                 end
                 default:
                     AXI_I_RData <= AXI_I_RData;
@@ -1229,111 +1226,111 @@ module AXI_Interface(
 // FSM -- Dcache RD 
     always @(posedge clk) begin
         if (~resetn) begin
-            D_RD_pre_state  <= `D_RD_EMPTY;
+            D_RD_state  <= `D_RD_IDLE;
         end 
         else begin  
-            D_RD_pre_state <= D_RD_next_state;
+            D_RD_state <= D_RD_nextstate;
         end
     end
 
     assign D_RD_DataReady = 
-        (D_RD_pre_state == `D_RD_WAIT1 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd1 :
-        (D_RD_pre_state == `D_RD_WAIT2 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd2 :
-        (D_RD_pre_state == `D_RD_WAIT3 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd3 :
-        (D_RD_pre_state == `D_RD_WAIT4 && dbus_rvalid == 1'b1 && dbus_rready == 1'b1) ? 3'd4 : 
+        (D_RD_state == `D_R_SHAKE1 && data_rvalid == 1'b1 && data_rready == 1'b1) ? 3'd1 :
+        (D_RD_state == `D_R_SHAKE2 && data_rvalid == 1'b1 && data_rready == 1'b1) ? 3'd2 :
+        (D_RD_state == `D_R_SHAKE3 && data_rvalid == 1'b1 && data_rready == 1'b1) ? 3'd3 :
+        (D_RD_state == `D_R_SHAKE4 && data_rvalid == 1'b1 && data_rready == 1'b1) ? 3'd4 : 
                                                                                         3'd0 ;
     always @(*) begin
-        case (D_RD_pre_state)
-            `D_RD_EMPTY:begin
+        case (D_RD_state)
+            `D_RD_IDLE:begin
                 if (dcache_rd_req == 1'b1) begin
-                    D_RD_next_state <= `D_RD_RECREQ;
+                    D_RD_nextstate = `D_AR_SHAKE;
                 end
                 else begin
-                    D_RD_next_state <= `D_RD_EMPTY;
+                    D_RD_nextstate = `D_RD_IDLE;
                 end
             end
-            `D_RD_RECREQ:begin
-                if (dbus_arvalid == 1'b1 && dbus_arready == 1'b1) begin
-                    D_RD_next_state <= `D_RD_WAIT1;
+            `D_AR_SHAKE:begin
+                if (data_arvalid == 1'b1 && data_arready == 1'b1) begin
+                    D_RD_nextstate = `D_R_SHAKE1;
                 end else begin
-                    D_RD_next_state <= `D_RD_RECREQ;
+                    D_RD_nextstate = `D_AR_SHAKE;
 
                 end
             end
-            `D_RD_WAIT1:begin
-                if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
-                    D_RD_next_state <= `D_RD_WAIT2;
+            `D_R_SHAKE1:begin
+                if (data_rvalid == 1'b1 && data_rready == 1'b1) begin
+                    D_RD_nextstate = `D_R_SHAKE2;
                 end
                 else begin
-                    D_RD_next_state <= `D_RD_WAIT1;
+                    D_RD_nextstate = `D_R_SHAKE1;
                 end
             end
-            `D_RD_WAIT2:begin
-                if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
-                    D_RD_next_state <= `D_RD_WAIT3;
+            `D_R_SHAKE2:begin
+                if (data_rvalid == 1'b1 && data_rready == 1'b1) begin
+                    D_RD_nextstate = `D_R_SHAKE3;
                 end
                 else begin
-                    D_RD_next_state <= `D_RD_WAIT2;
+                    D_RD_nextstate = `D_R_SHAKE2;
                 end
             end
-            `D_RD_WAIT3:begin
-                if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1) begin
-                    D_RD_next_state <= `D_RD_WAIT4;
+            `D_R_SHAKE3:begin
+                if (data_rvalid == 1'b1 && data_rready == 1'b1) begin
+                    D_RD_nextstate = `D_R_SHAKE4;
                 end
                 else begin
-                    D_RD_next_state <= `D_RD_WAIT3;
+                    D_RD_nextstate = `D_R_SHAKE3;
                 end
             end
-            `D_RD_WAIT4:begin
-                if (dbus_rvalid == 1'b1 && dbus_rready == 1'b1 && dbus_rlast == 1'b1) begin
-                    D_RD_next_state <= `D_RD_FINISH;
+            `D_R_SHAKE4:begin
+                if (data_rvalid == 1'b1 && data_rready == 1'b1 && data_rlast == 1'b1) begin
+                    D_RD_nextstate = `D_R_FINISH;
                 end
                 else begin
-                    D_RD_next_state <= `D_RD_WAIT4;
+                    D_RD_nextstate = `D_R_SHAKE4;
                 end
             end
-            `D_RD_FINISH: begin
-                D_RD_next_state     <= `D_RD_EMPTY;
+            `D_R_FINISH: begin
+                D_RD_nextstate     = `D_RD_IDLE;
             end
             default:begin
-                D_RD_next_state     <= `D_RD_EMPTY;                
+                D_RD_nextstate     = `D_RD_IDLE;                
             end
 
         endcase
     end
 
     // araddr & arvalid
-    assign dbus_arvalid = (D_RD_pre_state == `D_RD_RECREQ) ? 1'b1 : 1'b0;
-    assign dbus_araddr  = (D_RD_pre_state == `D_RD_RECREQ) ? D_RD_Addr : 32'b0;
+    assign data_arvalid = (D_RD_state == `D_AR_SHAKE) ? 1'b1 : 1'b0;
+    assign data_araddr  = (D_RD_state == `D_AR_SHAKE) ? D_RD_Addr : 32'b0;
 
-    assign dbus_rready = (D_RD_pre_state == `D_RD_WAIT1 || D_RD_pre_state == `D_RD_WAIT2 
-    || D_RD_pre_state == `D_RD_WAIT3 ||D_RD_pre_state == `D_RD_WAIT4) ? 1'b1 : 1'b0;
+    assign data_rready = (D_RD_state == `D_R_SHAKE1 || D_RD_state == `D_R_SHAKE2 
+    || D_RD_state == `D_R_SHAKE3 ||D_RD_state == `D_R_SHAKE4) ? 1'b1 : 1'b0;
 
     //ret_valid & ret_rdata
-    assign dcache_ret_valid = (D_RD_pre_state == `D_RD_FINISH) ? 1'b1 : 1'b0;
-    assign dcache_ret_data  = (D_RD_pre_state == `D_RD_FINISH) ? AXI_D_RData : 0;
+    assign dcache_ret_valid = (D_RD_state == `D_R_FINISH) ? 1'b1 : 1'b0;
+    assign dcache_ret_data  = (D_RD_state == `D_R_FINISH) ? AXI_D_RData : 0;
 
     // AXI burst
     always @(posedge clk) begin
         if (~resetn) begin
             AXI_D_RData  <= 128'b0; 
         end 
-        else if(D_RD_pre_state == `D_RD_EMPTY) begin
+        else if(D_RD_state == `D_RD_IDLE) begin
             AXI_D_RData  <= 128'b0; 
         end
         else if (D_RD_DataReady != 3'd0) begin
             case (D_RD_DataReady)
                 3'd1:begin
-                    AXI_D_RData[31:0]   <= dbus_rdata;
+                    AXI_D_RData[31:0]   <= data_rdata;
                 end
                 3'd2:begin
-                    AXI_D_RData[63:32]  <= dbus_rdata;
+                    AXI_D_RData[63:32]  <= data_rdata;
                 end
                 3'd3:begin
-                    AXI_D_RData[95:64]  <= dbus_rdata;
+                    AXI_D_RData[95:64]  <= data_rdata;
                 end
                 3'd4:begin
-                    AXI_D_RData[127:96] <= dbus_rdata;
+                    AXI_D_RData[127:96] <= data_rdata;
                 end
                 default:
                     AXI_D_RData <= AXI_D_RData; 
@@ -1343,265 +1340,265 @@ module AXI_Interface(
 // FSM -- Dcache WR
     always @(posedge clk) begin
         if (~resetn) begin
-            D_WR_pre_state  <= `D_WR_EMPTY;
+            D_WR_state  <= `D_WR_IDLE;
         end 
         else begin  
-            D_WR_pre_state <= D_WR_next_state;
+            D_WR_state <= D_WR_nextstate;
         end
     end
 
     //valid & wdata
-    assign dbus_wdata = (D_WR_pre_state == `D_WR_WAIT1) ? AXI_D_WData[31:0] :
-                        (D_WR_pre_state == `D_WR_WAIT2) ? AXI_D_WData[63:32] :
-                        (D_WR_pre_state == `D_WR_WAIT3) ? AXI_D_WData[95:64] :
-                        (D_WR_pre_state == `D_WR_WAIT4) ? AXI_D_WData[127:96] :
+    assign data_wdata = (D_WR_state == `D_W_SHAKE1) ? AXI_D_WData[31:0] :
+                        (D_WR_state == `D_W_SHAKE2) ? AXI_D_WData[63:32] :
+                        (D_WR_state == `D_W_SHAKE3) ? AXI_D_WData[95:64] :
+                        (D_WR_state == `D_W_SHAKE4) ? AXI_D_WData[127:96] :
                                                           32'b0; 
-    assign dbus_wlast = (D_WR_pre_state == `D_WR_WAIT4) ? 1'b1 : 1'b0;
+    assign data_wlast = (D_WR_state == `D_W_SHAKE4) ? 1'b1 : 1'b0;
     always @(*) begin
-        case (D_WR_pre_state)
-            `D_WR_EMPTY:begin
+        case (D_WR_state)
+            `D_WR_IDLE:begin
                 if (dcache_wr_req == 1'b1) begin
-                    D_WR_next_state <= `D_WR_RECREQ;
+                    D_WR_nextstate = `D_AW_SHAKE;
                 end
                 else begin
-                    D_WR_next_state <= `D_WR_EMPTY;
+                    D_WR_nextstate = `D_WR_IDLE;
                 end
             end
-            `D_WR_RECREQ:begin
-                if (dbus_awready == 1'b1) begin
-                    D_WR_next_state <= `D_WR_WAIT1;
+            `D_AW_SHAKE:begin
+                if (data_awready == 1'b1) begin
+                    D_WR_nextstate = `D_W_SHAKE1;
                 end else begin
-                    D_WR_next_state <= `D_WR_RECREQ;
+                    D_WR_nextstate = `D_AW_SHAKE;
                 end
             end
-            `D_WR_WAIT1:begin
-                if ( dbus_wready == 1'b1) begin
-                    D_WR_next_state <= `D_WR_WAIT2;
+            `D_W_SHAKE1:begin
+                if ( data_wready == 1'b1) begin
+                    D_WR_nextstate = `D_W_SHAKE2;
                 end
                 else begin
-                    D_WR_next_state <= `D_WR_WAIT1;
+                    D_WR_nextstate = `D_W_SHAKE1;
                 end
             end
-            `D_WR_WAIT2:begin
-                if (dbus_wready == 1'b1) begin
-                    D_WR_next_state <= `D_WR_WAIT3;
+            `D_W_SHAKE2:begin
+                if (data_wready == 1'b1) begin
+                    D_WR_nextstate = `D_W_SHAKE3;
                 end
                 else begin
-                    D_WR_next_state <= `D_WR_WAIT2;
+                    D_WR_nextstate = `D_W_SHAKE2;
                 end
             end
-            `D_WR_WAIT3:begin
-                if (dbus_wready == 1'b1) begin
-                    D_WR_next_state <= `D_WR_WAIT4;
+            `D_W_SHAKE3:begin
+                if (data_wready == 1'b1) begin
+                    D_WR_nextstate = `D_W_SHAKE4;
                 end
                 else begin
-                    D_WR_next_state <= `D_WR_WAIT3;
+                    D_WR_nextstate = `D_W_SHAKE3;
                 end
             end
-            `D_WR_WAIT4:begin
-                if (dbus_wready == 1'b1) begin
-                    D_WR_next_state <= `D_WR_S;
+            `D_W_SHAKE4:begin
+                if (data_wready == 1'b1) begin
+                    D_WR_nextstate = `D_B_SHAKE;
                 end
                 else begin
-                    D_WR_next_state <= `D_WR_WAIT4;
+                    D_WR_nextstate = `D_W_SHAKE4;
                 end
             end
-            `D_WR_S: begin
-                if (dbus_bvalid == 1'b1) begin
-                    D_WR_next_state <= `D_WR_FINISH;
+            `D_B_SHAKE: begin
+                if (data_bvalid == 1'b1) begin
+                    D_WR_nextstate = `D_B_FINISH;
                 end
                else begin
-                    D_WR_next_state <= `D_WR_S;
+                    D_WR_nextstate = `D_B_SHAKE;
                 end
             end
-            `D_WR_FINISH: begin
-                D_WR_next_state <= `D_WR_EMPTY;
+            `D_B_FINISH: begin
+                D_WR_nextstate = `D_WR_IDLE;
             end
             default:begin
-                D_WR_next_state <= `D_WR_EMPTY;
+                D_WR_nextstate = `D_WR_IDLE;
             end
         endcase
     end
 
     // awaddr & awvalid
-    assign dbus_awvalid = (D_WR_pre_state == `D_WR_RECREQ) ? 1'b1: 1'b0;
-    assign dbus_awaddr  = (D_WR_pre_state == `D_WR_RECREQ) ? D_WR_Addr : 32'b0;
+    assign data_awvalid = (D_WR_state == `D_AW_SHAKE) ? 1'b1: 1'b0;
+    assign data_awaddr  = (D_WR_state == `D_AW_SHAKE) ? D_WR_Addr : 32'b0;
 
     // wvalid 
-    assign dbus_wvalid = (D_WR_pre_state == `D_WR_WAIT1 || D_WR_pre_state == `D_WR_WAIT2 
-        || D_WR_pre_state == `D_WR_WAIT3 || D_WR_pre_state == `D_WR_WAIT4) ? 1'b1 : 1'b0;
+    assign data_wvalid = (D_WR_state == `D_W_SHAKE1 || D_WR_state == `D_W_SHAKE2 
+        || D_WR_state == `D_W_SHAKE3 || D_WR_state == `D_W_SHAKE4) ? 1'b1 : 1'b0;
 
-    assign dcache_wr_valid = (D_WR_pre_state == `D_WR_FINISH) ? 1'b1 : 1'b0;
+    assign dcache_wr_valid = (D_WR_state == `D_B_FINISH) ? 1'b1 : 1'b0;
 
 // FSM -- Uncache RD 
     always @(posedge clk) begin
         if (~resetn) begin
-            U_RD_pre_state  <= `U_RD_EMPTY;
+            U_RD_state  <= `UD_RD_IDLE;
         end 
         else begin  
-            U_RD_pre_state  <= U_RD_next_state;
+            U_RD_state  <= U_RD_nextstate;
         end
     end
 
     always @(*) begin
-        case (U_RD_pre_state)
-            `U_RD_EMPTY:begin
+        case (U_RD_state)
+            `UD_RD_IDLE:begin
                 if (udcache_rd_req == 1'b1) begin
-                    U_RD_next_state <= `U_RD_RECREQ;
+                    U_RD_nextstate = `UD_AR_SHAKE;
                 end
                 else begin
-                    U_RD_next_state <= `U_RD_EMPTY;
+                    U_RD_nextstate = `UD_RD_IDLE;
                 end
             end
-            `U_RD_RECREQ:begin
-                if (ubus_arvalid == 1'b1 && ubus_arready == 1'b1) begin
-                    U_RD_next_state <= `U_RD_WAIT1;
+            `UD_AR_SHAKE:begin
+                if (udata_arvalid == 1'b1 && udata_arready == 1'b1) begin
+                    U_RD_nextstate = `UD_R_SHAKE;
                 end else begin
-                    U_RD_next_state <= `U_RD_RECREQ;
+                    U_RD_nextstate = `UD_AR_SHAKE;
                 end
             end
-            `U_RD_WAIT1:begin
-                if (ubus_rvalid == 1'b1 && ubus_rready == 1'b1 && ubus_rlast == 1'b1) begin
-                    U_RD_next_state <= `U_RD_FINISH;
+            `UD_R_SHAKE:begin
+                if (udata_rvalid == 1'b1 && udata_rready == 1'b1 && udata_rlast == 1'b1) begin
+                    U_RD_nextstate = `UD_R_FINISH;
                 end
                 else begin
-                    U_RD_next_state <= `U_RD_WAIT1;
+                    U_RD_nextstate = `UD_R_SHAKE;
                 end
             end
-            `U_RD_FINISH: begin
-                U_RD_next_state     <= `U_RD_EMPTY;
+            `UD_R_FINISH: begin
+                U_RD_nextstate     = `UD_RD_IDLE;
             end
             default:begin
-                U_RD_next_state     <= `U_RD_EMPTY;                
+                U_RD_nextstate     = `UD_RD_IDLE;                
             end
         endcase
     end
 
     // araddr & arvalid
-    assign ubus_arvalid = (U_RD_pre_state == `U_RD_RECREQ) ? 1'b1 : 1'b0;
-    assign ubus_araddr  = (U_RD_pre_state == `U_RD_RECREQ) ? U_RD_Addr : 32'b0;
+    assign udata_arvalid = (U_RD_state == `UD_AR_SHAKE) ? 1'b1 : 1'b0;
+    assign udata_araddr  = (U_RD_state == `UD_AR_SHAKE) ? U_RD_Addr : 32'b0;
 
     // rready 
-    assign ubus_rready = (U_RD_pre_state == `U_RD_WAIT1) ? 1'b1 : 1'b0;
+    assign udata_rready = (U_RD_state == `UD_R_SHAKE) ? 1'b1 : 1'b0;
 
     //ret_valid & ret_rdata
-    assign udcache_ret_valid = (U_RD_pre_state == `U_RD_FINISH) ? 1'b1 : 1'b0;
-    assign udcache_ret_data  = (U_RD_pre_state == `U_RD_FINISH) ? AXI_U_RData : 0;
+    assign udcache_ret_valid = (U_RD_state == `UD_R_FINISH) ? 1'b1 : 1'b0;
+    assign udcache_ret_data  = (U_RD_state == `UD_R_FINISH) ? AXI_U_RData : 0;
 
     always @(posedge clk) begin
         if (~resetn) begin
             AXI_U_RData  <= 32'b0; 
         end 
         else begin
-            AXI_U_RData[31:0] <= ubus_rdata;
+            AXI_U_RData[31:0] <= udata_rdata;
         end 
     end
 
 // FSM -- Uncache WR
     always @(posedge clk) begin
         if (~resetn) begin
-            U_WR_pre_state  <= `U_WR_EMPTY;
+            U_WR_state  <= `UD_WR_IDLE;
         end 
         else begin  
-            U_WR_pre_state  <= U_WR_next_state;
+            U_WR_state  <= U_WR_nextstate;
         end
     end
 
-    assign ubus_wlast = (U_WR_pre_state == `U_WR_WAIT1) ? 1'b1 : 1'b0;
+    assign udata_wlast = (U_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;
     always @(*) begin
-        case (U_WR_pre_state)
-            `U_WR_EMPTY:begin
+        case (U_WR_state)
+            `UD_WR_IDLE:begin
                 if (udcache_wr_req == 1'b1) begin
-                    U_WR_next_state <= `U_WR_RECREQ;
+                    U_WR_nextstate = `UD_AW_SHAKE;
                 end
                 else begin
-                    U_WR_next_state <= `U_WR_EMPTY;
+                    U_WR_nextstate = `UD_WR_IDLE;
                 end
             end
-            `U_WR_RECREQ:begin
-                if (ubus_awready == 1'b1) begin
-                    U_WR_next_state <= `U_WR_WAIT1;
+            `UD_AW_SHAKE:begin
+                if (udata_awready == 1'b1) begin
+                    U_WR_nextstate = `UD_W_SHAKE;
                 end else begin
-                    U_WR_next_state <= `U_WR_RECREQ;
+                    U_WR_nextstate = `UD_AW_SHAKE;
                 end
             end
-            `U_WR_WAIT1:begin
-                if (ubus_wready == 1'b1) begin
-                    U_WR_next_state <= `U_WR_S;
+            `UD_W_SHAKE:begin
+                if (udata_wready == 1'b1) begin
+                    U_WR_nextstate = `UD_B_SHAKE;
                 end
                 else begin
-                    U_WR_next_state <= `U_WR_WAIT1;
+                    U_WR_nextstate = `UD_W_SHAKE;
                 end
             end
-            `U_WR_S: begin
-                if (ubus_bvalid == 1'b1) begin
-                    U_WR_next_state <= `U_WR_FINISH;
+            `UD_B_SHAKE: begin
+                if (udata_bvalid == 1'b1) begin
+                    U_WR_nextstate = `UD_B_FINISH;
                 end
                else begin
-                    U_WR_next_state <= `U_WR_S;
+                    U_WR_nextstate = `UD_B_SHAKE;
                 end
             end
-            `U_WR_FINISH: begin
-                U_WR_next_state <= `U_WR_EMPTY;
+            `UD_B_FINISH: begin
+                U_WR_nextstate = `UD_WR_IDLE;
             end
             default:begin
-                U_WR_next_state <= `U_WR_EMPTY;
+                U_WR_nextstate = `UD_WR_IDLE;
             end
         endcase
     end
-    assign ubus_wdata = AXI_U_WData[31:0];
+    assign udata_wdata = AXI_U_WData[31:0];
     // awaddr & awvalid
-    assign ubus_awvalid = (U_WR_pre_state == `U_WR_RECREQ) ? 1'b1 : 1'b0;
-    assign ubus_awaddr  = (U_WR_pre_state == `U_WR_RECREQ) ? U_WR_Addr : 0;
+    assign udata_awvalid = (U_WR_state == `UD_AW_SHAKE) ? 1'b1 : 1'b0;
+    assign udata_awaddr  = (U_WR_state == `UD_AW_SHAKE) ? U_WR_Addr : 0;
 
     // wvalid 
-    assign ubus_wvalid = (U_WR_pre_state == `U_WR_WAIT1) ? 1'b1 : 1'b0;
+    assign udata_wvalid = (U_WR_state == `UD_W_SHAKE) ? 1'b1 : 1'b0;
 
     // wr_valid
-    assign udcache_wr_valid = (U_WR_pre_state == `U_WR_FINISH) ? 1'b1 : 1'b0;
+    assign udcache_wr_valid = (U_WR_state == `UD_B_FINISH) ? 1'b1 : 1'b0;
 
     axi_crossbar U_axi_crossbar (
         .aclk             ( clk     ),
         .aresetn          ( resetn        ),
         
-        .s_axi_arid       ( {ibus_arid   ,dbus_arid    ,ubus_arid   } ),
-        .s_axi_araddr     ( {ibus_araddr ,dbus_araddr  ,ubus_araddr } ),
-        .s_axi_arlen      ( {ibus_arlen  ,dbus_arlen   ,ubus_arlen  } ),
-        .s_axi_arsize     ( {ibus_arsize ,dbus_arsize  ,ubus_arsize } ),
-        .s_axi_arburst    ( {ibus_arburst,dbus_arburst ,ubus_arburst} ),
-        .s_axi_arlock     ( {ibus_arlock ,dbus_arlock  ,ubus_arlock } ),
-        .s_axi_arcache    ( {ibus_arcache,dbus_arcache ,ubus_arcache} ),
-        .s_axi_arprot     ( {ibus_arprot ,dbus_arprot  ,ubus_arprot } ),
+        .s_axi_arid       ( {inst_arid   ,data_arid    ,udata_arid   } ),
+        .s_axi_araddr     ( {inst_araddr ,data_araddr  ,udata_araddr } ),
+        .s_axi_arlen      ( {inst_arlen  ,data_arlen   ,udata_arlen  } ),
+        .s_axi_arsize     ( {inst_arsize ,data_arsize  ,udata_arsize } ),
+        .s_axi_arburst    ( {inst_arburst,data_arburst ,udata_arburst} ),
+        .s_axi_arlock     ( {inst_arlock ,data_arlock  ,udata_arlock } ),
+        .s_axi_arcache    ( {inst_arcache,data_arcache ,udata_arcache} ),
+        .s_axi_arprot     ( {inst_arprot ,data_arprot  ,udata_arprot } ),
         .s_axi_arqos      ( 0                                         ),
-        .s_axi_arvalid    ( {ibus_arvalid,dbus_arvalid ,ubus_arvalid} ),
-        .s_axi_arready    ( {ibus_arready,dbus_arready ,ubus_arready} ),
-        .s_axi_rid        ( {ibus_rid    ,dbus_rid     ,ubus_rid    } ),
-        .s_axi_rdata      ( {ibus_rdata  ,dbus_rdata   ,ubus_rdata  } ),
-        .s_axi_rresp      ( {ibus_rresp  ,dbus_rresp   ,ubus_rresp  } ),
-        .s_axi_rlast      ( {ibus_rlast  ,dbus_rlast   ,ubus_rlast  } ),
-        .s_axi_rvalid     ( {ibus_rvalid ,dbus_rvalid  ,ubus_rvalid } ),
-        .s_axi_rready     ( {ibus_rready ,dbus_rready  ,ubus_rready } ),
-        .s_axi_awid       ( {ibus_awid   ,dbus_awid    ,ubus_awid   } ),
-        .s_axi_awaddr     ( {ibus_awaddr ,dbus_awaddr  ,ubus_awaddr } ),
-        .s_axi_awlen      ( {ibus_awlen  ,dbus_awlen   ,ubus_awlen  } ),
-        .s_axi_awsize     ( {ibus_awsize ,dbus_awsize  ,ubus_awsize } ),
-        .s_axi_awburst    ( {ibus_awburst,dbus_awburst ,ubus_awburst} ),
-        .s_axi_awlock     ( {ibus_awlock ,dbus_awlock  ,ubus_awlock } ),
-        .s_axi_awcache    ( {ibus_awcache,dbus_awcache ,ubus_awcache} ),
-        .s_axi_awprot     ( {ibus_awprot ,dbus_awprot  ,ubus_awprot } ),
+        .s_axi_arvalid    ( {inst_arvalid,data_arvalid ,udata_arvalid} ),
+        .s_axi_arready    ( {inst_arready,data_arready ,udata_arready} ),
+        .s_axi_rid        ( {inst_rid    ,data_rid     ,udata_rid    } ),
+        .s_axi_rdata      ( {inst_rdata  ,data_rdata   ,udata_rdata  } ),
+        .s_axi_rresp      ( {inst_rresp  ,data_rresp   ,udata_rresp  } ),
+        .s_axi_rlast      ( {inst_rlast  ,data_rlast   ,udata_rlast  } ),
+        .s_axi_rvalid     ( {inst_rvalid ,data_rvalid  ,udata_rvalid } ),
+        .s_axi_rready     ( {inst_rready ,data_rready  ,udata_rready } ),
+        .s_axi_awid       ( {inst_awid   ,data_awid    ,udata_awid   } ),
+        .s_axi_awaddr     ( {inst_awaddr ,data_awaddr  ,udata_awaddr } ),
+        .s_axi_awlen      ( {inst_awlen  ,data_awlen   ,udata_awlen  } ),
+        .s_axi_awsize     ( {inst_awsize ,data_awsize  ,udata_awsize } ),
+        .s_axi_awburst    ( {inst_awburst,data_awburst ,udata_awburst} ),
+        .s_axi_awlock     ( {inst_awlock ,data_awlock  ,udata_awlock } ),
+        .s_axi_awcache    ( {inst_awcache,data_awcache ,udata_awcache} ),
+        .s_axi_awprot     ( {inst_awprot ,data_awprot  ,udata_awprot } ),
         .s_axi_awqos      ( 0                                         ),
-        .s_axi_awvalid    ( {ibus_awvalid,dbus_awvalid ,ubus_awvalid} ),
-        .s_axi_awready    ( {ibus_awready,dbus_awready ,ubus_awready} ),
-        .s_axi_wid        ( {ibus_wid    ,dbus_wid     ,ubus_wid    } ),
-        .s_axi_wdata      ( {ibus_wdata  ,dbus_wdata   ,ubus_wdata  } ),
-        .s_axi_wstrb      ( {ibus_wstrb  ,dbus_wstrb   ,ubus_wstrb  } ),
-        .s_axi_wlast      ( {ibus_wlast  ,dbus_wlast   ,ubus_wlast  } ),
-        .s_axi_wvalid     ( {ibus_wvalid ,dbus_wvalid  ,ubus_wvalid } ),
-        .s_axi_wready     ( {ibus_wready ,dbus_wready  ,ubus_wready } ),
-        .s_axi_bid        ( {ibus_bid    ,dbus_bid     ,ubus_bid    } ),
-        .s_axi_bresp      ( {ibus_bresp  ,dbus_bresp   ,ubus_bresp  } ),
-        .s_axi_bvalid     ( {ibus_bvalid ,dbus_bvalid  ,ubus_bvalid } ),
-        .s_axi_bready     ( {ibus_bready ,dbus_bready  ,ubus_bready } ),
+        .s_axi_awvalid    ( {inst_awvalid,data_awvalid ,udata_awvalid} ),
+        .s_axi_awready    ( {inst_awready,data_awready ,udata_awready} ),
+        .s_axi_wid        ( {inst_wid    ,data_wid     ,udata_wid    } ),
+        .s_axi_wdata      ( {inst_wdata  ,data_wdata   ,udata_wdata  } ),
+        .s_axi_wstrb      ( {inst_wstrb  ,data_wstrb   ,udata_wstrb  } ),
+        .s_axi_wlast      ( {inst_wlast  ,data_wlast   ,udata_wlast  } ),
+        .s_axi_wvalid     ( {inst_wvalid ,data_wvalid  ,udata_wvalid } ),
+        .s_axi_wready     ( {inst_wready ,data_wready  ,udata_wready } ),
+        .s_axi_bid        ( {inst_bid    ,data_bid     ,udata_bid    } ),
+        .s_axi_bresp      ( {inst_bresp  ,data_bresp   ,udata_bresp  } ),
+        .s_axi_bvalid     ( {inst_bvalid ,data_bvalid  ,udata_bvalid } ),
+        .s_axi_bready     ( {inst_bready ,data_bready  ,udata_bready } ),
         
         .m_axi_arid       (arid          ),
         .m_axi_araddr     (araddr        ),

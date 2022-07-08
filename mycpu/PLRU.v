@@ -8,7 +8,7 @@ module PLRU #(
     input                          reset,
     input [ASSOC_NUM-1:0]          delayed_hit, 
     input                          update,  
-    output [$clog2(ASSOC_NUM)-1:0] plru  //±íÊ¾Ìæ»»ÄÄÒ»Â·
+    output [$clog2(ASSOC_NUM)-1:0] plru  //è¡¨ç¤ºæ›¿æ¢å“ªä¸€è·¯
 );
 
 reg [ASSOC_NUM-2:0] state; 
@@ -23,49 +23,51 @@ end
 endgenerate
 
 generate
-if(ASSOC_NUM == 2) begin
-    always @(*) begin
-        nextstate = state;
-
-        if(update && |delayed_hit) begin
-            if(delayed_hit[0]) begin
-                nextstate[0] = 1'b1;//Èç¹ûÕâ´ÎÃüÖĞµÄÊÇµÚ0Â· ÄÇÃ´ÏÂ´Î²»ÃüÖĞµÄÊ±ºòÌæ»»µÄ¾ÍÊÇ1Â·
-            end else begin
-                nextstate[0] = 1'b0;
+    if(ASSOC_NUM == 2) begin
+        always @(*) begin
+            nextstate = state;
+            if(update && |delayed_hit) begin
+                if(delayed_hit[0]) begin
+                    nextstate[0] = 1'b1;//å¦‚æœè¿™æ¬¡å‘½ä¸­çš„æ˜¯ç¬¬0è·¯ é‚£ä¹ˆä¸‹æ¬¡ä¸å‘½ä¸­çš„æ—¶å€™æ›¿æ¢çš„å°±æ˜¯1è·¯
+                end 
+                else begin
+                    nextstate[0] = 1'b0;
+                end
             end
         end
-    end
-end 
-else begin //¸Ğ¾õĞ´µÄÓĞÎÊÌâ
-    always @(*) begin
-        nextstate = state;    //ºÃÏ°¹ß°¡
-
-        casez(delayed_hit)
-            4'b1???: begin
-                nextstate[2] = 1'b0;
-                nextstate[0] = 1'b0;
-            end
-            4'b01??: begin
-                nextstate[2] = 1'b0;
-                nextstate[0] = 1'b1;
-            end
-            4'b001?: begin
-                nextstate[2] = 1'b1;
-                nextstate[1] = 1'b0;
-            end
-            4'b0001: begin
-                nextstate[2] = 1'b1;
-                nextstate[1] = 1'b1;
-            end
-        endcase
-    end
-end 
+    end 
+    else begin //ASSOC_NUM == 4
+        always @(*) begin
+            nextstate = state;
+            case(delayed_hit)
+                4'b1000: begin
+                    nextstate[2] = 1'b0;
+                    nextstate[0] = 1'b0;
+                end
+                4'b0100: begin
+                    nextstate[2] = 1'b0;
+                    nextstate[0] = 1'b1;
+                end
+                4'b0010: begin
+                    nextstate[2] = 1'b1;
+                    nextstate[1] = 1'b0;
+                end
+                4'b0001: begin
+                    nextstate[2] = 1'b1;
+                    nextstate[1] = 1'b1;
+                end
+                default:
+                    nextstate    = state;
+            endcase
+        end
+    end 
 endgenerate
 
 always @(posedge clk) begin
     if(reset) begin
         state <= 0;
-    end else if(update) begin
+    end 
+    else if(update) begin
         state <= nextstate;
     end
 end

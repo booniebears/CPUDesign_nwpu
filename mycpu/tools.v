@@ -1,4 +1,4 @@
-//这里面都是译码器
+//杩欓噷闈㈤兘鏄瘧鐮佸櫒
 module decoder_5_32(
     input  [ 4:0] in,
     output [31:0] out
