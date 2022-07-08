@@ -21,7 +21,6 @@ module pre_if_stage(
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
     //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
-    output reg [31:0]              prefs_pc,
     output reg                     inst_valid //
 );
 
@@ -36,6 +35,7 @@ wire [ 4:0]  ps_Exctype;
 //PC_reg
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
+reg   [31:0] prefs_pc;
 reg          flush_delayed;
 
 wire         br_taken;

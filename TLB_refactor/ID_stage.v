@@ -30,14 +30,11 @@ module id_stage(
     input        flush, //flush=1时表明需要处理异常
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
-  //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
     input        CP0_Status_IE_out, //IE=1,全局中断使能开启
     input        CP0_Status_EXL_out, //EXL=0,没有例外正在处理
     input [ 7:0] CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
-    output       mfc0_stall,   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    output       ds_ex,         //输出例外信号给PREIF阶段
     input        icache_busy,
     input        dcache_busy
 );
@@ -59,7 +56,7 @@ wire [4:0]  temp_Exctype; //临时用来承接来自IF的fs_ExcCode信号
 //处理例外 Sys,Bp和RI
 wire [ 4:0] ds_Exctype; //例外编码
 wire        inst_defined; //该指令已经被指令集定义过
-// wire        ds_ex; //ID阶段 发现异常则置为1
+wire        ds_ex; //ID阶段 发现异常则置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 
 assign {
@@ -86,7 +83,6 @@ wire        src1_is_sa;
 wire        src1_is_pc;
 wire [ 1:0] src2_is_imm; //lab6修改 要处理零扩展和有符号扩展
 wire        src2_is_8;
-// wire        res_from_mem;
 wire        gr_we;
 wire        mem_we;
 wire [ 4:0] dest;
@@ -225,13 +221,14 @@ wire [31:0] rf_rdata2;
 wire        rs_eq_rt; //rs==rt
 
 //lab4添加
-wire rs_wait;
-wire rt_wait;
-wire inst_no_dest; //指令用不着写RF时为1,否则为0
-wire src1_no_rs;    //指令 rs 域非 0，且不是从寄存器堆读 rs 的数据
-wire src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt 的数据
-wire load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
-wire br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
+wire        rs_wait;
+wire        rt_wait;
+wire        inst_no_dest; //指令用不着写RF时为1,否则为0
+wire        src1_no_rs;    //指令 rs 域非 0，且不是从寄存器堆读 rs 的数据
+wire        src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt 的数据
+wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停
+wire        mfc0_stall; 
+wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
 //lab7添加 用于辅助判断b型指令的跳转状况
 wire        rsgez;
@@ -658,13 +655,6 @@ assign br_taken =  (  inst_beq  &  rs_eq_rt
                    || inst_bgezal & rsgez
                    || inst_bltzal & rsltz
                    ) & ds_valid; 
-
-// always @(posedge clk) begin
-//     if(reset) br_taken_r <= 1'b0;
-//     else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
-//     else if(fs_to_ds_valid) br_taken_r <= 1'b0;
-// end
-// assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
 
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 

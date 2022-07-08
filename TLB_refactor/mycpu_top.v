@@ -1,5 +1,4 @@
 `include "global_defines.vh"
-//第65个测试点失败原因：1.exccode未作对应2.必须引入flush-r，延长flush作用时间，3.mfc0记录旁路
 module mycpu_top(
     // 外部中断信号
     input  [ 5:0]   ext_int, //6个外部硬件中断输入
@@ -86,11 +85,7 @@ wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
 wire         flush_refill;
-wire         ds_ex; 
-wire         es_ex; 
 wire         m1s_ex;
-wire         ms_ex;
-wire         ws_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
 wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
@@ -100,7 +95,6 @@ wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
-wire         mfc0_stall; 
 
 wire         ITLB_found;
 wire  [19:0] ITLB_pfn0;
@@ -170,8 +164,6 @@ wire  [19:0] data_tag;
 wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
-// wire         data_addr_ok; //DCache能够接收CPU发出的valid信号,则置为1(看DCache状态机)
-// wire         data_data_ok;
 wire  [31:0] data_rdata;
 wire         isUncache;
 wire         dcache_busy;
@@ -208,7 +200,7 @@ wire           cp0_to_tlb_g1   ;
 wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
 wire  [31:0]   m1s_alu_result  ;
 /********************TLB-CP0交互信号如上********************/
-wire          TLB_Buffer_Flush;
+wire           TLB_Buffer_Flush;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
@@ -265,7 +257,6 @@ AXI_Interface U_AXI_Interface(
     .dcache_ret_data  (dcache_ret_data  ),
     .dcache_wr_req    (dcache_wr_req    ),
     .dcache_wr_addr   (dcache_wr_addr   ),
-    // .dcache_wr_strb   (dcache_wr_strb ),
     .dcache_wr_data   (dcache_wr_data   ),
     .dcache_wr_rdy    (dcache_wr_rdy    ),
     .dcache_wr_valid  (dcache_wr_valid  ),
@@ -421,8 +412,6 @@ id_stage id_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
-    .mfc0_stall         (mfc0_stall         ),
-    .ds_ex              (ds_ex              ),
     .icache_busy        (icache_busy        ),
     .dcache_busy        (dcache_busy        )
 );
@@ -444,7 +433,6 @@ exe_stage exe_stage(
     .EXE_result      (EXE_result      ),
     .es_load_op      (es_load_op      ),
     .flush           (flush           ),
-    .es_ex           (es_ex           ),
     .m1s_ex          (m1s_ex          ),
     .es_inst_mfc0    (es_inst_mfc0    ),
     .m1s_inst_eret   (m1s_inst_eret   )
@@ -547,8 +535,7 @@ mem_stage mem_stage(
     .ms_to_ws_valid  (ms_to_ws_valid   ),
     .ms_to_ws_bus    (ms_to_ws_bus     ),
     .MEM_dest        (MEM_dest         ), 
-    .MEM_result      (MEM_result       ), 
-    .ms_ex           (ms_ex            )
+    .MEM_result      (MEM_result       ) 
 );
 // WB stage
 wb_stage wb_stage(
@@ -567,8 +554,7 @@ wb_stage wb_stage(
     .debug_wb_rf_wnum (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata(debug_wb_rf_wdata),
     .WB_dest          (WB_dest          ), 
-    .WB_result        (WB_result        ),
-    .ws_ex            (ws_ex            )
+    .WB_result        (WB_result        )
 );
 
 tlb U_tlb(

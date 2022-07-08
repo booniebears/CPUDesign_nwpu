@@ -46,18 +46,6 @@ wire op_msubu;
 wire op_mul;
 wire op_movn;
 wire op_movz;
-wire op_teq;
-wire op_teqi;
-wire op_tne;
-wire op_tnei;
-wire op_tge;
-wire op_tgei;
-wire op_tgeu;
-wire op_tgeiu;
-wire op_tlt;
-wire op_tlti;
-wire op_tltu;
-wire op_tltiu;
 
 // control code decomposition
 assign op_add  = alu_op[ 0];
@@ -89,18 +77,6 @@ assign op_msubu= alu_op[25];
 assign op_mul  = alu_op[26];
 assign op_movn = alu_op[27];
 assign op_movz = alu_op[28];
-assign op_teq  = alu_op[29];
-assign op_teqi = alu_op[30];
-assign op_tne  = alu_op[31];
-assign op_tnei = alu_op[32];
-assign op_tge  = alu_op[33];
-assign op_tgei = alu_op[34];
-assign op_tgeu = alu_op[35];
-assign op_tgeiu= alu_op[36];
-assign op_tlt  = alu_op[37];
-assign op_tlti = alu_op[38];
-assign op_tltu = alu_op[39];
-assign op_tltiu= alu_op[40];
 
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result    ; 
@@ -128,9 +104,7 @@ wire [63:0] msubu_result  ;
 wire [63:0] mul_result    ;
 wire [31:0] movn_result   ;
 wire [31:0] movz_result   ;
-wire [31:0] result_out    ;
 
-reg  [3:0]  trap_op       ;
 
 // 32-bit adder
 wire [31:0] adder_a;
@@ -146,11 +120,11 @@ assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
 
 //lab8添加
 assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //add或者addi
-                    (!alu_src1[31]&&!alu_src2[31]&&adder_result[31] ? 1'b1 : //正数+正数=负数
-                      alu_src1[31]&&alu_src2[31]&&!adder_result[31] ? 1'b1 : 1'b0) : //负数+负数=正数
-                     Overflow_inst[0] ? //sub
-                     (!alu_src1[31]&&alu_src2[31]&&adder_result[31] ? 1'b1 : //正数-负数=负数
-                      alu_src1[31]&&!alu_src2[31]&&!adder_result[31] ? 1'b1 : 1'b0): //负数-正数=正数
+                    (~alu_src1[31] & ~alu_src2[31] & adder_result[31]  ? 1'b1 : //正数+正数=负数
+                      alu_src1[31] & alu_src2[31] & ~adder_result[31]  ? 1'b1 : 1'b0) : //负数+负数=正数
+                     Overflow_inst[0] ? //sub 
+                    (~alu_src1[31] & alu_src2[31] & adder_result[31]   ? 1'b1 : //正数-负数=负数
+                      alu_src1[31] & ~alu_src2[31] & ~adder_result[31] ? 1'b1 : 1'b0): //负数-正数=正数
                      1'b0;
 
 // ADD, SUB result
@@ -185,32 +159,6 @@ cloclz_cnt U_cloclz_cnt(
     .cloclz_type (op_clz),
     .cloclz_out  (cloclz_result)
 );
-
-trap U_trap(
-     .trap_op(trap_op),
-     .trap_src1(alu_src1),
-     .trap_src2(alu_src2),
-     .result_out(result_out)
-);
-
-always@(*) 
-begin
-    case(alu_op[40:29]) 
-        12'b000000000001:trap_op = 4'b0001;
-        12'b000000000010:trap_op = 4'b0010;
-        12'b000000000100:trap_op = 4'b0011;
-        12'b000000001000:trap_op = 4'b0100;
-        12'b000000010000:trap_op = 4'b0101;
-        12'b000000100000:trap_op = 4'b0110;
-        12'b000001000000:trap_op = 4'b0111;
-        12'b000010000000:trap_op = 4'b1000;
-        12'b000100000000:trap_op = 4'b1001;
-        12'b001000000000:trap_op = 4'b1010;
-        12'b010000000000:trap_op = 4'b1011;
-        12'b100000000000:trap_op = 4'b1100;
-         default:trap_op = 4'b0000;
-    endcase
-end
 
 //lab添加 HI LO寄存器
 reg  [31:0] HI;
@@ -357,33 +305,32 @@ end
 
 always @(posedge clk) begin
     if(op_div) begin
-        if(div_nextstate==DIV_START) begin
-            s_axis_divisor_tvalid<=1'b0;
-            s_axis_dividend_tvalid<=1'b0;
+        if(div_nextstate == DIV_START) begin
+            s_axis_divisor_tvalid  <= 1'b0;
+            s_axis_dividend_tvalid <= 1'b0;
         end
         else begin
-            s_axis_divisor_tvalid<=1'b1;
-            s_axis_dividend_tvalid<=1'b1;
+            s_axis_divisor_tvalid  <= 1'b1;
+            s_axis_dividend_tvalid <= 1'b1;
         end
     end
     else if(op_divu) begin
-        if(div_nextstate==DIV_START) begin
-            s_axis_divisor_tvalidu<=1'b0;
-            s_axis_dividend_tvalidu<=1'b0;
+        if(div_nextstate == DIV_START) begin
+            s_axis_divisor_tvalidu  <= 1'b0;
+            s_axis_dividend_tvalidu <= 1'b0;
         end
         else begin
-            s_axis_divisor_tvalidu<=1'b1;
-            s_axis_dividend_tvalidu<=1'b1;
+            s_axis_divisor_tvalidu  <= 1'b1;
+            s_axis_dividend_tvalidu <= 1'b1;
         end
     end
     else begin
-        s_axis_divisor_tvalid<=1'b0;
-        s_axis_dividend_tvalid<=1'b0;
-        s_axis_divisor_tvalidu<=1'b0;
-        s_axis_dividend_tvalidu<=1'b0;
+        s_axis_divisor_tvalid   <= 1'b0;
+        s_axis_dividend_tvalid  <= 1'b0;
+        s_axis_divisor_tvalidu  <= 1'b0;
+        s_axis_dividend_tvalidu <= 1'b0;
     end
 end
-
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
 always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
@@ -433,8 +380,8 @@ always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
     end
 end
 
-assign mfhi_result=HI;
-assign mflo_result=LO;
+assign mfhi_result = HI;
+assign mflo_result = LO;
 
 assign movn_result =(~(alu_src1==0))?alu_src2:32'b0;
 assign movz_result = (alu_src1==0)?alu_src2:32'b0;
@@ -454,11 +401,7 @@ assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_mflo      }} & mflo_result)
                   | ({32{op_clo       }} & cloclz_result)
                   | ({32{op_clz       }} & cloclz_result)
-                //   | ({32{op_mul       }} & mul_result[31:0])
                   | ({32{op_movn      }} & movn_result)
-                  | ({32{op_movz      }} & movz_result)
-                  | ({32{op_teq  | op_teqi | op_tge  | op_tgei | op_tgeiu 
-                       | op_tgeu | op_tlt  | op_tlti |op_tltiu | op_tltiu 
-                       | op_tne  | op_tnei }} & result_out);
+                  | ({32{op_movz      }} & movz_result);
 
 endmodule

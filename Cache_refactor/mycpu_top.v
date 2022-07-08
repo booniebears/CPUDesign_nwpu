@@ -1,5 +1,4 @@
 `include "global_defines.vh"
-//第65个测试点失败原因：1.exccode未作对应2.必须引入flush-r，延长flush作用时间，3.mfc0记录旁路
 module mycpu_top(
     // 外部中断信号
     input  [ 5:0]   ext_int, //6个外部硬件中断输入
@@ -95,8 +94,6 @@ wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
-wire         mfc0_stall; 
-wire  [31:0] prefs_pc;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -318,7 +315,6 @@ pre_if_stage pre_if_stage(
     .inst_tag         (inst_tag         ),
     .inst_offset      (inst_offset      ),
     .icache_busy      (icache_busy      ),
-    .prefs_pc         (prefs_pc         ),
     .inst_valid       (inst_valid       )
 );
 
@@ -376,7 +372,6 @@ id_stage id_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
-    .mfc0_stall         (mfc0_stall         ),
     .icache_busy        (icache_busy        ),
     .dcache_busy        (dcache_busy        )
 );
