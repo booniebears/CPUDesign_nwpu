@@ -1,29 +1,24 @@
 `include "global_defines.vh"
 
 module exe_stage(
-    input         clk ,
-    input         reset,
-    //allowin
-    input         m1s_allowin,
-    output        es_allowin,
-    //from ds
-    input         ds_to_es_valid,
+    input                          clk ,
+    input                          reset,
+    //allowin                 
+    input                          m1s_allowin,
+    output                         es_allowin,
+    //from ds                 
+    input                          ds_to_es_valid,
     input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to ms
-    output        es_to_m1s_valid,
+    output                         es_to_m1s_valid,
     output [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
-    output [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
-    output [31:0] EXE_result, //EXE阶段 es_alu_result      
-    output        es_load_op, //EXE阶段 判定是否为load指令
-    input         flush, //flush=1时表明需要处理异常
-    output        es_ex, // TODO 没有必要送到myCPU_top里面
-    //input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
-    input         m1s_ex,
-    output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
-    input         m1s_inst_eret
-    //input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-    //input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
-    //Attention:CPU和DCache的交互信号如下;
+    output [ 4:0]                  EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
+    output [31:0]                  EXE_result, //EXE阶段 es_alu_result      
+    output                         es_load_op, //EXE阶段 判定是否为load指令
+    input                          flush, //flush=1时表明需要处理异常
+    input                          m1s_ex,
+    output                         es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
+    input                          m1s_inst_eret
 );
 
 reg         es_valid      ;
@@ -43,28 +38,27 @@ wire [31:0] es_rs_value   ;
 wire [31:0] es_rt_value   ;
 wire [31:0] es_pc         ;
 wire [11:0] es_mem_inst; //lab7添加 区别不同的存取数指令
-wire [3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
+wire [3:0]  sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 
-wire [2:0] es_sel; 
-wire [4:0] es_mfc0_rd;
-wire es_inst_mtc0; 
-// wire es_inst_mfc0; //该信号在模块端口定义
-wire es_inst_eret;
-wire es_bd;
-wire temp_ex; //临时用来承接来自ID的ds_ex信号
-wire [4:0] temp_ExcCode; //临时用来承接来自ID的ds_ExcCode信号
-// wire es_ex;
-wire [4:0] es_Exctype;
-wire Overflow_ex; //有整型溢出置为1
+wire [ 2:0] es_sel; 
+wire [ 4:0] es_mfc0_rd;
+wire        es_inst_mtc0; 
+wire        es_inst_eret;
+wire        es_bd;
+wire        temp_ex; //临时用来承接来自ID的ds_ex信号
+wire [ 4:0] temp_ExcCode; //临时用来承接来自ID的ds_ExcCode信号
+wire        es_ex;
+wire [ 4:0] es_Exctype;
+wire        Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
-wire ADES_ex; //地址错例外(写数据)
-wire ADEL_ex; //地址错例外(读数据)
+wire        ADES_ex; //地址错例外(写数据)
+wire        ADEL_ex; //地址错例外(读数据)
 
-wire es_inst_tlbp ;
-wire es_inst_tlbr ;
-wire es_inst_tlbwi;
-wire es_inst_tlbwr;
+wire        es_inst_tlbp ;
+wire        es_inst_tlbr ;
+wire        es_inst_tlbwi;
+wire        es_inst_tlbwr;
 
 assign {
         es_inst_tlbp   ,  //181:181
@@ -255,9 +249,10 @@ assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
 
 assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
-assign es_Exctype = Overflow_ex ? `Ov   : 
-                    ADES_ex     ? `AdES : 
-                    ADEL_ex     ? `AdEL : temp_ExcCode;
+assign es_Exctype = temp_ex     ? temp_ExcCode:
+                    Overflow_ex ?       `Ov   : 
+                    ADES_ex     ?       `AdES : 
+                    ADEL_ex     ?       `AdEL : `NO_EX;
 
 assign EXE_dest   = es_dest & {5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
 assign EXE_result = es_alu_result;

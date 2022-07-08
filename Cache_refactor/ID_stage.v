@@ -37,7 +37,6 @@ module id_stage(
     input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     output       mfc0_stall,   //TODO: 临时把mfc0_stall信号送到IF阶段,确保nextpc跳转的正确性
-    output       ds_ex,         //输出例外信号给PREIF阶段
     input        icache_busy,
     input        dcache_busy
 );
@@ -59,7 +58,7 @@ wire [4:0]  temp_Exctype; //临时用来承接来自IF的fs_ExcCode信号
 //处理例外 Sys,Bp和RI
 wire [ 4:0] ds_Exctype; //例外编码
 wire        inst_defined; //该指令已经被指令集定义过
-// wire        ds_ex; //ID阶段 发现异常则置为1
+wire        ds_ex; //ID阶段 发现异常则置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 
 assign {
@@ -86,7 +85,6 @@ wire        src1_is_sa;
 wire        src1_is_pc;
 wire [ 1:0] src2_is_imm; //lab6修改 要处理零扩展和有符号扩展
 wire        src2_is_8;
-// wire        res_from_mem;
 wire        gr_we;
 wire        mem_we;
 wire [ 4:0] dest;
@@ -541,10 +539,11 @@ end
 
 assign ds_ex      = temp_ex | !inst_defined | inst_syscall | inst_break | 
                     has_int & (Time_int | Soft_int);
-assign ds_Exctype = Time_int | Soft_int ? `Int :
-                    !inst_defined       ?  `RI : 
-                    inst_syscall        ? `Sys : 
-                    inst_break          ?  `Bp : temp_Exctype; 
+assign ds_Exctype = temp_ex             ? temp_Exctype :
+                    Time_int | Soft_int ?         `Int :
+                    ~inst_defined       ?          `RI : 
+                    inst_syscall        ?         `Sys : 
+                    inst_break          ?          `Bp : `NO_EX; 
 assign Overflow_inst = {inst_add,inst_addi,inst_sub};
 
 //alu_op译码
