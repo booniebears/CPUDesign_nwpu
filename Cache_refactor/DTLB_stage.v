@@ -3,21 +3,21 @@
 module DTLB_stage(
     input              clk       ,
     input              reset     ,
-    input      [31:12] DTLB_VPN, //ĞéµØÖ·
-    output reg [31:12] DTLB_PFN, //ÊµµØÖ·
+    input      [31:12] DTLB_VPN, //è™šåœ°å€
+    output reg [31:12] DTLB_PFN, //å®åœ°å€
     output reg         isUncache
 );
 
 always @(*) begin
-    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈıÎ»ÇåÁã
+    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //å®åœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         DTLB_PFN <= {3'b000, DTLB_VPN[28:12]};
-    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //å®åœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         DTLB_PFN <= {1'b0  , DTLB_VPN[30:12]};
     else
         DTLB_PFN <= DTLB_VPN;
 end
 
-always @(*) begin //TODO:Ä¿Ç°±È½Ï¼ò»¯,Ã»ÓĞ¿¼ÂÇTLB.kseg1¹Ì¶¨Îªuncache,kseg0ÏÈÈÏÎªÊÇcacheÊôĞÔ
+always @(*) begin //TODO:ç›®å‰æ¯”è¾ƒç®€åŒ–,æ²¡æœ‰è€ƒè™‘TLB.kseg1å›ºå®šä¸ºuncache,kseg0å…ˆè®¤ä¸ºæ˜¯cacheå±æ€§
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache <= 1'b1;
     else

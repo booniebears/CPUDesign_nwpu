@@ -1,5 +1,5 @@
 module Store_Buffer #(
-    parameter LATENCY      = 0, //FIFO¶ÁÑÓÊ±
+    parameter LATENCY      = 0, //FIFOè¯»å»¶æ—¶
     parameter Buffer_Depth = 32,
     parameter FIFO_WIDTH   = 68 //addr 32bit + data 32bit + wstrb 4bit
 )

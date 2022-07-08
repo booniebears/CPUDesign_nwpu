@@ -11,25 +11,25 @@ module pre_if_stage(
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     output                         ps_to_fs_valid,
 
-    input                          flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
-    input  [31:0]                  CP0_EPC_out, //CP0¼Ä´æÆ÷ÖĞ,EPCµÄÖµ
+    input                          flush, //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸
+    input  [31:0]                  CP0_EPC_out, //CP0å¯„å­˜å™¨ä¸­,EPCçš„å€¼
     input                          m1s_inst_eret,
 
-    //CPUºÍICacheµÄ½»»¥ĞÅºÅÈçÏÂ
+    //CPUå’ŒICacheçš„äº¤äº’ä¿¡å·å¦‚ä¸‹
     output     [ 7:0]              inst_index,
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
-    //ÓÉÓÚÌø×ªÖ¸ÁîÔÚID½×¶ÎÊ±£¬ÆäÑÓ³Ù²ÛÏÂÃæµÄÒ»ÌõÖ¸ÁîÒÑ¾­À´µ½prefs_pcÉÏÁË,ÔÚÓöµ½ÖĞ¶ÏÊ±ĞèÒªĞ£Õı
+    //ç”±äºè·³è½¬æŒ‡ä»¤åœ¨IDé˜¶æ®µæ—¶ï¼Œå…¶å»¶è¿Ÿæ§½ä¸‹é¢çš„ä¸€æ¡æŒ‡ä»¤å·²ç»æ¥åˆ°prefs_pcä¸Šäº†,åœ¨é‡åˆ°ä¸­æ–­æ—¶éœ€è¦æ ¡æ­£
     output reg                     inst_valid //
 );
 
 wire         ps_ready_go;
 wire         ps_allowin;
 
-wire [31:12] ITLB_PFN; //ÊµµØÖ·
+wire [31:12] ITLB_PFN; //å®åœ°å€
 wire         ps_ex;
-wire         ADEL_ex;//´¦ÀíÈ¡Ö¸ÁîµØÖ·´íÀıÍâADEL
+wire         ADEL_ex;//å¤„ç†å–æŒ‡ä»¤åœ°å€é”™ä¾‹å¤–ADEL
 wire [ 4:0]  ps_Exctype;
 
 //PC_reg
@@ -40,8 +40,8 @@ reg          flush_delayed;
 
 wire         br_taken;
 wire  [31:0] br_target;
-wire         br_stall;      //ID½×¶Î¼ì²âµ½branchÖ¸Áî,ÓÉÓÚloadÖ¸ÁîÔÚEXE½×¶Î,ÎŞ·¨Ê¹ÓÃforward,±ØĞëÔİÍ£
-wire         prefs_bdd; //Ìø×ªÖ¸ÁîµÄÏÂÏÂÌõ
+wire         br_stall;      //IDé˜¶æ®µæ£€æµ‹åˆ°branchæŒ‡ä»¤,ç”±äºloadæŒ‡ä»¤åœ¨EXEé˜¶æ®µ,æ— æ³•ä½¿ç”¨forward,å¿…é¡»æš‚åœ
+wire         prefs_bdd; //è·³è½¬æŒ‡ä»¤çš„ä¸‹ä¸‹æ¡
 
 assign {br_stall,br_taken,br_target} = br_bus; 
 
@@ -87,7 +87,7 @@ assign ADEL_ex    = prefs_pc[1:0] != 2'b00;
 assign ps_ex      = ADEL_ex;
 assign ps_Exctype = ADEL_ex ? `AdEL : `NO_EX;
 
-/*******************CPUÓëICacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÏÂ******************/
+/*******************CPUä¸ICacheçš„äº¤äº’ä¿¡å·èµ‹å€¼å¦‚ä¸‹******************/
 always @(posedge clk) begin
     if(reset) 
         flush_delayed <= 1'b0;
@@ -97,7 +97,7 @@ always @(posedge clk) begin
         flush_delayed <= 1'b0;
 end
 
-assign prefs_bdd = br_taken; //br_taken = 1,±íÃ÷prefs_pc¶ÔÓ¦Ö¸ÁîÊÇÌø×ªÖ¸ÁîµÄÏÂÏÂÌõ
+assign prefs_bdd = br_taken; //br_taken = 1,è¡¨æ˜prefs_pcå¯¹åº”æŒ‡ä»¤æ˜¯è·³è½¬æŒ‡ä»¤çš„ä¸‹ä¸‹æ¡
 always @(*) begin
     if(flush_delayed & ~icache_busy)
         inst_valid = 1'b1;
@@ -112,5 +112,5 @@ end
 assign inst_tag    = ITLB_PFN;
 assign inst_index  = prefs_pc[11:4];
 assign inst_offset = prefs_pc[3:0];
-/*******************CPUÓëICacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÉÏ******************/
+/*******************CPUä¸ICacheçš„äº¤äº’ä¿¡å·èµ‹å€¼å¦‚ä¸Š******************/
 endmodule

@@ -2,17 +2,17 @@
 
 module Icache #(
     parameter  DATA_WIDTH     = 32, 
-    parameter  ASSOC_NUM      = 2, //×éÏàÁ¬Êı
-    parameter  WORDS_PER_LINE = 4, //Ò»ĞĞ4×Ö
-    parameter  WAY_SIZE       = 4*1024*8, //Ò»Â·Cache ÈİÁ¿´óĞ¡
-    parameter  BLOCK_NUMS     = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //Ò»Â·Cache¿éÊı=256
+    parameter  ASSOC_NUM      = 2, //ç»„ç›¸è¿æ•°
+    parameter  WORDS_PER_LINE = 4, //ä¸€è¡Œ4å­—
+    parameter  WAY_SIZE       = 4*1024*8, //ä¸€è·¯Cache å®¹é‡å¤§å°
+    parameter  BLOCK_NUMS     = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //ä¸€è·¯Cacheå—æ•°=256
     localparam BYTES_PER_WORD = 4,
     localparam INDEX_WIDTH    = $clog2(BLOCK_NUMS), //8
     localparam OFFSET_WIDTH   = $clog2(WORDS_PER_LINE*BYTES_PER_WORD),//4
     localparam TAG_WIDTH      = 32-INDEX_WIDTH-OFFSET_WIDTH //20
 )
 (
-    //ÓëCPUÁ÷Ë®ÏßµÄ½»»¥½Ó¿Ú
+    //ä¸CPUæµæ°´çº¿çš„äº¤äº’æ¥å£
     input                     clk,
     input                     reset,
     input                     inst_valid,
@@ -22,7 +22,7 @@ module Icache #(
     output                    icache_busy,
     output [DATA_WIDTH-1:0]   inst_rdata,
 
-    //ÓëAXI×ÜÏß½Ó¿ÚµÄ½»»¥½Ó¿Ú
+    //ä¸AXIæ€»çº¿æ¥å£çš„äº¤äº’æ¥å£
     output        icache_rd_req,
     output [31:0] icache_rd_addr,
     input         icache_rd_rdy,
@@ -49,25 +49,25 @@ reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
 
 wire [ASSOC_NUM-1:0]   hit;
 wire                   cache_hit;
-reg  [ASSOC_NUM-1:0]   delayed_hit; //hitÑÓÊ±
-reg                    delayed_cache_hit; //cache_hitÑÓÊ±
+reg  [ASSOC_NUM-1:0]   delayed_hit; //hitå»¶æ—¶
+reg                    delayed_cache_hit; //cache_hitå»¶æ—¶
 wire                   delayed_hit_wr;
 wire                   data_read_en;
 
 reg  [ASSOC_NUM-1:0]   tagv_we;   
 reg  [ASSOC_NUM-1:0]   data_we;   
 wire [INDEX_WIDTH-1:0] index_addr; 
-wire [TAG_WIDTH:0]     tagv_wdata; //{tag,1'b1} valid bitÔÚ×îµÍÎ»
-wire [TAG_WIDTH-1:0]   tag_rdata[ASSOC_NUM-1:0]; //Î»¿íTAG_WIDTH,¹²ASSOC_NUMÂ·
-wire                   valid_rdata[ASSOC_NUM-1:0]; //Î»¿í1,¹²ASSOC_NUMÂ·
-wire [DATA_WIDTH-1:0]  icache_wdata[WORDS_PER_LINE-1:0]; //Ğ´ICacheµÄÖ¸ÁîÊı¾İ
-wire [DATA_WIDTH-1:0]  icache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //Ğ´ICacheµÄÖ¸ÁîÊı¾İ
+wire [TAG_WIDTH:0]     tagv_wdata; //{tag,1'b1} valid bitåœ¨æœ€ä½ä½
+wire [TAG_WIDTH-1:0]   tag_rdata[ASSOC_NUM-1:0]; //ä½å®½TAG_WIDTH,å…±ASSOC_NUMè·¯
+wire                   valid_rdata[ASSOC_NUM-1:0]; //ä½å®½1,å…±ASSOC_NUMè·¯
+wire [DATA_WIDTH-1:0]  icache_wdata[WORDS_PER_LINE-1:0]; //å†™ICacheçš„æŒ‡ä»¤æ•°æ®
+wire [DATA_WIDTH-1:0]  icache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //å†™ICacheçš„æŒ‡ä»¤æ•°æ®
 wire [DATA_WIDTH-1:0]  icache_rdata_sel[ASSOC_NUM-1:0];
 
-wire [$clog2(ASSOC_NUM)-1:0] sel_way;  //TODO:Ö®ºó¸Ä³ÉËÄÂ·×éÏàÁ¬             
+wire [$clog2(ASSOC_NUM)-1:0] sel_way;  //TODO:ä¹‹åæ”¹æˆå››è·¯ç»„ç›¸è¿             
 wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
 
-//ÓëCPUÁ÷Ë®ÏßµÄ½»»¥½Ó¿Ú
+//ä¸CPUæµæ°´çº¿çš„äº¤äº’æ¥å£
 generate
     genvar n;
     for (n = 0; n < ASSOC_NUM; n = n + 1) begin
@@ -75,14 +75,14 @@ generate
     end
 endgenerate
 assign icache_busy = reqbuffer_inst_valid & ~delayed_cache_hit;
-assign sel_way     = delayed_hit[0] ? 1'b0 : 1'b1; //TODO:Ö®ºó¸Ä³ÉËÄÂ·×éÏàÁ¬
+assign sel_way     = delayed_hit[0] ? 1'b0 : 1'b1; //TODO:ä¹‹åæ”¹æˆå››è·¯ç»„ç›¸è¿
 assign inst_rdata  = reqbuffer_inst_valid ? icache_rdata_sel[sel_way] : 32'b0; 
 
-//ÓëAXI×ÜÏß½Ó¿ÚµÄ½»»¥½Ó¿Ú
+//ä¸AXIæ€»çº¿æ¥å£çš„äº¤äº’æ¥å£
 assign icache_rd_req  = (icache_state == MISS);
 assign icache_rd_addr = {reqbuffer_inst_tag,reqbuffer_inst_index,{OFFSET_WIDTH{1'b0}}};
 
-//hitÅĞ¶¨Âß¼­
+//hitåˆ¤å®šé€»è¾‘
 generate
     genvar k;
     for (k = 0; k < ASSOC_NUM; k = k + 1) begin
@@ -92,7 +92,7 @@ generate
 endgenerate
 assign cache_hit  = |hit;
 assign delayed_hit_wr = (icache_state == REFILLDONE) ? 1'b1 : inst_valid;
-always @(posedge clk) begin //delayed_hitÓÃÓÚPLRUÆ¬Ñ¡CacheµÄÒ»Â·
+always @(posedge clk) begin //delayed_hitç”¨äºPLRUç‰‡é€‰Cacheçš„ä¸€è·¯
     if(reset) begin
         delayed_cache_hit <= 1'b0;
         delayed_hit       <= 0;
@@ -103,7 +103,7 @@ always @(posedge clk) begin //delayed_hitÓÃÓÚPLRUÆ¬Ñ¡CacheµÄÒ»Â·
     end
 end
 
-//reqbuffer ´æ´¢Âß¼­
+//reqbuffer å­˜å‚¨é€»è¾‘
 assign reqbuffer_en = inst_valid;
 always @(posedge clk) begin
     if(reset) begin
@@ -120,7 +120,7 @@ always @(posedge clk) begin
     end
 end
 
-//Ó²¼ş×ÊÔ´ÊäÈëĞÅºÅ¸³Öµ
+//ç¡¬ä»¶èµ„æºè¾“å…¥ä¿¡å·èµ‹å€¼
 always @(*) begin
     if(icache_state == REFILL & icache_ret_valid) begin
         tagv_we = 0;
@@ -161,7 +161,7 @@ generate
             .clka(clk),
             .rsta(reset),
 
-            //¶Ë¿ÚĞÅºÅ
+            //ç«¯å£ä¿¡å·
             .ena(1'b1),
             .wea(tagv_we[i]),
             .addra(index_addr),
@@ -176,16 +176,16 @@ generate
                 .clk(clk),
                 .rst(reset),
 
-                //Ğ´¶Ë¿Ú
+                //å†™ç«¯å£
                 .ena(1'b1),
-                .wea(data_we[i]),//µÚiÂ· µÄĞ´Ê¹ÄÜ
+                .wea(data_we[i]),//ç¬¬iè·¯ çš„å†™ä½¿èƒ½
                 .addra(index_addr),
-                .dina(icache_wdata[j]),//ÒòÎªÒªÖØÌî ËùÒÔ»¹ÊÇÒªÓĞµÄ
+                .dina(icache_wdata[j]),//å› ä¸ºè¦é‡å¡« æ‰€ä»¥è¿˜æ˜¯è¦æœ‰çš„
 
-                //¶Á¶Ë¿Ú
+                //è¯»ç«¯å£
                 .enb(data_read_en),
                 .addrb(index_addr),
-                .doutb(icache_rdata[i][j])//µÚiÂ· µÚj¸öbank
+                .doutb(icache_rdata[i][j])//ç¬¬iè·¯ ç¬¬jä¸ªbank
             );
         end
     end
