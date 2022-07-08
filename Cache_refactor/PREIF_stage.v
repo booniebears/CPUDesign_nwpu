@@ -31,12 +31,8 @@ wire         ps_allowin;
 wire [31:12] ITLB_PFN; //实地址
 wire         ps_ex;
 wire         ADEL_ex;//处理取指令地址错例外ADEL
-wire         ITLB_EX_Refill;
-wire         ITLB_EX_Invalid;
 wire [ 4:0]  ps_Exctype;
-wire         ITLB_Buffer_Wr  ;
-wire         ITLB_Buffer_Stall;
-wire         ITLB_Buffer_Valid_ps;
+
 //PC_reg
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
@@ -83,7 +79,7 @@ end
 ITLB_stage ITLB(
     .clk                  (clk                 ),
     .reset                (reset               ),
-    .ITLB_VAddr           (prefs_pc[31:12]     ), 
+    .ITLB_VPN             (prefs_pc[31:12]     ), 
     .ITLB_PFN             (ITLB_PFN            )
 );
 

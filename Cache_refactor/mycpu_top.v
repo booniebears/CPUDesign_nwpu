@@ -85,8 +85,6 @@ wire         es_load_op; //EXE阶段 判定是否为load指令
 wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
-// wire         flush_r;
-wire         flush_refill;
 wire         m1s_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
