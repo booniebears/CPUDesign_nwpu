@@ -1,7 +1,7 @@
 `include "global_defines.vh"
 
 module m1_stage(
-    input  [ 5:0]   ext_int, //6¸öÍâ²¿Ó²¼şÖĞ¶ÏÊäÈë
+    input  [ 5:0]   ext_int, //6ä¸ªå¤–éƒ¨ç¡¬ä»¶ä¸­æ–­è¾“å…¥
     input           clk,
     input           reset,
     //allowin  
@@ -14,54 +14,54 @@ module m1_stage(
     output          m1s_to_ms_valid,
     output [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //from data-sram
-    // input  [                 31:0] data_rdata,//TODO:data_rdata»»³É´ÓDCache¶Á»ØÀ´µÄÊı¾İrdata
-    output [ 4:0]   M1s_dest, // MEM½×¶ÎĞ´RFµØÖ· Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î
-    output          m1s_load_op,     // M1½×¶ÎÊÇ·ñÊÇloadÖ¸Áî£¬Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î
-    output [31:0]   M1s_result, //MEM½×¶Î ms_final_result  
-    output          m1s_ex, //ÅĞ¶¨MEM½×¶ÎÊÇ·ñÓĞ±»±ê¼ÇÎªÀıÍâµÄÖ¸Áî
-    output          m1s_inst_mfc0, //MEM½×¶ÎÖ¸ÁîÎªmfc0 Ç°µİµ½ID½×¶Î
-    output          m1s_inst_eret, //MEM½×¶ÎÖ¸ÁîÎªeret Ç°µİµ½EXE ¿ØÖÆSRAM¶ÁĞ´
+    // input  [                 31:0] data_rdata,//TODO:data_rdataæ¢æˆä»DCacheè¯»å›æ¥çš„æ•°æ®rdata
+    output [ 4:0]   M1s_dest, // MEMé˜¶æ®µå†™RFåœ°å€ é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ
+    output          m1s_load_op,     // M1é˜¶æ®µæ˜¯å¦æ˜¯loadæŒ‡ä»¤ï¼Œé€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ
+    output [31:0]   M1s_result, //MEMé˜¶æ®µ ms_final_result  
+    output          m1s_ex, //åˆ¤å®šMEMé˜¶æ®µæ˜¯å¦æœ‰è¢«æ ‡è®°ä¸ºä¾‹å¤–çš„æŒ‡ä»¤
+    output          m1s_inst_mfc0, //MEMé˜¶æ®µæŒ‡ä»¤ä¸ºmfc0 å‰é€’åˆ°IDé˜¶æ®µ
+    output          m1s_inst_eret, //MEMé˜¶æ®µæŒ‡ä»¤ä¸ºeret å‰é€’åˆ°EXE æ§åˆ¶SRAMè¯»å†™
 
-    output          flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£ flushÓÉWB½×¶ÎÖĞµÄCP0_reg²úÉú
+    output          flush, //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸ flushç”±WBé˜¶æ®µä¸­çš„CP0_regäº§ç”Ÿ
     output          flush_refill,
-    output [31:0]   CP0_EPC_out, //CP0¼Ä´æÆ÷ÖĞ,EPCµÄÖµ
-    output          CP0_Status_IE_out, //IE=1,È«¾ÖÖĞ¶ÏÊ¹ÄÜ¿ªÆô
-    output          CP0_Status_EXL_out, //EXL=0,Ã»ÓĞÀıÍâÕıÔÚ´¦Àí
-    output [ 7:0]   CP0_Status_IM_out, //IM¶ÔÓ¦¸÷¸öÖĞ¶ÏÔ´ÆÁ±ÎÎ»
-    output [ 7:0]   CP0_Cause_IP_out, //´ı´¦ÀíÖĞ¶Ï±êÊ¶
-    output          CP0_Cause_TI_out,  //TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
-    /********************TLB-CP0½»»¥ĞÅºÅÈçÏÂ********************/
-    output          m1s_inst_tlbwi, //TLBĞ´Ê¹ÄÜ:¶ÔÓ¦inst_tlbwi
-    output          m1s_inst_tlbp , //TLB²éÑ¯:¶ÔÓ¦inst_tlbp
-    input           tlb_to_cp0_found,//tlb²éÕÒÊÇ·ñ³É¹¦
-    input  [18:0]   tlb_to_cp0_vpn2, //ÒÔÏÂÎªtlbĞ´ÈëµÄÊı¾İ
+    output [31:0]   CP0_EPC_out, //CP0å¯„å­˜å™¨ä¸­,EPCçš„å€¼
+    output          CP0_Status_IE_out, //IE=1,å…¨å±€ä¸­æ–­ä½¿èƒ½å¼€å¯
+    output          CP0_Status_EXL_out, //EXL=0,æ²¡æœ‰ä¾‹å¤–æ­£åœ¨å¤„ç†
+    output [ 7:0]   CP0_Status_IM_out, //IMå¯¹åº”å„ä¸ªä¸­æ–­æºå±è”½ä½
+    output [ 7:0]   CP0_Cause_IP_out, //å¾…å¤„ç†ä¸­æ–­æ ‡è¯†
+    output          CP0_Cause_TI_out,  //TIä¸º1,è§¦å‘å®šæ—¶ä¸­æ–­;æˆ‘ä»¬å°†è¯¥ä¸­æ–­æ ‡è®°åœ¨IDé˜¶æ®µ
+    /********************TLB-CP0äº¤äº’ä¿¡å·å¦‚ä¸‹********************/
+    output          m1s_inst_tlbwi, //TLBå†™ä½¿èƒ½:å¯¹åº”inst_tlbwi
+    output          m1s_inst_tlbp , //TLBæŸ¥è¯¢:å¯¹åº”inst_tlbp
+    input           tlb_to_cp0_found,//tlbæŸ¥æ‰¾æ˜¯å¦æˆåŠŸ
+    input  [18:0]   tlb_to_cp0_vpn2, //ä»¥ä¸‹ä¸ºtlbå†™å…¥çš„æ•°æ®
     input  [7:0]    tlb_to_cp0_asid ,
     input  [3:0]    tlb_to_cp0_index, 
-    input  [19:0]   tlb_to_cp0_pfn0 , //ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [19:0]   tlb_to_cp0_pfn0 , //ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     input  [2:0]    tlb_to_cp0_c0 ,
     input           tlb_to_cp0_d0 ,
     input           tlb_to_cp0_v0 ,
     input           tlb_to_cp0_g0 ,
-    input  [19:0]   tlb_to_cp0_pfn1 , //ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [19:0]   tlb_to_cp0_pfn1 , //ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     input  [2:0]    tlb_to_cp0_c1 ,
     input           tlb_to_cp0_d1 ,
     input           tlb_to_cp0_v1 ,
     input           tlb_to_cp0_g1 ,
-    output [18:0]   cp0_to_tlb_vpn2,  //ÒÔÏÂÎªtlb¶Á³öµÄÊı¾İ
+    output [18:0]   cp0_to_tlb_vpn2,  //ä»¥ä¸‹ä¸ºtlbè¯»å‡ºçš„æ•°æ®
     output [7:0]    cp0_to_tlb_asid ,
-    output [19:0]   cp0_to_tlb_pfn0 , //ÒÔÏÂÎªentrylo0¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output [19:0]   cp0_to_tlb_pfn0 , //ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨è¯»å‡ºçš„tlbçš„æ•°æ®
     output [2:0]    cp0_to_tlb_c0 ,
     output          cp0_to_tlb_d0 ,
     output          cp0_to_tlb_v0 ,
     output          cp0_to_tlb_g0 ,
-    output [19:0]   cp0_to_tlb_pfn1, //ÒÔÏÂÎªentrylo1¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output [19:0]   cp0_to_tlb_pfn1, //ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨è¯»å‡ºçš„tlbçš„æ•°æ®
     output [2:0]    cp0_to_tlb_c1,
     output          cp0_to_tlb_d1 ,
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
-    output [3:0]    cp0_to_tlb_index, //tlbwrÖ¸ÁîµÄË÷ÒıÖµ
+    output [3:0]    cp0_to_tlb_index, //tlbwræŒ‡ä»¤çš„ç´¢å¼•å€¼
     output [31:0]   m1s_alu_result,
-    /********************TLB-CP0½»»¥ĞÅºÅÈçÉÏ********************/
+    /********************TLB-CP0äº¤äº’ä¿¡å·å¦‚ä¸Š********************/
     output reg      data_valid,
     output          data_op,
     output [ 7:0]   data_index,
@@ -82,7 +82,7 @@ module m1_stage(
     output          isUncache,
     output          TLB_Buffer_Flush //
 );
-wire [31:12]  DTLB_PFN;//ÊµµØÖ·
+wire [31:12]  DTLB_PFN;//å®åœ°å€
 reg           m1s_valid;
 wire          m1s_ready_go;
   
@@ -92,11 +92,11 @@ wire          m1s_gr_we;
 wire [ 4:0]   m1s_dest;
   
 wire [31:0]   m1s_pc;
-//lab7Ìí¼Ó  
-wire [11:0]   m1s_mem_inst;//Ö±½Ó´«×ß
+//lab7æ·»åŠ   
+wire [11:0]   m1s_mem_inst;//ç›´æ¥ä¼ èµ°
 wire [31:0]   m1s_rt_value;
 
-//lab8Ìí¼Ó
+//lab8æ·»åŠ 
 wire [ 2:0] m1s_sel;
 wire [ 4:0] m1s_mtc0_rd; 
 wire        m1s_inst_mtc0;
@@ -114,7 +114,7 @@ wire        m1s_inst_tlbr;
 wire        m1s_inst_tlbwr;
 wire        m1s_mem_we;
 wire [ 3:0] sram_wen;
-wire [31:0] sram_wdata;//Î»ÊıÎÊÌâ£¡
+wire [31:0] sram_wdata;//ä½æ•°é—®é¢˜ï¼
 wire        debug_sw;
 wire        debug_lw;
 
@@ -176,18 +176,18 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_m1s_bus_r <= 0;
-    else if (flush | flush_refill) //Çå³ıÁ÷Ë®Ïß
+    else if (flush | flush_refill) //æ¸…é™¤æµæ°´çº¿
         es_to_m1s_bus_r <= 0;
     else if (es_to_m1s_valid && m1s_allowin) begin
         es_to_m1s_bus_r <= es_to_m1s_bus;
     end
 end
 
-//lab4Ìí¼Ó
-assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //Ğ´RFµØÖ·Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î ×¢Òâ¿¼ÂÇms_validÓĞĞ§ĞÔ
-assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_result¿ÉÒÔÊÇDMÖĞÖµ,Ò²¿ÉÒÔÊÇMEM½×¶ÎALUÔËËãÖµ,forwardµ½ID½×¶Î
+//lab4æ·»åŠ 
+assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //å†™RFåœ°å€é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ æ³¨æ„è€ƒè™‘ms_validæœ‰æ•ˆæ€§
+assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_resultå¯ä»¥æ˜¯DMä¸­å€¼,ä¹Ÿå¯ä»¥æ˜¯MEMé˜¶æ®µALUè¿ç®—å€¼,forwardåˆ°IDé˜¶æ®µ
 
-/******************CP0ÍÆµ½MEM½×¶Î******************/
+/******************CP0æ¨åˆ°MEMé˜¶æ®µ******************/
 CP0_Reg u_CP0_Reg(
     .clk                 (clk),
     .reset               (reset),
@@ -240,7 +240,7 @@ CP0_Reg u_CP0_Reg(
     .CP0_Cause_IP_out    (CP0_Cause_IP_out),
     .CP0_Cause_TI_out    (CP0_Cause_TI_out)
 );
-/******************CP0ÍÆµ½MEM½×¶Î******************/
+/******************CP0æ¨åˆ°MEMé˜¶æ®µ******************/
 
 DTLB_stage DTLB(
         .clk                 (clk                   ),
@@ -265,7 +265,7 @@ DTLB_stage DTLB(
         .DTLB_Buffer_Stall   (DTLB_Buffer_Stall     )
 );
 
-/*******************CPUÓëDCacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÏÂ******************/
+/*******************CPUä¸DCacheçš„äº¤äº’ä¿¡å·èµ‹å€¼å¦‚ä¸‹******************/
 always @(*) begin
     if(m1s_ex | m1s_inst_eret | DTLB_Buffer_Stall)
         data_valid = 1'b0;
@@ -279,15 +279,15 @@ assign data_tag    = DTLB_PFN;
 assign data_index  = m1s_alu_result[11:4];
 assign data_offset = m1s_alu_result[3:0];
 assign data_wstrb  = m1s_ex | m1s_inst_eret ? 4'b0 :
-                     m1s_mem_we ? sram_wen : 4'h0; //È¥µôÁËes_valid
+                     m1s_mem_we ? sram_wen : 4'h0; //å»æ‰äº†es_valid
 assign data_wdata  = sram_wdata;
-/*******************CPUÓëDCacheµÄ½»»¥ĞÅºÅ¸³ÖµÈçÉÏ******************/
+/*******************CPUä¸DCacheçš„äº¤äº’ä¿¡å·èµ‹å€¼å¦‚ä¸Š******************/
 
-/******************ÀıÍâ´¦Àí²¿·Ö********************/
-//TLBWIĞŞ¸ÄTLB;TLBRĞŞ¸ÄCP0ÖĞEntryHiµÄasid;mtc0ĞŞ¸ÄCP0ÖĞEntryHiµÄasid.ÕâÈıÕßµ¼ÖÂTLBºÍDTLBÏà¶ÔÓ¦
+/******************ä¾‹å¤–å¤„ç†éƒ¨åˆ†********************/
+//TLBWIä¿®æ”¹TLB;TLBRä¿®æ”¹CP0ä¸­EntryHiçš„asid;mtc0ä¿®æ”¹CP0ä¸­EntryHiçš„asid.è¿™ä¸‰è€…å¯¼è‡´TLBå’ŒDTLBç›¸å¯¹åº”
 assign TLB_Buffer_Flush = m1s_inst_tlbwi | m1s_inst_tlbr | 
                          (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
-//µ±Ò»ÌõTLBWI·¢ÉúÔÚM1¼¶Ê±·¢ÉúÇ¡ºÃ×èÈû£¬Ëû¾ÍÁ÷²»×ß£¬¾Í»á³öÏÖ·´¸´Çå¿ÕTLBBuffer
+//å½“ä¸€æ¡TLBWIå‘ç”Ÿåœ¨M1çº§æ—¶å‘ç”Ÿæ°å¥½é˜»å¡ï¼Œä»–å°±æµä¸èµ°ï¼Œå°±ä¼šå‡ºç°åå¤æ¸…ç©ºTLBBuffer
 // assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
 assign flush        = eret_flush | m1s_ex; 
 assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_EX_RD_Refill)
@@ -295,6 +295,6 @@ assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_E
 assign m1s_ex       = temp_m1s_ex | DTLB_ex;
 assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
                           DTLB_ex ? DTLB_Exctype     : `NO_EX;    
-/******************ÀıÍâ´¦Àí²¿·Ö********************/
+/******************ä¾‹å¤–å¤„ç†éƒ¨åˆ†********************/
 
 endmodule

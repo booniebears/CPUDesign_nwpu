@@ -5,39 +5,39 @@ module alu(
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
     output [31:0] alu_result,
-    input  [ 2:0] Overflow_inst, //¿ÉÄÜÉæ¼°ÕûĞÍÒç³öÀıÍâµÄÈıÌõÖ¸Áî:add,addi,sub
-    output        m_axis_dout_tvalid, //¸ÃĞÅºÅÎª1±íÃ÷ÓĞ·ûºÅ³ı·¨ÔËËãÍê±Ï
-    output        m_axis_dout_tvalidu, //¸ÃĞÅºÅÎª1±íÃ÷ÎŞ·ûºÅ³ı·¨ÔËËãÍê±Ï
-    output        isMul, //Ö¸ÁîÒªÓÃµ½³Ë·¨Æ÷
-    output        isDiv, //¸ÃĞÅºÅÎª1±íÃ÷³Ë·¨ÔËËãÍê±Ï
-    output        mul_finished, //¸ÃĞÅºÅÎª1±íÃ÷³Ë·¨ÔËËãÍê±Ï
-    output        Overflow_ex, //ÓĞÕûĞÍÒç³öÖÃÎª1
+    input  [ 2:0] Overflow_inst, //å¯èƒ½æ¶‰åŠæ•´å‹æº¢å‡ºä¾‹å¤–çš„ä¸‰æ¡æŒ‡ä»¤:add,addi,sub
+    output        m_axis_dout_tvalid, //è¯¥ä¿¡å·ä¸º1è¡¨æ˜æœ‰ç¬¦å·é™¤æ³•è¿ç®—å®Œæ¯•
+    output        m_axis_dout_tvalidu, //è¯¥ä¿¡å·ä¸º1è¡¨æ˜æ— ç¬¦å·é™¤æ³•è¿ç®—å®Œæ¯•
+    output        isMul, //æŒ‡ä»¤è¦ç”¨åˆ°ä¹˜æ³•å™¨
+    output        isDiv, //è¯¥ä¿¡å·ä¸º1è¡¨æ˜ä¹˜æ³•è¿ç®—å®Œæ¯•
+    output        mul_finished, //è¯¥ä¿¡å·ä¸º1è¡¨æ˜ä¹˜æ³•è¿ç®—å®Œæ¯•
+    output        Overflow_ex, //æœ‰æ•´å‹æº¢å‡ºç½®ä¸º1
     input         es_ex,
     input         m1s_ex
 );
 
-wire op_add;   //¼Ó·¨²Ù×÷
-wire op_sub;   //¼õ·¨²Ù×÷
-wire op_slt;   //ÓĞ·ûºÅ±È½Ï£¬Ğ¡ÓÚÖÃÎ»
-wire op_sltu;  //ÎŞ·ûºÅ±È½Ï£¬Ğ¡ÓÚÖÃÎ»
-wire op_and;   //°´Î»Óë
-wire op_nor;   //°´Î»»ò·Ç
-wire op_or;    //°´Î»»ò
-wire op_xor;   //°´Î»Òì»ò
-wire op_sll;   //Âß¼­×óÒÆ
-wire op_srl;   //Âß¼­ÓÒÒÆ
-wire op_sra;   //ËãÊõÓÒÒÆ
-wire op_lui;   //Á¢¼´ÊıÖÃÓÚ¸ß°ë²¿·Ö
-wire op_div;   //´ø·ûºÅ³ı·¨
-wire op_divu;  //ÎŞ·ûºÅ³ı·¨
-wire op_mult;  //´ø·ûºÅ³Ë·¨
-wire op_multu; //ÎŞ·ûºÅ³Ë·¨
-wire op_mfhi;  //½«HI¼Ä´æÆ÷µÄÖµĞ´Èë¼Ä´æÆ÷rdÖĞ
-wire op_mflo;  //½«LO¼Ä´æÆ÷µÄÖµĞ´Èë¼Ä´æÆ÷rdÖĞ
-wire op_mthi;  //½«¼Ä´æÆ÷rsµÄÖµĞ´ÈëHI¼Ä´æÆ÷ÖĞ
-wire op_mtlo;  //½«¼Ä´æÆ÷rsµÄÖµĞ´ÈëLO¼Ä´æÆ÷ÖĞ
-wire op_clo;   //Í³¼Æ32Î»ÊıµÚÒ»¸ö0µÄÊıÖ®Ç°1µÄ¸öÊı
-wire op_clz;   //Í³¼Æ32Î»ÊıµÚÒ»¸ö1µÄÊıÖ®Ç°0µÄ¸öÊı
+wire op_add;   //åŠ æ³•æ“ä½œ
+wire op_sub;   //å‡æ³•æ“ä½œ
+wire op_slt;   //æœ‰ç¬¦å·æ¯”è¾ƒï¼Œå°äºç½®ä½
+wire op_sltu;  //æ— ç¬¦å·æ¯”è¾ƒï¼Œå°äºç½®ä½
+wire op_and;   //æŒ‰ä½ä¸
+wire op_nor;   //æŒ‰ä½æˆ–é
+wire op_or;    //æŒ‰ä½æˆ–
+wire op_xor;   //æŒ‰ä½å¼‚æˆ–
+wire op_sll;   //é€»è¾‘å·¦ç§»
+wire op_srl;   //é€»è¾‘å³ç§»
+wire op_sra;   //ç®—æœ¯å³ç§»
+wire op_lui;   //ç«‹å³æ•°ç½®äºé«˜åŠéƒ¨åˆ†
+wire op_div;   //å¸¦ç¬¦å·é™¤æ³•
+wire op_divu;  //æ— ç¬¦å·é™¤æ³•
+wire op_mult;  //å¸¦ç¬¦å·ä¹˜æ³•
+wire op_multu; //æ— ç¬¦å·ä¹˜æ³•
+wire op_mfhi;  //å°†HIå¯„å­˜å™¨çš„å€¼å†™å…¥å¯„å­˜å™¨rdä¸­
+wire op_mflo;  //å°†LOå¯„å­˜å™¨çš„å€¼å†™å…¥å¯„å­˜å™¨rdä¸­
+wire op_mthi;  //å°†å¯„å­˜å™¨rsçš„å€¼å†™å…¥HIå¯„å­˜å™¨ä¸­
+wire op_mtlo;  //å°†å¯„å­˜å™¨rsçš„å€¼å†™å…¥LOå¯„å­˜å™¨ä¸­
+wire op_clo;   //ç»Ÿè®¡32ä½æ•°ç¬¬ä¸€ä¸ª0çš„æ•°ä¹‹å‰1çš„ä¸ªæ•°
+wire op_clz;   //ç»Ÿè®¡32ä½æ•°ç¬¬ä¸€ä¸ª1çš„æ•°ä¹‹å‰0çš„ä¸ªæ•°
 wire cloclz_type; //0-clo,1-clz
 wire op_madd;
 wire op_maddu;
@@ -114,17 +114,17 @@ wire [31:0] adder_result;
 wire        adder_cout;
 
 assign adder_a   = alu_src1;
-assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltu×÷¼õ·¨
+assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltuä½œå‡æ³•
 assign adder_cin = (op_sub | op_slt | op_sltu) ? 1'b1      : 1'b0;
 assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
 
-//lab8Ìí¼Ó
-assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //add»òÕßaddi
-                    (~alu_src1[31] & ~alu_src2[31] & adder_result[31]  ? 1'b1 : //ÕıÊı+ÕıÊı=¸ºÊı
-                      alu_src1[31] & alu_src2[31] & ~adder_result[31]  ? 1'b1 : 1'b0) : //¸ºÊı+¸ºÊı=ÕıÊı
+//lab8æ·»åŠ 
+assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //addæˆ–è€…addi
+                    (~alu_src1[31] & ~alu_src2[31] & adder_result[31]  ? 1'b1 : //æ­£æ•°+æ­£æ•°=è´Ÿæ•°
+                      alu_src1[31] & alu_src2[31] & ~adder_result[31]  ? 1'b1 : 1'b0) : //è´Ÿæ•°+è´Ÿæ•°=æ­£æ•°
                      Overflow_inst[0] ? //sub 
-                    (~alu_src1[31] & alu_src2[31] & adder_result[31]   ? 1'b1 : //ÕıÊı-¸ºÊı=¸ºÊı
-                      alu_src1[31] & ~alu_src2[31] & ~adder_result[31] ? 1'b1 : 1'b0): //¸ºÊı-ÕıÊı=ÕıÊı
+                    (~alu_src1[31] & alu_src2[31] & adder_result[31]   ? 1'b1 : //æ­£æ•°-è´Ÿæ•°=è´Ÿæ•°
+                      alu_src1[31] & ~alu_src2[31] & ~adder_result[31] ? 1'b1 : 1'b0): //è´Ÿæ•°-æ­£æ•°=æ­£æ•°
                      1'b0;
 
 // ADD, SUB result
@@ -160,15 +160,15 @@ cloclz_cnt U_cloclz_cnt(
     .cloclz_out  (cloclz_result)
 );
 
-//labÌí¼Ó HI LO¼Ä´æÆ÷
+//labæ·»åŠ  HI LOå¯„å­˜å™¨
 reg  [31:0] HI;
 reg  [31:0] LO;
-wire        mul_isSigned; //³Ë·¨ÊÇÓĞ·ûºÅ³Ë
-wire        isNegative;   //³Ë·¨½á¹ûÓ¦Îª¸ºÊı
+wire        mul_isSigned; //ä¹˜æ³•æ˜¯æœ‰ç¬¦å·ä¹˜
+wire        isNegative;   //ä¹˜æ³•ç»“æœåº”ä¸ºè´Ÿæ•°
 wire [31:0] multiplicantA;
 wire [31:0] multiplicantB;
 
-multiplier U_multiplier( //Unsigned multiplier 3ÅÄ·µ»Ø
+multiplier U_multiplier( //Unsigned multiplier 3æ‹è¿”å›
     .CLK(clk),
     .A  (multiplicantA),
     .B  (multiplicantB),
@@ -182,7 +182,7 @@ assign isNegative    = mul_isSigned & (alu_src1[31] ^ alu_src2[31]);
 assign mult_result   = isNegative ? -multi_result : multi_result;
 assign multu_result  = multi_result;
 
-//³Ë·¨Ê±Ğò¿ØÖÆ×´Ì¬»ú
+//ä¹˜æ³•æ—¶åºæ§åˆ¶çŠ¶æ€æœº
 reg [1:0] mul_state;
 reg [1:0] mul_nextstate;
 
@@ -223,51 +223,51 @@ always @(*) begin
     endcase
 end
 
-//ÀûÓÃ³Ë·¨½á¹û
+//åˆ©ç”¨ä¹˜æ³•ç»“æœ
 assign madd_result   = {HI,LO} + mult_result;
 assign maddu_result  = {HI,LO} + multu_result;
 assign msub_result   = {HI,LO} - mult_result;
 assign msubu_result  = {HI,LO} - multu_result;
 
-//lab6Ìí¼Ó ÒÔÏÂÎªmydivÄ£¿éÓÃµ½µÄĞÅºÅ
-//validĞÅºÅÓëreadyĞÅºÅÊÇÒ»¶ÔÎÕÊÖĞÅºÅ,Í¬Ê±Îª1ºó³ı·¨Æ÷¹¤×÷.readyĞÅºÅÖÜÆÚĞÔ³öÏÖ(±äÎª1),validĞÅºÅÔò¿ÉÒÔÈËÎª¿ØÖÆ
+//lab6æ·»åŠ  ä»¥ä¸‹ä¸ºmydivæ¨¡å—ç”¨åˆ°çš„ä¿¡å·
+//validä¿¡å·ä¸readyä¿¡å·æ˜¯ä¸€å¯¹æ¡æ‰‹ä¿¡å·,åŒæ—¶ä¸º1åé™¤æ³•å™¨å·¥ä½œ.readyä¿¡å·å‘¨æœŸæ€§å‡ºç°(å˜ä¸º1),validä¿¡å·åˆ™å¯ä»¥äººä¸ºæ§åˆ¶
 reg s_axis_divisor_tvalid; 
 wire s_axis_divisor_tready;
 reg s_axis_dividend_tvalid;
 wire s_axis_dividend_tready;
-//lab6Ìí¼Ó ÒÔÏÂÎªmydiv_unsignedÄ£¿éÓÃµ½µÄĞÅºÅ 
+//lab6æ·»åŠ  ä»¥ä¸‹ä¸ºmydiv_unsignedæ¨¡å—ç”¨åˆ°çš„ä¿¡å· 
 reg  s_axis_divisor_tvalidu; 
 wire s_axis_divisor_treadyu;
 reg  s_axis_dividend_tvalidu;
 wire s_axis_dividend_treadyu;
 
-//´ø·ûºÅ³ı·¨
+//å¸¦ç¬¦å·é™¤æ³•
 mydiv u_mydiv(
     .aclk                    (clk),
     .s_axis_divisor_tvalid   (s_axis_divisor_tvalid),
     .s_axis_divisor_tready   (s_axis_divisor_tready),
-    .s_axis_divisor_tdata    (alu_src2), //src2Îª³ıÊı
+    .s_axis_divisor_tdata    (alu_src2), //src2ä¸ºé™¤æ•°
     .s_axis_dividend_tvalid  (s_axis_dividend_tvalid),
     .s_axis_dividend_tready  (s_axis_dividend_tready),
-    .s_axis_dividend_tdata   (alu_src1), //src1Îª±»³ıÊı
+    .s_axis_dividend_tdata   (alu_src1), //src1ä¸ºè¢«é™¤æ•°
     .m_axis_dout_tvalid      (m_axis_dout_tvalid),
     .m_axis_dout_tdata       (div_result)
 );
 
-//ÎŞ·ûºÅ³ı·¨
+//æ— ç¬¦å·é™¤æ³•
 mydiv_unsigned u_mydiv_unsigned(
     .aclk                    (clk),
     .s_axis_divisor_tvalid   (s_axis_divisor_tvalidu),
     .s_axis_divisor_tready   (s_axis_divisor_treadyu),
-    .s_axis_divisor_tdata    (alu_src2), //src2Îª³ıÊı
+    .s_axis_divisor_tdata    (alu_src2), //src2ä¸ºé™¤æ•°
     .s_axis_dividend_tvalid  (s_axis_dividend_tvalidu),
     .s_axis_dividend_tready  (s_axis_dividend_treadyu),
-    .s_axis_dividend_tdata   (alu_src1), //src1Îª±»³ıÊı
+    .s_axis_dividend_tdata   (alu_src1), //src1ä¸ºè¢«é™¤æ•°
     .m_axis_dout_tvalid      (m_axis_dout_tvalidu),
     .m_axis_dout_tdata       (divu_result)
 );
 
-//lab6Ìí¼Ó ×´Ì¬»ú¿ØÖÆÓĞ·ûºÅºÍÎŞ·ûºÅ³ı·¨µÄvalidĞÅºÅ
+//lab6æ·»åŠ  çŠ¶æ€æœºæ§åˆ¶æœ‰ç¬¦å·å’Œæ— ç¬¦å·é™¤æ³•çš„validä¿¡å·
 parameter DIV_IDLE  = 1'b0,
           DIV_START = 1'b1;
 
@@ -332,15 +332,15 @@ always @(posedge clk) begin
     end
 end
 
-//lab6Ìí¼Ó³Ë³ı·¨Ö¸Áî:½«½á¹û´æÈëHI,LO¼Ä´æÆ÷ÖĞ ³ı·¨¸ßÎ»´æÉÌ,µÍÎ»´æÓàÊı
-always @(posedge clk) begin //HI LO¸üĞÂµÄÇ°ÌáÊÇMEMºÍWB½×¶ÎµÄÖ¸ÁîÃ»ÓĞ±¨³öÒì³£
+//lab6æ·»åŠ ä¹˜é™¤æ³•æŒ‡ä»¤:å°†ç»“æœå­˜å…¥HI,LOå¯„å­˜å™¨ä¸­ é™¤æ³•é«˜ä½å­˜å•†,ä½ä½å­˜ä½™æ•°
+always @(posedge clk) begin //HI LOæ›´æ–°çš„å‰ææ˜¯MEMå’ŒWBé˜¶æ®µçš„æŒ‡ä»¤æ²¡æœ‰æŠ¥å‡ºå¼‚å¸¸
     if(reset) begin
         HI <= 32'b0;
         LO <= 32'b0;
     end
     else if(!es_ex && !m1s_ex) begin
         if(op_div) begin
-            HI <= div_result[31:0];//ÉÌĞ´LO,ÓàÊıĞ´HI
+            HI <= div_result[31:0];//å•†å†™LO,ä½™æ•°å†™HI
             LO <= div_result[63:32];
         end
         else if(op_divu) begin
@@ -386,7 +386,7 @@ assign mflo_result = LO;
 assign movn_result =(~(alu_src1==0))?alu_src2:32'b0;
 assign movz_result = (alu_src1==0)?alu_src2:32'b0;
 
-// final result mux Õâ¸ö×éºÏ·Ç³£ÇÉÃî ¸÷¸ö½á¹ûÓÃ»òÔËËãÁ¬½Ó Îª0µÄÏî¶ÔÓÚ×îÖÕ½á¹ûÃ»ÓĞÈÎºÎÓ°Ïì
+// final result mux è¿™ä¸ªç»„åˆéå¸¸å·§å¦™ å„ä¸ªç»“æœç”¨æˆ–è¿ç®—è¿æ¥ ä¸º0çš„é¡¹å¯¹äºæœ€ç»ˆç»“æœæ²¡æœ‰ä»»ä½•å½±å“
 assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_slt       }} & slt_result)
                   | ({32{op_sltu      }} & sltu_result)

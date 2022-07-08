@@ -4,8 +4,8 @@ module DTLB_stage(
     input              clk              ,
     input              reset            ,
     input              DTLB_found       ,
-    input      [31:12] DTLB_VPN         , //ÐéµØÖ·
-    output reg [31:12] DTLB_PFN         , //ÊµµØÖ·
+    input      [31:12] DTLB_VPN         , //è™šåœ°å€
+    output reg [31:12] DTLB_PFN         , //å®žåœ°å€
     input      [19:0]  DTLB_pfn0        ,
     input      [ 2:0]  DTLB_c0          ,
     input              DTLB_d0          ,
@@ -42,10 +42,10 @@ reg          DTLB_Buffer_v1   ;
 reg  [18:0]  DTLB_Buffer_vpn2 ;
 wire         DTLB_Buffer_Wr   ;
  
-always @(*) begin //ÐéÊµµØÖ·×ª»»
-    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈýÎ»ÇåÁã
+always @(*) begin //è™šå®žåœ°å€è½¬æ¢
+    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //å®žåœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         DTLB_PFN = {3'b000, DTLB_VPN[28:12]};
-    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //å®žåœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         DTLB_PFN = {1'b0  , DTLB_VPN[30:12]};
     else begin
         if(DTLB_VPN[12]) 
@@ -55,12 +55,12 @@ always @(*) begin //ÐéÊµµØÖ·×ª»»
     end
 end
 
-always @(*) begin //TODO:Ä¿Ç°±È½Ï¼ò»¯,Ã»ÓÐ¿¼ÂÇConfig¼Ä´æÆ÷.kseg1¹Ì¶¨Îªuncache,kseg0ÏÈÈÏÎªÊÇcacheÊôÐÔ
+always @(*) begin //TODO:ç›®å‰æ¯”è¾ƒç®€åŒ–,æ²¡æœ‰è€ƒè™‘Configå¯„å­˜å™¨.kseg1å›ºå®šä¸ºuncache,kseg0å…ˆè®¤ä¸ºæ˜¯cacheå±žæ€§
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache = 1'b1;
     else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9)
         isUncache = 1'b0;
-    else begin //¿¼ÂÇTLB¿ØÖÆCacheÊôÐÔ
+    else begin //è€ƒè™‘TLBæŽ§åˆ¶Cacheå±žæ€§
         if(DTLB_VPN[12]) begin
             if(DTLB_Buffer_c1 == 3'b011)
                 isUncache = 1'b0;
@@ -76,12 +76,12 @@ always @(*) begin //TODO:Ä¿Ç°±È½Ï¼ò»¯,Ã»ÓÐ¿¼ÂÇConfig¼Ä´æÆ÷.kseg1¹Ì¶¨Îªuncache,ks
     end
 end
 
-always @(*) begin //ÀýÍâÅÐ¶¨Âß¼­
+always @(*) begin //ä¾‹å¤–åˆ¤å®šé€»è¾‘
     if(DTLB_VPN[31:28] > 4'h7 && DTLB_VPN[31:28] < 4'hC) begin //unmapped
         DTLB_Exctype = `NO_EX;
         DTLB_ex      = 1'b0;
     end
-    else if(~DTLB_Buffer_Hit) begin //TLBºÍITLBÄÚÈÝ²»Ò»ÖÂ
+    else if(~DTLB_Buffer_Hit) begin //TLBå’ŒITLBå†…å®¹ä¸ä¸€è‡´
         DTLB_Exctype = `NO_EX;
         DTLB_ex      = 1'b0;
     end   
@@ -157,7 +157,7 @@ always @(*) begin //ÀýÍâÅÐ¶¨Âß¼­
     end 
 end
 
-/********************TLB×°ÌîTLB BufferÂß¼­********************/
+/********************TLBè£…å¡«TLB Bufferé€»è¾‘********************/
 always @(*) begin
     if(DTLB_VPN[31:28] < 4'hC && DTLB_VPN[31:28] > 4'h7)
         DTLB_Buffer_Hit = 1'b1;
@@ -195,7 +195,7 @@ always @(*) begin
      endcase
 end
 assign DTLB_Buffer_Wr = (DTLB_state == SEARCH);
-/********************TLB×°ÌîTLB BufferÂß¼­********************/
+/********************TLBè£…å¡«TLB Bufferé€»è¾‘********************/
 
 always @(posedge clk) begin
     if(reset | TLB_Buffer_Flush) begin 

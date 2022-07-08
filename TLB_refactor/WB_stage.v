@@ -15,8 +15,8 @@ module wb_stage(
     output [ 3:0]                  debug_wb_rf_wen,
     output [ 4:0]                  debug_wb_rf_wnum,
     output [31:0]                  debug_wb_rf_wdata,
-    output [ 4:0]                  WB_dest, // WB½×¶ÎĞ´RFµØÖ· Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î
-    output [31:0]                  WB_result //WB½×¶Î ws_final_result
+    output [ 4:0]                  WB_dest, // WBé˜¶æ®µå†™RFåœ°å€ é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ
+    output [31:0]                  WB_result //WBé˜¶æ®µ ws_final_result
 );
 
 reg         ws_valid;
@@ -25,23 +25,23 @@ wire        ws_ready_go;
 reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 wire        ws_gr_we;
 wire [ 4:0] ws_dest;
-wire [31:0] ws_final_result; //¿¼ÂÇÁËmfc0ºÍmtc0µÄ×îÖÕ½á¹û
+wire [31:0] ws_final_result; //è€ƒè™‘äº†mfc0å’Œmtc0çš„æœ€ç»ˆç»“æœ
 wire [31:0] ws_pc;
 
 assign {
         ws_ex          ,  //82:82
-        ws_gr_we       ,  //69:69 --Ğ´RFÊ¹ÄÜ
-        ws_dest        ,  //68:64 --Ğ´RFµÄµØÖ·
-        ws_final_result,  //63:32 --Ğ´RFµÄÊı¾İ
-        ws_pc             //31:0 --MEM½×¶Î PCÖµ
+        ws_gr_we       ,  //69:69 --å†™RFä½¿èƒ½
+        ws_dest        ,  //68:64 --å†™RFçš„åœ°å€
+        ws_final_result,  //63:32 --å†™RFçš„æ•°æ®
+        ws_pc             //31:0 --MEMé˜¶æ®µ PCå€¼
         } = ms_to_ws_bus_r;
 
 wire        rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
-assign ws_to_rf_bus = {rf_we   ,  //37:37 --Ğ´RFÊ¹ÄÜ
-                       rf_waddr,  //36:32 --Ğ´RFµØÖ·
-                       rf_wdata   //31:0 --Ğ´RFÊı¾İ
+assign ws_to_rf_bus = {rf_we   ,  //37:37 --å†™RFä½¿èƒ½
+                       rf_waddr,  //36:32 --å†™RFåœ°å€
+                       rf_wdata   //31:0 --å†™RFæ•°æ®
                       };
 
 assign ws_ready_go = 1'b1;
@@ -63,7 +63,7 @@ always @(posedge clk) begin
     end
 end
 
-//¶ÔÓÚ´«µ½WB½×¶ÎµÄÖ¸Áî,Èç¹û±»±ê¼ÇÁËÒì³£,ÄÇÃ´ÕâÌõÖ¸Áî¿Ï¶¨ÊÇ²»ÄÜÖ´ĞĞµÄ,ÕâÀï¾ÍÌåÏÖÔÚ²»ÄÜĞ´RFÉÏ
+//å¯¹äºä¼ åˆ°WBé˜¶æ®µçš„æŒ‡ä»¤,å¦‚æœè¢«æ ‡è®°äº†å¼‚å¸¸,é‚£ä¹ˆè¿™æ¡æŒ‡ä»¤è‚¯å®šæ˜¯ä¸èƒ½æ‰§è¡Œçš„,è¿™é‡Œå°±ä½“ç°åœ¨ä¸èƒ½å†™RFä¸Š
 assign rf_we    = ws_ex ? 1'b0 : ws_gr_we & ws_valid; 
 assign rf_waddr = ws_dest;
 assign rf_wdata = ws_final_result;
@@ -74,8 +74,8 @@ assign debug_wb_rf_wen   = {4{rf_we}};
 assign debug_wb_rf_wnum  = ws_dest;
 assign debug_wb_rf_wdata = ws_final_result;
 
-assign WB_dest   = ws_dest & {5{ws_valid}}; //Ğ´RFµØÖ·Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î ×¢Òâ¿¼ÂÇms_validÓĞĞ§ĞÔ
-assign WB_result = ws_final_result; //mfc0¶Á³öµÄÊı¾İÒ²»áÇ°µİµ½ID½×¶Î
+assign WB_dest   = ws_dest & {5{ws_valid}}; //å†™RFåœ°å€é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ æ³¨æ„è€ƒè™‘ms_validæœ‰æ•ˆæ€§
+assign WB_result = ws_final_result; //mfc0è¯»å‡ºçš„æ•°æ®ä¹Ÿä¼šå‰é€’åˆ°IDé˜¶æ®µ
 
 
 endmodule

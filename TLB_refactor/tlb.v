@@ -32,24 +32,24 @@ module tlb
     output                            DTLB_v1, 
 
     //TLB_TO_CP0 port
-    output                            tlb_to_cp0_found,//tlbp²éÕÒÊÇ·ñ³É¹¦
-    output       [18:0]               tlb_to_cp0_vpn2, //ÒÔÏÂÎªtlbÐ´ÈëµÄÊý¾Ý
+    output                            tlb_to_cp0_found,//tlbpæŸ¥æ‰¾æ˜¯å¦æˆåŠŸ
+    output       [18:0]               tlb_to_cp0_vpn2, //ä»¥ä¸‹ä¸ºtlbå†™å…¥çš„æ•°æ®
     output       [ 7:0]               tlb_to_cp0_asid ,
     output       [ 3:0]               tlb_to_cp0_index, 
-    output       [19:0]               tlb_to_cp0_pfn0 ,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ð´ÈëtlbµÄÊý¾Ý
+    output       [19:0]               tlb_to_cp0_pfn0 ,//ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     output       [ 2:0]               tlb_to_cp0_c0 ,
     output                            tlb_to_cp0_d0 ,
     output                            tlb_to_cp0_v0 ,
     output                            tlb_to_cp0_g0 ,
-    output       [19:0]               tlb_to_cp0_pfn1 ,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ð´ÈëtlbµÄÊý¾Ý
+    output       [19:0]               tlb_to_cp0_pfn1 ,//ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     output       [ 2:0]               tlb_to_cp0_c1 ,
     output                            tlb_to_cp0_d1 ,
     output                            tlb_to_cp0_v1 ,
     output                            tlb_to_cp0_g1 , 
     
     //CP0_TO_TLB port
-    input                             inst_tlbwi, //TLBÐ´Ê¹ÄÜ:¶ÔÓ¦inst_tlbwi
-    input                             inst_tlbp , //TLB²éÑ¯:¶ÔÓ¦inst_tlbp
+    input                             inst_tlbwi, //TLBå†™ä½¿èƒ½:å¯¹åº”inst_tlbwi
+    input                             inst_tlbp , //TLBæŸ¥è¯¢:å¯¹åº”inst_tlbp
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_index,
     input        [18:0]               cp0_to_tlb_vpn2,
     input        [7:0]                cp0_to_tlb_asid,
@@ -133,7 +133,7 @@ module tlb
     assign ITLB_match[14] = (ITLB_vpn2 == tlb_vpn2[14]) && ((ITLB_asid == tlb_asid[14]) || tlb_g[14]);
     assign ITLB_match[15] = (ITLB_vpn2 == tlb_vpn2[15]) && ((ITLB_asid == tlb_asid[15]) || tlb_g[15]);
     
-    //TLB -> ITLB ·µ»ØÒ»ÏîTLB
+    //TLB -> ITLB è¿”å›žä¸€é¡¹TLB
     assign ITLB_found = (ITLB_match != 16'b0);
     assign ITLB_pfn0  = tlb_pfn0[ITLB_index];
     assign ITLB_c0    = tlb_c0[ITLB_index];
@@ -166,9 +166,9 @@ module tlb
         endcase
     end
 
-    //DTLB CP0¹²ÓÃmatchÂß¼­
+    //DTLB CP0å…±ç”¨matché€»è¾‘
     wire [18:0] common_vpn2;
-    wire [ 7:0] common_asid; //vpn2,asid¹²ÓÃ
+    wire [ 7:0] common_asid; //vpn2,asidå…±ç”¨
     assign common_vpn2 = inst_tlbp ? cp0_to_tlb_vpn2 : DTLB_vpn2;
     assign common_asid = inst_tlbp ? cp0_to_tlb_asid : DTLB_asid;
 
@@ -189,7 +189,7 @@ module tlb
     assign common_match[14] = (common_vpn2 == tlb_vpn2[14]) && ((common_asid == tlb_asid[14]) || tlb_g[14]);
     assign common_match[15] = (common_vpn2 == tlb_vpn2[15]) && ((common_asid == tlb_asid[15]) || tlb_g[15]);    
 
-    //TLB -> DTLB ·µ»ØÒ»ÏîTLB
+    //TLB -> DTLB è¿”å›žä¸€é¡¹TLB
     assign DTLB_found = (common_match != 16'b0);
     assign DTLB_pfn0  = tlb_pfn0[common_index];
     assign DTLB_c0    = tlb_c0[common_index];
@@ -213,7 +213,7 @@ module tlb
     assign tlb_to_cp0_c1    = tlb_c1[cp0_to_tlb_index];
     assign tlb_to_cp0_d1    = tlb_d1[cp0_to_tlb_index];
     assign tlb_to_cp0_v1    = tlb_v1[cp0_to_tlb_index];    
-    assign tlb_to_cp0_found = (common_match != 16'b0); //ÓëDTLB¹²ÓÃmatchÂß¼­
+    assign tlb_to_cp0_found = (common_match != 16'b0); //ä¸ŽDTLBå…±ç”¨matché€»è¾‘
     assign tlb_to_cp0_index = common_index; 
 
     always @(*) begin

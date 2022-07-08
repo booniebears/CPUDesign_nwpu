@@ -40,10 +40,10 @@ reg          ITLB_Buffer_d1   ;
 reg          ITLB_Buffer_v1   ;
 wire         ITLB_Buffer_Wr   ;
 
-always @(*) begin //ÐéÊµµØÖ·×ª»»
-    if(ITLB_VPN[31:28] == 4'hA || ITLB_VPN[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈýÎ»ÇåÁã
+always @(*) begin //è™šå®žåœ°å€è½¬æ¢
+    if(ITLB_VPN[31:28] == 4'hA || ITLB_VPN[31:28] == 4'hB) //å®žåœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         ITLB_PFN = {3'b000, ITLB_VPN[28:12]};
-    else if(ITLB_VPN[31:28] == 4'h8 || ITLB_VPN[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(ITLB_VPN[31:28] == 4'h8 || ITLB_VPN[31:28] == 4'h9) //å®žåœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         ITLB_PFN = {1'b0  , ITLB_VPN[30:12]};
     else begin
         if(ITLB_VPN[12]) 
@@ -53,12 +53,12 @@ always @(*) begin //ÐéÊµµØÖ·×ª»»
     end
 end
 
-always @(*) begin //ÀýÍâÅÐ¶¨Âß¼­
+always @(*) begin //ä¾‹å¤–åˆ¤å®šé€»è¾‘
     if(ITLB_VPN[31:28] > 4'h7 && ITLB_VPN[31:28] < 4'hC) begin //unmapped
         ITLB_Exctype = `NO_EX;
         ITLB_ex      = 1'b0;
     end
-    else if(~ITLB_Buffer_Hit) begin //TLBºÍITLBÄÚÈÝ²»Ò»ÖÂ
+    else if(~ITLB_Buffer_Hit) begin //TLBå’ŒITLBå†…å®¹ä¸ä¸€è‡´
         ITLB_Exctype = `NO_EX;
         ITLB_ex      = 1'b0;
     end
@@ -80,7 +80,7 @@ always @(*) begin //ÀýÍâÅÐ¶¨Âß¼­
     end
 end
 
-/********************TLB×°ÌîTLB BufferÂß¼­********************/
+/********************TLBè£…å¡«TLB Bufferé€»è¾‘********************/
 always @(*) begin
     if(ITLB_VPN[31:28] < 4'hC && ITLB_VPN[31:28] > 4'h7)
         ITLB_Buffer_Hit = 1'b1;
@@ -114,7 +114,7 @@ always @(*) begin
      endcase
 end
 assign ITLB_Buffer_Wr  = (ITLB_state == SEARCH);
-/********************TLB×°ÌîTLB BufferÂß¼­********************/
+/********************TLBè£…å¡«TLB Bufferé€»è¾‘********************/
 
 always @(posedge clk) begin
     if(reset | TLB_Buffer_Flush) begin 
