@@ -13,7 +13,7 @@ module if_stage(
     //to ds
     output                         fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
-    input                          flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
+    input                          flush, //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸
     input                          icache_busy,
     input  [31:0]                  inst_rdata
 );
@@ -74,7 +74,7 @@ assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
 assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
-//ÔÚID½×¶ÎÓĞÒ»ÌõÈ·ÊµÓĞĞ§µÄÌø×ªÖ¸ÁîÊ±,½«fs_pc¸´Î»ÎªÌø×ªÖ¸Áî±¾Éí(ÒÀ¾É×÷nopÖ¸Áî´¦Àí),±£Ö¤EPCĞ´ÈëÕıÈ·
+//åœ¨IDé˜¶æ®µæœ‰ä¸€æ¡ç¡®å®æœ‰æ•ˆçš„è·³è½¬æŒ‡ä»¤æ—¶,å°†fs_pcå¤ä½ä¸ºè·³è½¬æŒ‡ä»¤æœ¬èº«(ä¾æ—§ä½œnopæŒ‡ä»¤å¤„ç†),ä¿è¯EPCå†™å…¥æ­£ç¡®
 assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
 
 endmodule

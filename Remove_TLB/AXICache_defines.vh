@@ -1,7 +1,7 @@
 `ifndef AXICACHE_DEFINES_VH
     `define AXICACHE_DEFINES_VH
-/*******************AXI¶¨Òå²¿·ÖÈçÏÂ******************/
-    //ICache¶Á×´Ì¬»ú
+/*******************AXIå®šä¹‰éƒ¨åˆ†å¦‚ä¸‹******************/
+    //ICacheè¯»çŠ¶æ€æœº
     `define I_RD_IDLE   3'b000
     `define I_AR_SHAKE  3'b001
     `define I_R_SHAKE1  3'b010
@@ -10,7 +10,7 @@
     `define I_R_SHAKE4  3'b101
     `define I_R_FINISH  3'b110
 
-    //DCache¶Á×´Ì¬»ú
+    //DCacheè¯»çŠ¶æ€æœº
     `define D_RD_IDLE   3'b000
     `define D_AR_SHAKE  3'b001
     `define D_R_SHAKE1  3'b010
@@ -19,7 +19,7 @@
     `define D_R_SHAKE4  3'b101
     `define D_R_FINISH  3'b110
 
-    //DCacheĞ´×´Ì¬»ú
+    //DCacheå†™çŠ¶æ€æœº
     `define D_WR_IDLE   3'b000
     `define D_AW_SHAKE  3'b001
     `define D_W_SHAKE1  3'b010
@@ -29,20 +29,20 @@
     `define D_B_SHAKE   3'b110
     `define D_B_FINISH  3'b111
 
-    //Uncache(DCache)¶Á×´Ì¬»ú
+    //Uncache(DCache)è¯»çŠ¶æ€æœº
     `define UD_RD_IDLE  2'b00
     `define UD_AR_SHAKE 2'b01
     `define UD_R_SHAKE  2'b10
     `define UD_R_FINISH 2'b11
 
-    //Uncache(DCache)Ğ´×´Ì¬»ú
+    //Uncache(DCache)å†™çŠ¶æ€æœº
     `define UD_WR_IDLE  3'b000
     `define UD_AW_SHAKE 3'b001
     `define UD_W_SHAKE  3'b010   
     `define UD_B_SHAKE  3'b011
     `define UD_B_FINISH 3'b100
 
-/*******************·Ö½çÏß******************/
+/*******************åˆ†ç•Œçº¿******************/
 
     // `define I_RD_EMPTY   3'b000
     // `define I_RD_RECREQ  3'b001
@@ -80,5 +80,5 @@
     // `define U_WR_S       3'b011
     // `define U_WR_FINISH  3'b100
     
-/*******************AXI¶¨Òå²¿·ÖÈçÉÏ******************/
+/*******************AXIå®šä¹‰éƒ¨åˆ†å¦‚ä¸Š******************/
 `endif 

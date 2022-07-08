@@ -8,7 +8,7 @@ module PLRU #(
     input                          reset,
     input [ASSOC_NUM-1:0]          delayed_hit, 
     input                          update,  
-    output [$clog2(ASSOC_NUM)-1:0] plru  //±íÊ¾Ìæ»»ÄÄÒ»Â·
+    output [$clog2(ASSOC_NUM)-1:0] plru  //è¡¨ç¤ºæ›¿æ¢å“ªä¸€è·¯
 );
 
 reg [ASSOC_NUM-2:0] state; 
@@ -28,7 +28,7 @@ generate
             nextstate = state;
             if(update && |delayed_hit) begin
                 if(delayed_hit[0]) begin
-                    nextstate[0] = 1'b1;//Èç¹ûÕâ´ÎÃüÖĞµÄÊÇµÚ0Â· ÄÇÃ´ÏÂ´Î²»ÃüÖĞµÄÊ±ºòÌæ»»µÄ¾ÍÊÇ1Â·
+                    nextstate[0] = 1'b1;//å¦‚æœè¿™æ¬¡å‘½ä¸­çš„æ˜¯ç¬¬0è·¯ é‚£ä¹ˆä¸‹æ¬¡ä¸å‘½ä¸­çš„æ—¶å€™æ›¿æ¢çš„å°±æ˜¯1è·¯
                 end 
                 else begin
                     nextstate[0] = 1'b0;
