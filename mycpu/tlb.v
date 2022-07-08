@@ -6,7 +6,7 @@ module tlb
     input                             clk,
     input                             reset,
     //ICache search
-    //ÓÃÓÚÈ¡Ö¸µÄĞéÊµÖ¸Áî×ª»»
+    //ç”¨äºå–æŒ‡çš„è™šå®æŒ‡ä»¤è½¬æ¢
     input        [18:0]               s0_vpn2,
     input                             s0_odd_page,
     input        [7:0]                s0_asid,
@@ -18,7 +18,7 @@ module tlb
     output   reg                      s0_v,
 
     //DCache search
-    //ÓÃÓÚ·Ã´æµÄĞéÊµµØÖ·×ª»»
+    //ç”¨äºè®¿å­˜çš„è™šå®åœ°å€è½¬æ¢
     input        [18:0]               s1_vpn2,
     input                             s1_odd_page,
     input        [7:0]                s1_asid,
@@ -30,24 +30,24 @@ module tlb
     output   reg                      s1_v,
 
     //TLB_TO_CP0 port
-    output                            tlb_to_cp0_found,//tlbp²éÕÒÊÇ·ñ³É¹¦
-    output       [18:0]               tlb_to_cp0_vpn2, //ÒÔÏÂÎªtlbĞ´ÈëµÄÊı¾İ
+    output                            tlb_to_cp0_found,//tlbpæŸ¥æ‰¾æ˜¯å¦æˆåŠŸ
+    output       [18:0]               tlb_to_cp0_vpn2, //ä»¥ä¸‹ä¸ºtlbå†™å…¥çš„æ•°æ®
     output       [ 7:0]               tlb_to_cp0_asid ,
     output       [ 3:0]               tlb_to_cp0_index, 
-    output       [19:0]               tlb_to_cp0_pfn0 ,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    output       [19:0]               tlb_to_cp0_pfn0 ,//ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     output       [ 2:0]               tlb_to_cp0_c0 ,
     output                            tlb_to_cp0_d0 ,
     output                            tlb_to_cp0_v0 ,
     output                            tlb_to_cp0_g0 ,
-    output       [19:0]               tlb_to_cp0_pfn1 ,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    output       [19:0]               tlb_to_cp0_pfn1 ,//ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     output       [ 2:0]               tlb_to_cp0_c1 ,
     output                            tlb_to_cp0_d1 ,
     output                            tlb_to_cp0_v1 ,
     output                            tlb_to_cp0_g1 , 
     
     //CP0_TO_TLB port
-    input                             inst_tlbwi, //TLBĞ´Ê¹ÄÜ:¶ÔÓ¦inst_tlbwi
-    input                             inst_tlbp , //TLB²éÑ¯:¶ÔÓ¦inst_tlbp
+    input                             inst_tlbwi, //TLBå†™ä½¿èƒ½:å¯¹åº”inst_tlbwi
+    input                             inst_tlbp , //TLBæŸ¥è¯¢:å¯¹åº”inst_tlbp
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_index,
     input        [18:0]               cp0_to_tlb_vpn2,
     input        [7:0]                cp0_to_tlb_asid,
@@ -75,7 +75,7 @@ module tlb
     reg [2:0]   tlb_c1               [TLBNUM-1:0];
     reg         tlb_d1               [TLBNUM-1:0];
     reg         tlb_v1               [TLBNUM-1:0];
-    //TLBÄ£¿éµÄ½Ó¿ÚÓëÄÚ²¿Ö÷ÒªĞÅºÅµÄ¶¨Òå
+    //TLBæ¨¡å—çš„æ¥å£ä¸å†…éƒ¨ä¸»è¦ä¿¡å·çš„å®šä¹‰
 
     wire [TLBNUM-1:0]                 match0;
     wire [TLBNUM-1:0]                 match1;
@@ -145,16 +145,16 @@ module tlb
     assign match0[14] = (s0_vpn2 == tlb_vpn2[14]) && ((s0_asid == tlb_asid[14]) || tlb_g[14]);
     assign match0[15] = (s0_vpn2 == tlb_vpn2[15]) && ((s0_asid == tlb_asid[15]) || tlb_g[15]);
     
-    assign s0_found = (match0 == 16'b0) ? 1'b0 : 1'b1; //s0_foundÉú³ÉÂß¼­£¬port0ÊÇ·ñhit
+    assign s0_found = (match0 == 16'b0) ? 1'b0 : 1'b1; //s0_foundç”Ÿæˆé€»è¾‘ï¼Œport0æ˜¯å¦hit
 
     always @(*) begin
-        if(~s0_found) begin//Î´ÃüÖĞ
+        if(~s0_found) begin//æœªå‘½ä¸­
             s0_pfn <= 20'b0;
             s0_c   <= 3'b0;
             s0_d   <= 1'b0;
             s0_v   <= 1'b0;
         end
-        else begin             //¸ù¾İoddpage£¬¼´µØÖ·µÚ12Î»ÅĞ¶ÏÈ¡ Ç°°ë¶Î »¹ÊÇÈ¡ ºó°ë¶Î
+        else begin             //æ ¹æ®oddpageï¼Œå³åœ°å€ç¬¬12ä½åˆ¤æ–­å– å‰åŠæ®µ è¿˜æ˜¯å– ååŠæ®µ
             if(~s0_odd_page) begin
                 s0_pfn <= tlb_pfn0[s0_index];
                 s0_c   <= tlb_c0[s0_index];
@@ -170,7 +170,7 @@ module tlb
         end
     end
 
-    always @(*) begin          //s0_indexÉú³ÉÂß¼­
+    always @(*) begin          //s0_indexç”Ÿæˆé€»è¾‘
          case(match0)
             16'b0000_0000_0000_0001: s0_index = 4'd0;
             16'b0000_0000_0000_0010: s0_index = 4'd1;
@@ -192,9 +192,9 @@ module tlb
         endcase
     end
 
-    //search port2  DCache & tlbp search¶Ë¿Ú¹²ÓÃ
+    //search port2  DCache & tlbp searchç«¯å£å…±ç”¨
     wire [18:0] common_vpn2;
-    wire [ 7:0] common_asid; //vpn2,asid¹²ÓÃ
+    wire [ 7:0] common_asid; //vpn2,asidå…±ç”¨
     assign common_vpn2 = inst_tlbp ? cp0_to_tlb_vpn2 : s1_vpn2;
     assign common_asid = inst_tlbp ? cp0_to_tlb_asid : s1_asid;
 
@@ -215,18 +215,18 @@ module tlb
     assign match1[14] = (common_vpn2 == tlb_vpn2[14]) && ((common_asid == tlb_asid[14]) || tlb_g[14]);
     assign match1[15] = (common_vpn2 == tlb_vpn2[15]) && ((common_asid == tlb_asid[15]) || tlb_g[15]);    
 
-    assign s1_found = (match1 == 16'b0) ? 1'b0 : 1'b1; //s1_foundÉú³ÉÂß¼­£¬port1ÊÇ·ñhit
-    assign tlb_to_cp0_found = s1_found; //¹²ÓÃÁËDCacheµÄs1_foundÉú³ÉÂß¼­
-    assign tlb_to_cp0_index = s1_index; //¹²ÓÃÁËDCacheµÄs1_indexÉú³ÉÂß¼­
+    assign s1_found = (match1 == 16'b0) ? 1'b0 : 1'b1; //s1_foundç”Ÿæˆé€»è¾‘ï¼Œport1æ˜¯å¦hit
+    assign tlb_to_cp0_found = s1_found; //å…±ç”¨äº†DCacheçš„s1_foundç”Ÿæˆé€»è¾‘
+    assign tlb_to_cp0_index = s1_index; //å…±ç”¨äº†DCacheçš„s1_indexç”Ÿæˆé€»è¾‘
 
     always @(*) begin
-        if(~s1_found) begin//Î´ÃüÖĞ
+        if(~s1_found) begin//æœªå‘½ä¸­
             s1_pfn   = 20'b0;
             s1_c     = 3'b0;
             s1_d     = 1'b0;
             s1_v     = 1'b0;
         end
-        else begin             //¸ù¾İoddpage£¬¼´µØÖ·µÚ12Î»ÅĞ¶ÏÈ¡ Ç°°ë¶Î »¹ÊÇÈ¡ ºó°ë¶Î
+        else begin             //æ ¹æ®oddpageï¼Œå³åœ°å€ç¬¬12ä½åˆ¤æ–­å– å‰åŠæ®µ è¿˜æ˜¯å– ååŠæ®µ
             if(~s1_odd_page) begin
                 s1_pfn = tlb_pfn0[s1_index];
                 s1_c   = tlb_c0[s1_index];
@@ -242,7 +242,7 @@ module tlb
         end
     end
 
-    always @(*) begin          //s1_indexÉú³ÉÂß¼­
+    always @(*) begin          //s1_indexç”Ÿæˆé€»è¾‘
          case(match1)
             16'b0000_0000_0000_0001:s1_index = 4'd0;
             16'b0000_0000_0000_0010:s1_index = 4'd1;

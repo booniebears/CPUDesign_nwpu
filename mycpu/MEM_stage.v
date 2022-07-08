@@ -14,11 +14,10 @@ module mem_stage(
     //to ws
     output         ms_to_ws_valid,
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus,
-    input  [ 31:0] data_rdata, //TODO:data_rdata»»³É´ÓDCache¶Á»ØÀ´µÄÊı¾İrdata
-    input  [ 31:0] dcache_busy,
-    output [ 4:0]  MEM_dest, // MEM½×¶ÎĞ´RFµØÖ· Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î
-    output [31:0]  MEM_result, //MEM½×¶Î ms_final_result  
-    output         ms_ex//ÅĞ¶¨MEM½×¶ÎÊÇ·ñÓĞ±»±ê¼ÇÎªÀıÍâµÄÖ¸Áî
+    input  [ 31:0] data_rdata, //TODO:data_rdataæ¢æˆä»DCacheè¯»å›æ¥çš„æ•°æ®rdata
+    input          dcache_busy,
+    output [ 4:0]  MEM_dest, // MEMé˜¶æ®µå†™RFåœ°å€ é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ
+    output [31:0]  MEM_result //MEMé˜¶æ®µ ms_final_result  
 );
 
 reg         ms_valid;
@@ -30,7 +29,8 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
-//lab7Ìí¼Ó
+wire        ms_ex;
+
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
 wire 		load_sign_lb;
@@ -61,14 +61,14 @@ wire [31:0] ms_final_result;
 assign ms_to_ws_bus = {
                        //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //82:82
-                       ms_gr_we       ,  //69:69 --Ğ´RFÊ¹ÄÜ
-                       ms_dest        ,  //68:64 --Ğ´RFµÄµØÖ·
-                       ms_final_result,  //63:32 --Ğ´RFµÄÊı¾İ
-                       ms_pc             //31:0 --MEM½×¶Î PCÖµ
+                       ms_gr_we       ,  //69:69 --å†™RFä½¿èƒ½
+                       ms_dest        ,  //68:64 --å†™RFçš„åœ°å€
+                       ms_final_result,  //63:32 --å†™RFçš„æ•°æ®
+                       ms_pc             //31:0 --MEMé˜¶æ®µ PCå€¼
                       };
 
-//lab7Ìí¼Ó
-//TODO:data_rdata»»³É´ÓDCache¶Á»ØÀ´µÄÊı¾İrdata
+//lab7æ·»åŠ 
+//TODO:data_rdataæ¢æˆä»DCacheè¯»å›æ¥çš„æ•°æ®rdata
 assign load_sign_lb         = (ms_alu_result[1:0] == 2'd0) ? data_rdata[ 7] :
                               (ms_alu_result[1:0] == 2'd1) ? data_rdata[15] :
                               (ms_alu_result[1:0] == 2'd2) ? data_rdata[23] :
@@ -101,9 +101,6 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]  
                               (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
                                                              {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
-
-
-
 assign ms_ready_go    = ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -119,8 +116,6 @@ end
 always @(posedge clk ) begin
     if (reset)
         m1s_to_ms_bus_r <= 0;
-    //else if (flush) //Çå³ıÁ÷Ë®Ïß
-    //    m1s_to_ms_bus_r <= 0;
     else if (m1s_to_ms_valid && ms_allowin) begin
         m1s_to_ms_bus_r <= m1s_to_ms_bus;
     end
@@ -131,13 +126,13 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[4]) ? mem_result_lh  :
                   (ms_mem_inst[5]) ? mem_result_lhu : 
                   (ms_mem_inst[6]) ? mem_result_lwl :
-                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw¶ÔÓ¦data_rdata
+                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lwå¯¹åº”data_rdata
 
 assign ms_final_result = ms_res_from_mem ? mem_data:
                          ms_inst_mfc0    ? CP0_data :
                                          ms_alu_result;
                                          
-//lab4Ìí¼Ó
-assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //Ğ´RFµØÖ·Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î ×¢Òâ¿¼ÂÇms_validÓĞĞ§ĞÔ
-assign MEM_result = ms_final_result; //ms_final_result¿ÉÒÔÊÇDMÖĞÖµ,Ò²¿ÉÒÔÊÇMEM½×¶ÎALUÔËËãÖµ,forwardµ½ID½×¶Î
+//lab4æ·»åŠ 
+assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //å†™RFåœ°å€é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ æ³¨æ„è€ƒè™‘ms_validæœ‰æ•ˆæ€§
+assign MEM_result = ms_final_result; //ms_final_resultå¯ä»¥æ˜¯DMä¸­å€¼,ä¹Ÿå¯ä»¥æ˜¯MEMé˜¶æ®µALUè¿ç®—å€¼,forwardåˆ°IDé˜¶æ®µ
 endmodule

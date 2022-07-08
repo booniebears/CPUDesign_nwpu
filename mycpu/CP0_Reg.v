@@ -9,54 +9,53 @@ module CP0_Reg
     input         m1s_valid,
     input         m1s_inst_mtc0,
     input         m1s_inst_eret,
-    input  [31:0] m1s_result,
     input         m1s_bd,
-    input         m1s_ex, //ms½×¶Î Èô±¨³öÀıÍâ,ÖÃÎª1,·ñÔòÎª0
-    input  [31:0] m1s_alu_result, //ÈôÓĞµØÖ·´íÀıÍâ,ÔòĞèÒªÓÃBadVAddr¼Ä´æÆ÷¼ÇÂ¼´íÎóµÄĞéµØÖ·
-    input  [ 5:0] ext_int, //6¸öÍâ²¿Ó²¼şÖĞ¶ÏÊäÈë
-    input  [ 4:0] Exctype, //Cause¼Ä´æÆ÷ÖĞ ÀıÍâµÄ5Î»±àÂë
-    input  [31:0] m1s_pc, //MEM½×¶ÎµÄPCÖµ
-    output [31:0] CP0_data, //mfc0´ÓCP0ÖĞ¶Á³öµÄÊı¾İ
-    output        eret_flush, //ERETÖ¸ÁîĞŞ¸ÄEXLÓòµÄÊ¹ÄÜĞÅºÅ
+    input         m1s_ex, //msé˜¶æ®µ è‹¥æŠ¥å‡ºä¾‹å¤–,ç½®ä¸º1,å¦åˆ™ä¸º0
+    input  [31:0] m1s_alu_result, //è‹¥æœ‰åœ°å€é”™ä¾‹å¤–,åˆ™éœ€è¦ç”¨BadVAddrå¯„å­˜å™¨è®°å½•é”™è¯¯çš„è™šåœ°å€
+    input  [ 5:0] ext_int, //6ä¸ªå¤–éƒ¨ç¡¬ä»¶ä¸­æ–­è¾“å…¥
+    input  [ 4:0] Exctype, //Causeå¯„å­˜å™¨ä¸­ ä¾‹å¤–çš„5ä½ç¼–ç 
+    input  [31:0] m1s_pc, //MEMé˜¶æ®µçš„PCå€¼
+    output [31:0] CP0_data, //mfc0ä»CP0ä¸­è¯»å‡ºçš„æ•°æ®
+    output        eret_flush, //ERETæŒ‡ä»¤ä¿®æ”¹EXLåŸŸçš„ä½¿èƒ½ä¿¡å·
     input         inst_tlbr,
-    input         inst_tlbp, //ÅĞ¶ÏÊÇ·ñÎªtlbpÖ¸Áî
-    input         tlb_to_cp0_found,//tlb²éÕÒÊÇ·ñ³É¹¦
-    input  [18:0] tlb_to_cp0_vpn2, //ÒÔÏÂÎªtlbĞ´ÈëµÄÊı¾İ
+    input         inst_tlbp, //åˆ¤æ–­æ˜¯å¦ä¸ºtlbpæŒ‡ä»¤
+    input         tlb_to_cp0_found,//tlbæŸ¥æ‰¾æ˜¯å¦æˆåŠŸ
+    input  [18:0] tlb_to_cp0_vpn2, //ä»¥ä¸‹ä¸ºtlbå†™å…¥çš„æ•°æ®
     input  [ 7:0] tlb_to_cp0_asid ,
     input  [ 3:0] tlb_to_cp0_index, 
-    input  [19:0] tlb_to_cp0_pfn0 ,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [19:0] tlb_to_cp0_pfn0 ,//ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     input  [ 2:0] tlb_to_cp0_c0 ,
     input         tlb_to_cp0_d0 ,
     input         tlb_to_cp0_v0 ,
     input         tlb_to_cp0_g0 ,
-    input  [19:0] tlb_to_cp0_pfn1 ,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷Ğ´ÈëtlbµÄÊı¾İ
+    input  [19:0] tlb_to_cp0_pfn1 ,//ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨å†™å…¥tlbçš„æ•°æ®
     input  [ 2:0] tlb_to_cp0_c1 ,
     input         tlb_to_cp0_d1 ,
     input         tlb_to_cp0_v1 ,
     input         tlb_to_cp0_g1 ,
-    output [18:0] cp0_to_tlb_vpn2, //ÒÔÏÂÎªtlb¶Á³öµÄÊı¾İ
+    output [18:0] cp0_to_tlb_vpn2, //ä»¥ä¸‹ä¸ºtlbè¯»å‡ºçš„æ•°æ®
     output [ 7:0] cp0_to_tlb_asid,
-    output [19:0] cp0_to_tlb_pfn0,//ÒÔÏÂÎªentrylo0¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output [19:0] cp0_to_tlb_pfn0,//ä»¥ä¸‹ä¸ºentrylo0å¯„å­˜å™¨è¯»å‡ºçš„tlbçš„æ•°æ®
     output [ 2:0] cp0_to_tlb_c0 ,
     output        cp0_to_tlb_d0 ,
     output        cp0_to_tlb_v0 ,
     output        cp0_to_tlb_g0 ,
-    output [19:0] cp0_to_tlb_pfn1,//ÒÔÏÂÎªentrylo1¼Ä´æÆ÷¶Á³öµÄtlbµÄÊı¾İ
+    output [19:0] cp0_to_tlb_pfn1,//ä»¥ä¸‹ä¸ºentrylo1å¯„å­˜å™¨è¯»å‡ºçš„tlbçš„æ•°æ®
     output [ 2:0] cp0_to_tlb_c1 ,
     output        cp0_to_tlb_d1 ,
     output        cp0_to_tlb_v1 ,
     output        cp0_to_tlb_g1 ,
-    output [ 3:0] cp0_to_tlb_index,//Ë÷ÒıÖµ
+    output [ 3:0] cp0_to_tlb_index,//ç´¢å¼•å€¼
     output [31:0] CP0_EPC_out, 
     output        CP0_Status_IE_out,
     output        CP0_Status_EXL_out,
     output [ 7:0] CP0_Status_IM_out,
     output [ 7:0] CP0_Cause_IP_out,
-    output        CP0_Cause_TI_out //TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
+    output        CP0_Cause_TI_out //TIä¸º1,è§¦å‘å®šæ—¶ä¸­æ–­;æˆ‘ä»¬å°†è¯¥ä¸­æ–­æ ‡è®°åœ¨IDé˜¶æ®µ
 );
 
 /*
-    ´ıÌí¼ÓµÄCP0¼Ä´æÆ÷Ä£¿é:
+    å¾…æ·»åŠ çš„CP0å¯„å­˜å™¨æ¨¡å—:
     CP0_Cause_CE   29-28  R
     CP0_Context_BadVPN2 22-4
     CP0_PageMask 31-0
@@ -74,14 +73,14 @@ module CP0_Reg
 */
 parameter TLBNUM = 5'd16;
 
-wire [ 7:0] CP0_Addr; //Ğ´CP0¼Ä´æÆ÷×éµÄµØÖ·
-wire        mtc0_we; //Ğ´CP0¼Ä´æÆ÷µÄĞ´Ê¹ÄÜĞÅºÅ
+wire [ 7:0] CP0_Addr; //å†™CP0å¯„å­˜å™¨ç»„çš„åœ°å€
+wire        mtc0_we; //å†™CP0å¯„å­˜å™¨çš„å†™ä½¿èƒ½ä¿¡å·
 
-assign CP0_Addr   = {m1s_mfc0_rd,m1s_sel}; //°´ÕÕÖ¸ÁîÒªÇó,CP0µÄ8Î»¶ÁĞ´µØÖ·ÓÉrd¶Î(ÕâÀï¾ÍÊÇm1s_mfc0_rd)ºÍsel¶ÎÆ´ÆğÀ´
-assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && !m1s_ex; //Ö¸ÁîÎªmtc0,ÇÒMEM½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòĞ´Ê¹ÄÜÉúĞ§
-assign eret_flush = m1s_valid && m1s_inst_eret && !m1s_ex; //Ö¸ÁîÎªeret,ÇÒMEM½×¶ÎÃ»ÓĞ±¨³öÀıÍâ,ÔòÇå¿ÕÁ÷Ë®ÏßÊ¹ÄÜÓĞĞ§
+assign CP0_Addr   = {m1s_mfc0_rd,m1s_sel}; //æŒ‰ç…§æŒ‡ä»¤è¦æ±‚,CP0çš„8ä½è¯»å†™åœ°å€ç”±rdæ®µ(è¿™é‡Œå°±æ˜¯m1s_mfc0_rd)å’Œselæ®µæ‹¼èµ·æ¥
+assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && !m1s_ex; //æŒ‡ä»¤ä¸ºmtc0,ä¸”MEMé˜¶æ®µæ²¡æœ‰æŠ¥å‡ºä¾‹å¤–,åˆ™å†™ä½¿èƒ½ç”Ÿæ•ˆ
+assign eret_flush = m1s_valid && m1s_inst_eret && !m1s_ex; //æŒ‡ä»¤ä¸ºeret,ä¸”MEMé˜¶æ®µæ²¡æœ‰æŠ¥å‡ºä¾‹å¤–,åˆ™æ¸…ç©ºæµæ°´çº¿ä½¿èƒ½æœ‰æ•ˆ
 
-/*************************ÒÔÏÂÎªStatus¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸‹ä¸ºStatuså¯„å­˜å™¨éƒ¨åˆ†*************************/
 reg        CP0_Status_CU0; //28 R/W
 reg        CP0_Status_Bev; //22 R/W
 reg [ 7:0] CP0_Status_IM; //15-8 R/W
@@ -94,19 +93,19 @@ always @(posedge clk) begin //28 R/W
     if(reset)
         CP0_Status_CU0 <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_CU0 <= m1s_result[28];
+        CP0_Status_CU0 <= m1s_alu_result[28];
 end
 
-always @(posedge clk) begin //22 R/W Attention:ÓëCPUÉè¼ÆÊµÕ½¶¨Òå²»Í¬,²Î¿¼ÊÖ²á
+always @(posedge clk) begin //22 R/W Attention:ä¸CPUè®¾è®¡å®æˆ˜å®šä¹‰ä¸åŒ,å‚è€ƒæ‰‹å†Œ
     if(reset)
-        CP0_Status_Bev <= 1'b1; //BevÓòºãÎª1,Ö»¶Á
+        CP0_Status_Bev <= 1'b1; //BevåŸŸæ’ä¸º1,åªè¯»
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_Bev <= m1s_result[22]; 
+        CP0_Status_Bev <= m1s_alu_result[22]; 
 end
 
 always @(posedge clk) begin //15-8 R/W
     if(mtc0_we && CP0_Addr==`Status_RegAddr) 
-        CP0_Status_IM <= m1s_result[15:8];
+        CP0_Status_IM <= m1s_alu_result[15:8];
 end
 assign CP0_Status_IM_out = CP0_Status_IM;
 
@@ -114,25 +113,25 @@ always @(posedge clk) begin //4 R/W
     if(reset)
         CP0_Status_UM <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_UM <= m1s_result[4];
+        CP0_Status_UM <= m1s_alu_result[4];
 end
 
 always @(posedge clk) begin //2 R/W
     if(reset) 
-        CP0_Status_ERL <= 1'b0; //TODO:ÊÖ²áÉÏĞ´µÄÊÇ1?
+        CP0_Status_ERL <= 1'b0; //TODO:æ‰‹å†Œä¸Šå†™çš„æ˜¯1?
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_ERL <= m1s_result[2];
+        CP0_Status_ERL <= m1s_alu_result[2];
 end
 
 always @(posedge clk) begin //1 R/W
     if(reset) 
         CP0_Status_EXL <= 1'b0;
-    else if(m1s_ex) //³öÏÖÀıÍâ,ÔòEXL±»ÖÃÎª1
+    else if(m1s_ex) //å‡ºç°ä¾‹å¤–,åˆ™EXLè¢«ç½®ä¸º1
         CP0_Status_EXL <= 1'b1;
     else if(eret_flush)
         CP0_Status_EXL <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_EXL <= m1s_result[1];
+        CP0_Status_EXL <= m1s_alu_result[1];
 end
 assign CP0_Status_EXL_out = CP0_Status_EXL;
 
@@ -140,15 +139,15 @@ always @(posedge clk) begin //0 R/W
     if(reset)
         CP0_Status_IE <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_IE <= m1s_result[0];
+        CP0_Status_IE <= m1s_alu_result[0];
 end
 assign CP0_Status_IE_out = CP0_Status_IE;
-/*************************ÒÔÉÏÎªStatus¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸Šä¸ºStatuså¯„å­˜å™¨éƒ¨åˆ†*************************/
 
-/*************************ÒÔÏÂÎªCount&Compare¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸‹ä¸ºCount&Compareå¯„å­˜å™¨éƒ¨åˆ†*************************/
 reg [31:0] CP0_Count;
 reg [31:0] CP0_Compare;
-reg        tick; //Count¼Ä´æÆ÷Ã¿Á½¸öÖÜÆÚ¼ÓÒ»,tickÍ¨¹ı×ÔÉí·­×ª¼ÆÊıÊµÏÖ¸Ã¹¦ÄÜ
+reg        tick; //Countå¯„å­˜å™¨æ¯ä¸¤ä¸ªå‘¨æœŸåŠ ä¸€,tické€šè¿‡è‡ªèº«ç¿»è½¬è®¡æ•°å®ç°è¯¥åŠŸèƒ½
 always @(posedge clk) begin 
     if(reset) 
         tick <= 1'b0;
@@ -157,57 +156,57 @@ always @(posedge clk) begin
 
     if(reset) CP0_Count <= 32'b0;
     else if(mtc0_we && CP0_Addr == `Count_RegAddr)
-        CP0_Count <= m1s_result;
+        CP0_Count <= m1s_alu_result;
     else if(tick)
         CP0_Count <= CP0_Count + 1'b1;
 end
 
 always @(posedge clk) begin //Compare
     if(reset) 
-        CP0_Compare <= 32'h000155cc; //TODO:Ä¿Ç°ÊÇ´Õ³öÀ´µÄ,Ö®ºóÒª¸ù¾İÊ±¼ä¼ä¸ôºÍÖ÷ÆµÀ´¼ÆËã
+        CP0_Compare <= 32'h000155cc; //TODO:ç›®å‰æ˜¯å‡‘å‡ºæ¥çš„,ä¹‹åè¦æ ¹æ®æ—¶é—´é—´éš”å’Œä¸»é¢‘æ¥è®¡ç®—
     else if(mtc0_we && CP0_Addr == `Compare_RegAddr)
-        CP0_Compare <= m1s_result;
+        CP0_Compare <= m1s_alu_result;
 end
-/*************************ÒÔÉÏCount&Compare¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸ŠCount&Compareå¯„å­˜å™¨éƒ¨åˆ†*************************/
 
-/*************************ÒÔÏÂÎªCause¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸‹ä¸ºCauseå¯„å­˜å™¨éƒ¨åˆ†*************************/
 reg        CP0_Cause_BD; //31
-reg        CP0_Cause_TI; //30 TIÎª1,´¥·¢¶¨Ê±ÖĞ¶Ï;ÎÒÃÇ½«¸ÃÖĞ¶Ï±ê¼ÇÔÚID½×¶Î
+reg        CP0_Cause_TI; //30 TIä¸º1,è§¦å‘å®šæ—¶ä¸­æ–­;æˆ‘ä»¬å°†è¯¥ä¸­æ–­æ ‡è®°åœ¨IDé˜¶æ®µ
 reg [ 1:0] CP0_Cause_CE; //29-28
 reg [ 7:0] CP0_Cause_IP; //15-8
 reg [ 4:0] CP0_Cause_ExcCode; //6-2
-wire       Count_eq_Compare; //Count¼Ä´æÆ÷ÓëCompare¼Ä´æÆ÷ÏàµÈÊ±ÖÃÎª1
+wire       Count_eq_Compare; //Countå¯„å­˜å™¨ä¸Compareå¯„å­˜å™¨ç›¸ç­‰æ—¶ç½®ä¸º1
 
 assign Count_eq_Compare = (CP0_Count == CP0_Compare);
 always @(posedge clk) begin //31 R
     if(reset)
         CP0_Cause_BD <= 1'b0;
-    else if(m1s_ex && !CP0_Status_EXL) //Ö»ÓĞÔÚEXLÓòÎª0µÄÖ®ºó,²Å¸üĞÂBD
+    else if(m1s_ex && !CP0_Status_EXL) //åªæœ‰åœ¨EXLåŸŸä¸º0çš„ä¹‹å,æ‰æ›´æ–°BD
         CP0_Cause_BD <= m1s_bd;
 end
 
-always @(posedge clk) begin //30 R TODO:Count_eq_CompareÊ±TIÓòÖÃÎª1
+always @(posedge clk) begin //30 R TODO:Count_eq_Compareæ—¶TIåŸŸç½®ä¸º1
     if(reset)
         CP0_Cause_TI <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Compare_RegAddr) 
-        CP0_Cause_TI <= 1'b0; //±¾Éí²»ÄÜÖ±½ÓÓÉmtc0Ö¸ÁîÀ´Ğ´,µ«ÊÇÓÃmtc0Ğ´Compare¼Ä´æÆ÷µÄÊ±ºò,TIÓòÇåÁã
+        CP0_Cause_TI <= 1'b0; //æœ¬èº«ä¸èƒ½ç›´æ¥ç”±mtc0æŒ‡ä»¤æ¥å†™,ä½†æ˜¯ç”¨mtc0å†™Compareå¯„å­˜å™¨çš„æ—¶å€™,TIåŸŸæ¸…é›¶
     else if(Count_eq_Compare)
         CP0_Cause_TI <= 1'b1;
 end
 assign CP0_Cause_TI_out = CP0_Cause_TI;
 
-always @(posedge clk) begin //CE 29-28 R TODO:ÔÚ·¢ÉúCpUÒì³£µÄÊ±ºò¸³Öµ,Ä¿Ç°ÖÃ¿Õ
-    if(reset) //TODO:°´ÕÕ¹æ·¶µÄ»°£¬¿ÉÒÔ²»ÓÃreset
+always @(posedge clk) begin //CE 29-28 R TODO:åœ¨å‘ç”ŸCpUå¼‚å¸¸çš„æ—¶å€™èµ‹å€¼,ç›®å‰ç½®ç©º
+    if(reset) //TODO:æŒ‰ç…§è§„èŒƒçš„è¯ï¼Œå¯ä»¥ä¸ç”¨reset
         CP0_Cause_CE <= 2'b00;
 end
 
-always @(posedge clk) begin //IP7-IP2 15-10 R TODO: ext_int´¦Àí
+always @(posedge clk) begin //IP7-IP2 15-10 R TODO: ext_intå¤„ç†
     if(reset)
         CP0_Cause_IP[7:2] <= 6'b0;
     else begin
-        CP0_Cause_IP[7]   <= CP0_Cause_TI;
-        // CP0_Cause_IP[7]<=ext_int[5]|CP0_Cause_TI;
-        // CP0_Cause_IP[6:2]<=ext_int[4:0];
+        // CP0_Cause_IP[7]   <= CP0_Cause_TI;
+        CP0_Cause_IP[7]   <= ext_int[5] | CP0_Cause_TI;
+        CP0_Cause_IP[6:2] <= ext_int[4:0];
     end
 end
 assign CP0_Cause_IP_out = CP0_Cause_IP;
@@ -216,7 +215,7 @@ always @(posedge clk) begin //IP1-IP0 9-8 R/W
     if(reset)
         CP0_Cause_IP[1:0] <= 2'b0;
     else if(mtc0_we && CP0_Addr == `Cause_RegAddr)
-        CP0_Cause_IP[1:0] <= m1s_result[9:8];
+        CP0_Cause_IP[1:0] <= m1s_alu_result[9:8];
 end
 
 always @(posedge clk) begin //ExeCode 6-2 R
@@ -244,9 +243,9 @@ always @(posedge clk) begin //ExeCode 6-2 R
 end
 
 
-/*************************ÒÔÉÏÎªCause¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸Šä¸ºCauseå¯„å­˜å™¨éƒ¨åˆ†*************************/
 
-/*************************ÒÔÏÂÎªRandom&Wired¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸‹ä¸ºRandom&Wiredå¯„å­˜å™¨éƒ¨åˆ†*************************/
 reg  [3:0] CP0_Random_Random; //3-0 R
 reg  [3:0] CP0_Wired_Wired; //3-0 R/W
 wire [3:0] Random_next;
@@ -255,53 +254,53 @@ always @(posedge clk) begin
     if(reset)
         CP0_Wired_Wired <= 4'b0;
     else if(mtc0_we && CP0_Addr == `Wired_RegAddr)
-        CP0_Wired_Wired <= m1s_result[3:0];
+        CP0_Wired_Wired <= m1s_alu_result[3:0];
 end
 
 assign Random_next = CP0_Random_Random + 1'b1;
 always @(posedge clk) begin //Random 3-0 R
     if(reset)
         CP0_Random_Random <= TLBNUM - 1'b1;
-    else //RandomµÄ¸³Öµ¿É²Î¿¼Ñ§³¤´úÂë,Ã¿¸öÊ±ÖÓÖÜÆÚ¶¼»á±ä»¯¡£
+    else //Randomçš„èµ‹å€¼å¯å‚è€ƒå­¦é•¿ä»£ç ,æ¯ä¸ªæ—¶é’Ÿå‘¨æœŸéƒ½ä¼šå˜åŒ–ã€‚
         CP0_Random_Random <= (CP0_Wired_Wired < Random_next) ? Random_next : CP0_Wired_Wired;
 end
-/*************************ÒÔÉÏÎªRandom&Wired¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸Šä¸ºRandom&Wiredå¯„å­˜å™¨éƒ¨åˆ†*************************/
 
-/*************************ÒÔÏÂÎªContext¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸‹ä¸ºContextå¯„å­˜å™¨éƒ¨åˆ†*************************/
 reg [8:0]  CP0_Context_PTEBase; //31-23 R/W
 reg [18:0] CP0_Context_BadVPN2; //22-4 R
 
 always @(posedge clk) begin //PTEBase 31-23 R/W
     if(mtc0_we && CP0_Addr == `Context_RegAddr)
-        CP0_Context_PTEBase <= m1s_result[31:23];
+        CP0_Context_PTEBase <= m1s_alu_result[31:23];
 end
 
 always @(posedge clk) begin //BadVPN2 22-4 R
-    //TODO:BadVPN2µÄ¸³ÖµÉæ¼°TLBÀıÍâ
+    //TODO:BadVPN2çš„èµ‹å€¼æ¶‰åŠTLBä¾‹å¤–
 end
-/*************************ÒÔÉÏÎªContext¼Ä´æÆ÷²¿·Ö*************************/
+/*************************ä»¥ä¸Šä¸ºContextå¯„å­˜å™¨éƒ¨åˆ†*************************/
 
 //PageMask 
 reg [31:0] CP0_PageMask;
 always @(posedge clk) begin
-    if(reset) //µ½ÕâÀïºÃÏñ¾Í¿ÉÒÔÁË ¼ò»¯
+    if(reset) //åˆ°è¿™é‡Œå¥½åƒå°±å¯ä»¥äº† ç®€åŒ–
         CP0_PageMask <= 32'b0;
 end
 
-//4.EPC¼Ä´æÆ÷
+//4.EPCå¯„å­˜å™¨
 reg [31:0] CP0_EPC;
 always @(posedge clk) begin
-    if(m1s_ex && ~CP0_Status_EXL) begin //EXLÎª0µÄÊ±ºò²ÅÄÜĞ´EPC
-        CP0_EPC <= m1s_bd ? m1s_pc - 3'h4 : m1s_pc; //Ö¸ÁîÔÚÑÓ³Ù²Û,EPCÖ¸ÏòÑÓ³Ù²Û¶ÔÓ¦µÄ·ÖÖ§Ìø×ªÖ¸Áî;·ñÔòÖ¸ÏòÖ¸Áî±¾Éí
+    if(m1s_ex && ~CP0_Status_EXL) begin //EXLä¸º0çš„æ—¶å€™æ‰èƒ½å†™EPC
+        CP0_EPC <= m1s_bd ? m1s_pc - 3'h4 : m1s_pc; //æŒ‡ä»¤åœ¨å»¶è¿Ÿæ§½,EPCæŒ‡å‘å»¶è¿Ÿæ§½å¯¹åº”çš„åˆ†æ”¯è·³è½¬æŒ‡ä»¤;å¦åˆ™æŒ‡å‘æŒ‡ä»¤æœ¬èº«
     end
     else if(mtc0_we && CP0_Addr == `EPC_RegAddr)
-        CP0_EPC <= m1s_result;
+        CP0_EPC <= m1s_alu_result;
 end
 assign CP0_EPC_out = CP0_EPC;
 
-//5.BadVAddr¼Ä´æÆ÷
+//5.BadVAddrå¯„å­˜å™¨
 reg [31:0]  CP0_BadVAddr;
-always @(posedge clk) begin //BadVAddr¼Ä´æÆ÷Ö»¶Á Ö»ÒªÓĞµØÖ·´í(¶ÁĞ´sram»òÕß¶Áinst_ram)¾Í¼ÇÂ¼
+always @(posedge clk) begin //BadVAddrå¯„å­˜å™¨åªè¯» åªè¦æœ‰åœ°å€é”™(è¯»å†™sramæˆ–è€…è¯»inst_ram)å°±è®°å½•
     if(m1s_ex) begin
         if(Exctype == `AdES)
             CP0_BadVAddr <= m1s_alu_result;
@@ -312,17 +311,17 @@ always @(posedge clk) begin //BadVAddr¼Ä´æÆ÷Ö»¶Á Ö»ÒªÓĞµØÖ·´í(¶ÁĞ´sram»òÕß¶Áinst
     end
 end
 
-//6.EntryHi¼Ä´æÆ÷
-reg [18:0] CP0_Entryhi_VPN2; //EntryHi¼Ä´æÆ÷ÖĞµÄVPN2
-reg [ 7:0] CP0_Entryhi_ASID; //EntryHi¼Ä´æÆ÷ÖĞµÄASID
+//6.EntryHiå¯„å­˜å™¨
+reg [18:0] CP0_Entryhi_VPN2; //EntryHiå¯„å­˜å™¨ä¸­çš„VPN2
+reg [ 7:0] CP0_Entryhi_ASID; //EntryHiå¯„å­˜å™¨ä¸­çš„ASID
 always @(posedge clk) begin
     if(reset) begin
         CP0_Entryhi_VPN2 <= 19'b0 ;
         CP0_Entryhi_ASID <= 8'b0 ;
     end
     else if(mtc0_we && CP0_Addr == `Entryhi_RegAddr) begin
-        CP0_Entryhi_VPN2 <= m1s_result[31:13];
-        CP0_Entryhi_ASID <= m1s_result[7:0];
+        CP0_Entryhi_VPN2 <= m1s_alu_result[31:13];
+        CP0_Entryhi_ASID <= m1s_alu_result[7:0];
     end
     else if(inst_tlbr) begin
         CP0_Entryhi_VPN2 <= tlb_to_cp0_vpn2 ;
@@ -336,8 +335,8 @@ end
 assign cp0_to_tlb_vpn2 = CP0_Entryhi_VPN2;
 assign cp0_to_tlb_asid = CP0_Entryhi_ASID;
 
-//7.EntryLo0¼Ä´æÆ÷
-reg [19:0] CP0_Entrylo0_PFN0;//entrylo0¼Ä´æÆ÷µÄÖµ
+//7.EntryLo0å¯„å­˜å™¨
+reg [19:0] CP0_Entrylo0_PFN0;//entrylo0å¯„å­˜å™¨çš„å€¼
 reg [ 2:0] CP0_Entrylo0_C0;
 reg        CP0_Entrylo0_D0;
 reg        CP0_Entrylo0_V0;
@@ -351,11 +350,11 @@ always @(posedge clk) begin
         CP0_Entrylo0_G0   <= 1'b0;
     end
     else if(mtc0_we && CP0_Addr == `Entrylo0_RegAddr) begin
-        CP0_Entrylo0_PFN0 <= m1s_result[25:6];
-        CP0_Entrylo0_C0   <= m1s_result[5:3];
-        CP0_Entrylo0_D0   <= m1s_result[2];
-        CP0_Entrylo0_V0   <= m1s_result[1];
-        CP0_Entrylo0_G0   <= m1s_result[0];
+        CP0_Entrylo0_PFN0 <= m1s_alu_result[25:6];
+        CP0_Entrylo0_C0   <= m1s_alu_result[5:3];
+        CP0_Entrylo0_D0   <= m1s_alu_result[2];
+        CP0_Entrylo0_V0   <= m1s_alu_result[1];
+        CP0_Entrylo0_G0   <= m1s_alu_result[0];
     end
     else if (inst_tlbr) begin
         CP0_Entrylo0_PFN0 <= tlb_to_cp0_pfn0;
@@ -372,8 +371,8 @@ assign cp0_to_tlb_d0   = CP0_Entrylo0_D0  ;
 assign cp0_to_tlb_v0   = CP0_Entrylo0_V0  ;
 assign cp0_to_tlb_g0   = CP0_Entrylo0_G0  ;
 
-//8.EntryLo1¼Ä´æÆ÷£¬Ö»ÊµÏÖÁËÃèÊöÖĞµÄ¹¦ÄÜ
-reg [19:0] CP0_Entrylo1_PFN1;//entrylo1¼Ä´æÆ÷µÄÖµ
+//8.EntryLo1å¯„å­˜å™¨ï¼Œåªå®ç°äº†æè¿°ä¸­çš„åŠŸèƒ½
+reg [19:0] CP0_Entrylo1_PFN1;//entrylo1å¯„å­˜å™¨çš„å€¼
 reg [ 2:0] CP0_Entrylo1_C1;
 reg        CP0_Entrylo1_D1;
 reg        CP0_Entrylo1_V1;
@@ -387,11 +386,11 @@ always @(posedge clk) begin
         CP0_Entrylo1_G1   <= 1'b0;
     end
     else if(mtc0_we && CP0_Addr == `Entrylo1_RegAddr) begin
-        CP0_Entrylo1_PFN1 <= m1s_result[25:6];
-        CP0_Entrylo1_C1   <= m1s_result[5:3];
-        CP0_Entrylo1_D1   <= m1s_result[2];
-        CP0_Entrylo1_V1   <= m1s_result[1];
-        CP0_Entrylo1_G1   <= m1s_result[0];
+        CP0_Entrylo1_PFN1 <= m1s_alu_result[25:6];
+        CP0_Entrylo1_C1   <= m1s_alu_result[5:3];
+        CP0_Entrylo1_D1   <= m1s_alu_result[2];
+        CP0_Entrylo1_V1   <= m1s_alu_result[1];
+        CP0_Entrylo1_G1   <= m1s_alu_result[0];
     end
     else if (inst_tlbr) begin
         CP0_Entrylo1_PFN1 <= tlb_to_cp0_pfn1;
@@ -407,7 +406,7 @@ assign cp0_to_tlb_d1   = CP0_Entrylo1_D1  ;
 assign cp0_to_tlb_v1   = CP0_Entrylo1_V1  ;
 assign cp0_to_tlb_g1   = CP0_Entrylo1_G1  ;
 
-//9.index¼Ä´æÆ÷
+//9.indexå¯„å­˜å™¨
 reg       CP0_Index_P;
 reg [3:0] CP0_Index_Index;
 
@@ -424,7 +423,7 @@ always @(posedge clk) begin
         CP0_Index_Index <= 4'b0;
     end
     else if(mtc0_we && CP0_Addr == `Index_RegAddr) begin
-        CP0_Index_Index <= m1s_result[3:0];
+        CP0_Index_Index <= m1s_alu_result[3:0];
     end
     else if(inst_tlbp && tlb_to_cp0_found) begin
         CP0_Index_Index <= tlb_to_cp0_index;
@@ -432,7 +431,7 @@ always @(posedge clk) begin
 end
 assign cp0_to_tlb_index = CP0_Index_Index;
 
-//mfc0Ö¸ÁîÊµÏÖ:
+//mfc0æŒ‡ä»¤å®ç°:
 assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Count_RegAddr   )? CP0_Count:
                   (CP0_Addr == `Compare_RegAddr )? CP0_Compare:
@@ -448,6 +447,6 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Random_RegAddr  )? {28'b0,CP0_Random_Random}:
                   (CP0_Addr == `Wired_RegAddr   )? {28'b0,CP0_Wired_Wired}:
                   (CP0_Addr == `Context_RegAddr )? {CP0_Context_PTEBase,CP0_Context_BadVPN2,4'b0}:
-                                                    32'b0; //TODO:Ä¿Ç°CP0_dataÄ¬ÈÏ32'b0
+                                                    32'b0; //TODO:ç›®å‰CP0_dataé»˜è®¤32'b0
 
 endmodule //CP0_Reg

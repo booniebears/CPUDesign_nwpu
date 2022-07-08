@@ -4,7 +4,7 @@ module simple_port_lutram #( //used for tag
 	// default data width if the fifo is of type logic
 	parameter DATA_WIDTH  = 21, //tag = 20bit, valid bit = 1bit
 	// $bits(dtype) * SIZE = bits of the block RAM
-	parameter SIZE        = 256, //Ö¸ÓĞ¶àÉÙ¿é index 8 bit
+	parameter SIZE        = 256, //æŒ‡æœ‰å¤šå°‘å— index 8 bit
 	// parameter type dtype               = logic [DATA_WIDTH-1:0],
 	parameter LATENCY     = 0,
 	parameter MEMORY_SIZE = DATA_WIDTH * SIZE,
@@ -86,9 +86,9 @@ endmodule
 module simple_port_ram #(
 	// default data width if the fifo is of type logic
 	parameter DATA_WIDTH = 32,
-	parameter LATENCY    = 1, //Ò»ÅÄºó¶Á³ö
+	parameter LATENCY    = 1, //ä¸€æ‹åè¯»å‡º
 	// $bits(dtype) * SIZE = bits of the block RAM
-	parameter SIZE        = 256, //Ö¸ÓĞ¶àÉÙ¿é
+	parameter SIZE        = 256, //æŒ‡æœ‰å¤šå°‘å—
 	// parameter type dtype               = logic [DATA_WIDTH-1:0],
 	parameter MEMORY_SIZE = DATA_WIDTH * SIZE,
 	parameter ADDR_WIDTH  = $clog2(SIZE)
@@ -110,8 +110,8 @@ module simple_port_ram #(
    reg [DATA_WIDTH-1 : 0]  doutb_bypass;
    wire [DATA_WIDTH-1 : 0] doutb_byram ;
    always @(posedge clk) begin
-      if (enb) begin//Èç¹ûÊÇ¶Á¶Ë¿Ú¶ÁÊ¹ÄÜ´ò¿ª
-         if (wea & ena & addra == addrb) begin//ÄÇÃ´¼ì²âÊÇ·ñĞèÒªĞ´ÓÅÏÈ
+      if (enb) begin//å¦‚æœæ˜¯è¯»ç«¯å£è¯»ä½¿èƒ½æ‰“å¼€
+         if (wea & ena & addra == addrb) begin//é‚£ä¹ˆæ£€æµ‹æ˜¯å¦éœ€è¦å†™ä¼˜å…ˆ
             valid <= 1'b1;
             doutb_bypass <= dina;
          end 
@@ -203,9 +203,9 @@ endmodule
 module simple_port_ram_without_bypass #(
 	// default data width if the fifo is of type logic
 	parameter DATA_WIDTH = 32,
-	parameter LATENCY    = 1, //Ò»ÅÄºó¶Á³ö
+	parameter LATENCY    = 1, //ä¸€æ‹åè¯»å‡º
 	// $bits(dtype) * SIZE = bits of the block RAM
-	parameter SIZE        = 256, //Ö¸ÓĞ¶àÉÙ¿é
+	parameter SIZE        = 256, //æŒ‡æœ‰å¤šå°‘å—
 	// parameter type dtype               = logic [DATA_WIDTH-1:0],
 	parameter MEMORY_SIZE = DATA_WIDTH * SIZE,
 	parameter ADDR_WIDTH  = $clog2(SIZE)
