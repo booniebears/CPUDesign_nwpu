@@ -14,14 +14,12 @@ module m1_stage(
     output          m1s_to_ms_valid,
     output [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //from data-sram
-    // input  [                 31:0] data_rdata,//TODO:data_rdata���ɴ�DCache������������rdata
     output [ 4:0]   M1s_dest, // MEM�׶�дRF��ַ ͨ����·�͵�ID�׶�
     output          m1s_load_op,     // M1�׶��Ƿ���loadָ�ͨ����·�͵�ID�׶�
     output [31:0]   M1s_result, //MEM�׶� ms_final_result  
     output          m1s_ex, //�ж�MEM�׶��Ƿ��б����Ϊ�����ָ��
     output          m1s_inst_mfc0, //MEM�׶�ָ��Ϊmfc0 ǰ�ݵ�ID�׶�
     output          m1s_inst_eret, //MEM�׶�ָ��Ϊeret ǰ�ݵ�EXE ����SRAM��д
-
     output          flush, //flush=1ʱ������Ҫ�����쳣 flush��WB�׶��е�CP0_reg����
     output          flush_refill,
     output [31:0]   CP0_EPC_out, //CP0�Ĵ�����,EPC��ֵ
@@ -69,8 +67,6 @@ module m1_stage(
     output [ 3:0]   data_offset,
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
-    // input           data_data_ok, //
-    // input           data_addr_ok,
     input           dcache_busy,
     input           DTLB_found,
     input  [ 3:0]   DTLB_index,
@@ -102,7 +98,6 @@ wire m1s_inst_mtc0;
 wire m1s_bd;
 wire [4:0] temp_m1s_Exctype;
 wire [4:0] m1s_Exctype;
-//wire [31:0] m1s_data_sram_addr;
 
 wire        eret_flush;
 
@@ -116,9 +111,6 @@ wire        temp_m1s_ex;
 wire        TLB_Buffer_Flush;
 wire        debug_sw;
 wire        debug_lw;
-
-// assign debug_sw = (data_index == 8'h26) & m1s_mem_we & data_valid;
-// assign debug_lw = (data_index == 8'h26) & m1s_load_op & data_valid;
 
 assign {
         sram_wdata      ,  //174:143
@@ -287,7 +279,6 @@ always @(*) begin
 end
 
 assign data_op    = m1s_mem_we ? 1'b1 : 1'b0;
-// assign {data_tag,data_index,data_offset} = (m1s_load_op | m1s_mem_we) ? DTLB_RAddr : cache_req_buffer;
 assign {data_tag,data_index,data_offset} = DTLB_RAddr;
 assign data_wstrb = m1s_ex | m1s_inst_eret  ? 4'b0 :
                     m1s_mem_we ? sram_wen : 4'h0; //ȥ����es_valid

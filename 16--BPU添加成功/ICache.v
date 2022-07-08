@@ -19,10 +19,8 @@ module Icache #(
     input [INDEX_WIDTH-1:0]   inst_index,
     input [TAG_WIDTH-1:0]     inst_tag,
     input [OFFSET_WIDTH-1:0]  inst_offset,
-    // input                     flush, //TODO:当流水线flush(出现异常),rdata直接置零
     output                    icache_busy,
     output [DATA_WIDTH-1:0]   inst_rdata,
-
     //与AXI总线接口的交互接口
     output        icache_rd_req,
     output [31:0] icache_rd_addr,
@@ -50,7 +48,6 @@ reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
 
 wire [ASSOC_NUM-1:0]   hit;
 wire                   cache_hit;
-// reg  [ASSOC_NUM-1:0]   delayed_hit; //hit延时
 reg                    delayed_cache_hit; //cache_hit延时
 wire                   delayed_hit_wr;
 wire                   data_read_en;
@@ -92,11 +89,9 @@ assign delayed_hit_wr = (icache_state == REFILLDONE) ? 1'b1 : inst_valid;
 always @(posedge clk) begin //TODO:delayed_hit之后用于片选Cache的一路
     if(reset) begin
         delayed_cache_hit <= 1'b0;
-        // delayed_hit       <= 1'b0;
     end
     else if(delayed_hit_wr) begin
         delayed_cache_hit <= cache_hit;
-        // delayed_hit       <= hit;
     end
 end
 

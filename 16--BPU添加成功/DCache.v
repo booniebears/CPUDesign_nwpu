@@ -455,9 +455,6 @@ always @(*) begin //Cache 不处理Uncache和store类指令
                         dcache_nextstate = MISSCLEAN;
                 end
                 else begin
-                    // if(reqbuffer_data_op)
-                    //     dcache_nextstate = WAITSTORE;
-                    // else
                         dcache_nextstate = LOOKUP;
                 end
             end

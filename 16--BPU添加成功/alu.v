@@ -138,13 +138,12 @@ wire [31:0] adder_b;
 wire        adder_cin;
 wire [31:0] adder_result;
 wire        adder_cout;
-
 assign adder_a   = alu_src1;
 assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
 assign adder_cin = (op_sub | op_slt | op_sltu) ? 1'b1      : 1'b0;
 assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
 
-//lab8添加
+/********************************************************************/
 assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //add或者addi
                     (!alu_src1[31]&&!alu_src2[31]&&adder_result[31] ? 1'b1 : //正数+正数=负数
                       alu_src1[31]&&alu_src2[31]&&!adder_result[31] ? 1'b1 : 1'b0) : //负数+负数=正数
@@ -251,14 +250,6 @@ always @(posedge clk) begin
 end
 
 assign isMul = op_mult | op_multu | op_madd | op_maddu | op_msub | op_msubu | op_mul;
-// always @(posedge clk) begin //STAGE3的下一拍(IDLE)可以放行mul
-//     if(reset)
-//         mul_finished <= 1'b0;
-//     if(mul_state == MUL_STAGE3)
-//         mul_finished <= 1'b1;
-//     else
-//         mul_finished <= 1'b0;
-// end
 
 assign mul_finished = (mul_state == MUL_STAGE3);
 

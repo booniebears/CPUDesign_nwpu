@@ -18,7 +18,6 @@ module wb_stage(
     output [ 4:0] WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
     output [31:0] WB_result, //WB阶段 ws_final_result
     output        ws_ex //判定WB阶段是否有被标记为例外的指令
-    //input  [ 5:0] ext_int //6个外部硬件中断输入
 );
 
 reg         ws_valid;
@@ -64,8 +63,6 @@ end
 always @(posedge clk) begin
     if (reset)
         ms_to_ws_bus_r <= 0;
-   //else if (flush) //清除流水线
-   //    ms_to_ws_bus_r <= 0;
     else if (ms_to_ws_valid && ws_allowin) begin
         ms_to_ws_bus_r <= ms_to_ws_bus;
     end

@@ -91,8 +91,6 @@ assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
 assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
-//��ID�׶���һ��ȷʵ��Ч����תָ��ʱ,��fs_pc��λΪ��תָ���(������nopָ���),��֤EPCд����ȷ
-// assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
 assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
 
 BPU u_BPU(
@@ -106,7 +104,5 @@ BPU u_BPU(
     .BPU_valid          (BPU_valid),
     .BPU_to_ds_bus      (BPU_to_ds_bus)
 );
-
-
 
 endmodule

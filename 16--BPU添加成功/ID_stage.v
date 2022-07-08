@@ -32,7 +32,6 @@ module id_stage(
     input        flush, //flush=1ʱ������Ҫ�����쳣
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
-  //  input        ms_inst_mfc0, //����Ϊ��EXE,MEM�׶δ�����mfc0ָ���ź�
     input        CP0_Status_IE_out, //IE=1,ȫ���ж�ʹ�ܿ���
     input        CP0_Status_EXL_out, //EXL=0,û���������ڴ���
     input [ 7:0] CP0_Status_IM_out, //IM��Ӧ�����ж�Դ����λ
@@ -100,7 +99,6 @@ wire        src1_is_sa;
 wire        src1_is_pc;
 wire [ 1:0] src2_is_imm; //lab6�޸� Ҫ��������չ���з�����չ
 wire        src2_is_8;
-// wire        res_from_mem;
 wire        gr_we;
 wire        mem_we;
 wire [ 4:0] dest;
@@ -310,7 +308,7 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //�����ˮ��
+    else if (flush) 
         fs_to_ds_bus_r <= 0;
     else if (fs_to_ds_valid & ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
@@ -687,12 +685,6 @@ assign br_taken =  (  inst_beq  &  rs_eq_rt
                    || inst_bltzal & rsltz
                    ) & ds_valid; 
 
-// always @(posedge clk) begin
-//     if(reset) br_taken_r <= 1'b0;
-//     else if(br_taken & ~fs_to_ds_valid & ~mfc0_stall & ~load_stall) br_taken_r <= 1'b1;
-//     else if(fs_to_ds_valid) br_taken_r <= 1'b0;
-// end
-// assign br_taken = ds_valid ? br_taken_temp : br_taken_r;
 
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 

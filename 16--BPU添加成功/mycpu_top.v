@@ -1,5 +1,4 @@
 `include "global_defines.vh"
-//��65�����Ե�ʧ��ԭ��1.exccodeδ����Ӧ2.��������flush-r���ӳ�flush����ʱ�䣬3.mfc0��¼��·
 module mycpu_top(
     // �ⲿ�ж��ź�
     input  [ 5:0]   ext_int, //6���ⲿӲ���ж�����

@@ -132,19 +132,12 @@ simple_port_lutram #(
 ) PHT_ram_data(
     .clka(clk),
     .rsta(reset),
-
     //写端口
     .ena(1'b1),
     .wea(PHT_we),
     .addra(index_addr),
     .dina(PHT_wr_data),
     .douta(PHT_rd_data)
-
-
 );
-
-
-
-
 
 endmodule

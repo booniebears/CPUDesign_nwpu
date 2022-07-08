@@ -17,13 +17,9 @@ module exe_stage(
     output        es_load_op, //EXE阶段 判定是否为load指令
     input         flush, //flush=1时表明需要处理异常
     output        es_ex, // TODO 没有必要送到myCPU_top里面
-    //input         ms_ex, //判定MEM阶段是否有被标记为例外的指令
     input         m1s_ex,
     output        es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
     input         m1s_inst_eret
-    //input         ms_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
-    //input         ws_inst_eret, //WB阶段指令为eret 前递到EXE 控制SRAM读写;前递到IF阶段修改nextpc
-    //Attention:CPU和DCache的交互信号如下;
 );
 
 reg         es_valid      ;
