@@ -25,7 +25,9 @@ reg         es_valid      ;
 wire        es_ready_go   ;
 
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
-wire [40:0] es_alu_op     ;
+wire [`ALUOP_WD-1:0] es_alu_op;
+wire [2:0]           es_trap_op;
+
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
 wire [ 1:0] es_src2_is_imm; 
@@ -54,6 +56,7 @@ wire        Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire        ADES_ex; //地址错例外(写数据)
 wire        ADEL_ex; //地址错例外(读数据)
+wire        trap_ex;
 
 wire        es_inst_tlbp ;
 wire        es_inst_tlbr ;
@@ -61,33 +64,34 @@ wire        es_inst_tlbwi;
 wire        es_inst_tlbwr;
 
 assign {
-        es_inst_tlbp   ,  //181:181
-        es_inst_tlbr   ,  //180:180
-        es_inst_tlbwi  ,  //179:179
-        es_inst_tlbwr  ,  //178:178
-        es_mfc0_rd     ,  //177:173 
-        Overflow_inst  ,  //172:170
-        temp_ex        ,  //169:169 
-        temp_ExcCode   ,  //168:164 
-        es_bd          ,  //163:163
-        es_inst_eret   ,  //162:162
-        es_sel         ,  //161:159 
-        es_inst_mtc0   ,  //158:158 
-        es_inst_mfc0   ,  //157:157 
-        es_mem_inst    ,  //156:145
-        es_alu_op      ,  //144:125
-        es_load_op     ,  //124:124
-        es_src1_is_sa  ,  //123:123
-        es_src1_is_pc  ,  //122:122
-        es_src2_is_imm ,  //121:120
-        es_src2_is_8   ,  //119:119
-        es_gr_we       ,  //118:118 --写RF使能
-        es_mem_we      ,  //117:117 --写DM使能
-        es_dest        ,  //116:112 
-        es_imm         ,  //111:96
-        es_rs_value    ,  //95 :64
-        es_rt_value    ,  //63 :32
-        es_pc             //31 :0
+        es_trap_op     ,
+        es_inst_tlbp   ,  
+        es_inst_tlbr   ,  
+        es_inst_tlbwi  ,  
+        es_inst_tlbwr  ,  
+        es_mfc0_rd     ,  
+        Overflow_inst  ,  
+        temp_ex        ,  
+        temp_ExcCode   ,  
+        es_bd          ,  
+        es_inst_eret   ,  
+        es_sel         ,  
+        es_inst_mtc0   ,  
+        es_inst_mfc0   ,  
+        es_mem_inst    ,  
+        es_alu_op      ,  
+        es_load_op     ,  
+        es_src1_is_sa  ,  
+        es_src1_is_pc  ,  
+        es_src2_is_imm ,  
+        es_src2_is_8   ,  
+        es_gr_we       ,  
+        es_mem_we      ,  
+        es_dest        ,  
+        es_imm         ,  
+        es_rs_value    ,  
+        es_rt_value    ,  
+        es_pc             
        } = ds_to_es_bus_r;
 
 wire [31:0] es_alu_src1   ;
@@ -131,9 +135,7 @@ assign es_to_m1s_bus = {
                        es_inst_tlbr   ,  //136:136
                        es_inst_tlbwi  ,  //135:135
                        es_inst_tlbwr  ,  //134:134
-                      //TODO:es_alu_result目前暂代data_sram_addr
                        es_load_op     ,  //133:133
-                       //es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_Exctype     ,  //126:122 
@@ -218,6 +220,7 @@ alu u_alu(
     .clk                 (clk                 ),
     .reset               (reset               ),
     .alu_op              (es_alu_op           ),
+    .trap_op             (es_trap_op          ),
     .alu_src1            (es_alu_src1         ),
     .alu_src2            (es_alu_src2         ),
     .alu_result          (temp_alu_result     ),
@@ -228,6 +231,7 @@ alu u_alu(
     .isDiv               (isDiv               ),
     .mul_finished        (mul_finished        ),
     .Overflow_ex         (Overflow_ex         ),
+    .trap_ex             (trap_ex             ),
     .es_ex               (es_ex               ),
     .m1s_ex              (m1s_ex              )
 );
@@ -243,9 +247,10 @@ assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
 assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
 
-assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
+assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex | trap_ex; 
 assign es_Exctype = temp_ex     ? temp_ExcCode:
                     Overflow_ex ?       `Ov   : 
+                    trap_ex     ?       `Trap :
                     ADES_ex     ?       `AdES : 
                     ADEL_ex     ?       `AdEL : `NO_EX;
 

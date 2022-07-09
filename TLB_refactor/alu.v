@@ -1,19 +1,23 @@
+`include "global_defines.vh"
+
 module alu(
-    input         clk,
-    input         reset,
-    input  [40:0] alu_op,
-    input  [31:0] alu_src1,
-    input  [31:0] alu_src2,
-    output [31:0] alu_result,
-    input  [ 2:0] Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
-    output        m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
-    output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
-    output        isMul, //指令要用到乘法器
-    output        isDiv, //该信号为1表明乘法运算完毕
-    output        mul_finished, //该信号为1表明乘法运算完毕
-    output        Overflow_ex, //有整型溢出置为1
-    input         es_ex,
-    input         m1s_ex
+    input                  clk,
+    input                  reset,
+    input  [`ALUOP_WD-1:0] alu_op,
+    input  [ 2:0]          trap_op,
+    input  [31:0]          alu_src1,
+    input  [31:0]          alu_src2,
+    output [31:0]          alu_result,
+    input  [ 2:0]          Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
+    output                 m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
+    output                 m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
+    output                 isMul, //指令要用到乘法器
+    output                 isDiv, //该信号为1表明乘法运算完毕
+    output                 mul_finished, //该信号为1表明乘法运算完毕
+    output                 Overflow_ex,
+    output                 trap_ex, 
+    input                  es_ex,
+    input                  m1s_ex
 );
 
 wire op_add;   //加法操作
@@ -48,35 +52,35 @@ wire op_movn;
 wire op_movz;
 
 // control code decomposition
-assign op_add  = alu_op[ 0];
-assign op_sub  = alu_op[ 1];
-assign op_slt  = alu_op[ 2];
-assign op_sltu = alu_op[ 3];
-assign op_and  = alu_op[ 4];
-assign op_nor  = alu_op[ 5];
-assign op_or   = alu_op[ 6];
-assign op_xor  = alu_op[ 7];
-assign op_sll  = alu_op[ 8];
-assign op_srl  = alu_op[ 9];
-assign op_sra  = alu_op[10];
-assign op_lui  = alu_op[11];
-assign op_div  = alu_op[12];
-assign op_divu = alu_op[13];
-assign op_mult = alu_op[14];
-assign op_multu= alu_op[15];
-assign op_mfhi = alu_op[16];
-assign op_mflo = alu_op[17];
-assign op_mthi = alu_op[18];
-assign op_mtlo = alu_op[19];
-assign op_clo  = alu_op[20];
-assign op_clz  = alu_op[21];
-assign op_madd = alu_op[22];
-assign op_maddu= alu_op[23];
-assign op_msub = alu_op[24];
-assign op_msubu= alu_op[25];
-assign op_mul  = alu_op[26];
-assign op_movn = alu_op[27];
-assign op_movz = alu_op[28];
+assign op_add   = alu_op[ 0];
+assign op_sub   = alu_op[ 1];
+assign op_slt   = alu_op[ 2];
+assign op_sltu  = alu_op[ 3];
+assign op_and   = alu_op[ 4];
+assign op_nor   = alu_op[ 5];
+assign op_or    = alu_op[ 6];
+assign op_xor   = alu_op[ 7];
+assign op_sll   = alu_op[ 8];
+assign op_srl   = alu_op[ 9];
+assign op_sra   = alu_op[10];
+assign op_lui   = alu_op[11];
+assign op_div   = alu_op[12];
+assign op_divu  = alu_op[13];
+assign op_mult  = alu_op[14];
+assign op_multu = alu_op[15];
+assign op_mfhi  = alu_op[16];
+assign op_mflo  = alu_op[17];
+assign op_mthi  = alu_op[18];
+assign op_mtlo  = alu_op[19];
+assign op_clo   = alu_op[20];
+assign op_clz   = alu_op[21];
+assign op_madd  = alu_op[22];
+assign op_maddu = alu_op[23];
+assign op_msub  = alu_op[24];
+assign op_msubu = alu_op[25];
+assign op_mul   = alu_op[26];
+assign op_movn  = alu_op[27];
+assign op_movz  = alu_op[28];
 
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result    ; 
@@ -155,12 +159,19 @@ assign sr64_result = {{32{op_sra & alu_src2[31]}}, alu_src2[31:0]} >> alu_src1[4
 assign sr_result   = sr64_result[31:0];
 
 cloclz_cnt U_cloclz_cnt(
-    .cloclz_in   (alu_src1),
-    .cloclz_type (op_clz),
-    .cloclz_out  (cloclz_result)
+    .cloclz_in   (alu_src1      ),
+    .cloclz_type (op_clz        ),
+    .cloclz_out  (cloclz_result )
 );
 
-//lab添加 HI LO寄存器
+trap U_trap(
+    .trap_op    (trap_op  ),
+    .trap_src1  (alu_src1 ),
+    .trap_src2  (alu_src2 ),
+    .trap_ex    (trap_ex  )
+);
+
+//HI LO寄存器
 reg  [31:0] HI;
 reg  [31:0] LO;
 wire        mul_isSigned; //乘法是有符号乘
@@ -267,7 +278,7 @@ mydiv_unsigned u_mydiv_unsigned(
     .m_axis_dout_tdata       (divu_result)
 );
 
-//lab6添加 状态机控制有符号和无符号除法的valid信号
+//状态机控制有符号和无符号除法的valid信号
 parameter DIV_IDLE  = 1'b0,
           DIV_START = 1'b1;
 
@@ -386,7 +397,6 @@ assign mflo_result = LO;
 assign movn_result =(~(alu_src1==0))?alu_src2:32'b0;
 assign movz_result = (alu_src1==0)?alu_src2:32'b0;
 
-// final result mux 这个组合非常巧妙 各个结果用或运算连接 为0的项对于最终结果没有任何影响
 assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_slt       }} & slt_result)
                   | ({32{op_sltu      }} & sltu_result)

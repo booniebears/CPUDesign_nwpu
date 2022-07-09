@@ -169,36 +169,38 @@ wire         isUncache;
 wire         dcache_busy;
 
 /********************TLB-CP0交互信号如下********************/
-wire           m1s_inst_tlbwi  ; //写使能:对应inst_tlbwi
-wire           m1s_inst_tlbp   ; //查询:对应inst_tlbp
-wire           tlb_to_cp0_found; //tlb查找是否成功
-wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
-wire  [7:0]    tlb_to_cp0_asid ;
-wire  [3:0]    tlb_to_cp0_index; 
-wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c0   ;
-wire           tlb_to_cp0_d0   ;
-wire           tlb_to_cp0_v0   ;
-wire           tlb_to_cp0_g0   ;
-wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c1   ;
-wire           tlb_to_cp0_d1   ;
-wire           tlb_to_cp0_v1   ;
-wire           tlb_to_cp0_g1   ;
-wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
-wire  [7:0]    cp0_to_tlb_asid ;
-wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c0   ;
-wire           cp0_to_tlb_d0   ;
-wire           cp0_to_tlb_v0   ;
-wire           cp0_to_tlb_g0   ;
-wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c1   ;
-wire           cp0_to_tlb_d1   ;
-wire           cp0_to_tlb_v1   ;
-wire           cp0_to_tlb_g1   ;
-wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
-wire  [31:0]   m1s_alu_result  ;
+wire           m1s_inst_tlbwi   ; //写使能:对应inst_tlbwi
+wire           m1s_inst_tlbwr   ; //写使能:对应inst_tlbwr
+wire           m1s_inst_tlbp    ; //查询:对应inst_tlbp
+wire           tlb_to_cp0_found ; //tlb查找是否成功
+wire  [18:0]   tlb_to_cp0_vpn2  ; //以下为tlb写入的数据
+wire  [7:0]    tlb_to_cp0_asid  ;
+wire  [3:0]    tlb_to_cp0_index ; 
+wire  [19:0]   tlb_to_cp0_pfn0  ; //以下为entrylo0寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c0    ;
+wire           tlb_to_cp0_d0    ;
+wire           tlb_to_cp0_v0    ;
+wire           tlb_to_cp0_g0    ;
+wire  [19:0]   tlb_to_cp0_pfn1  ; //以下为entrylo1寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c1    ;
+wire           tlb_to_cp0_d1    ;
+wire           tlb_to_cp0_v1    ;
+wire           tlb_to_cp0_g1    ;
+wire  [18:0]   cp0_to_tlb_vpn2  ; //以下为tlb读出的数据
+wire  [7:0]    cp0_to_tlb_asid  ;
+wire  [19:0]   cp0_to_tlb_pfn0  ; //以下为entrylo0寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c0    ;
+wire           cp0_to_tlb_d0    ;
+wire           cp0_to_tlb_v0    ;
+wire           cp0_to_tlb_g0    ;
+wire  [19:0]   cp0_to_tlb_pfn1  ; //以下为entrylo1寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c1    ;
+wire           cp0_to_tlb_d1    ;
+wire           cp0_to_tlb_v1    ;
+wire           cp0_to_tlb_g1    ;
+wire  [3:0]    cp0_to_tlb_index ; //tlbwi指令的索引值
+wire  [3:0]    cp0_to_tlb_random; //tlbwr指令的索引值
+wire  [31:0]   m1s_alu_result   ;
 /********************TLB-CP0交互信号如上********************/
 wire           TLB_Buffer_Flush;
 
@@ -466,6 +468,7 @@ m1_stage m1_stage(
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .m1s_inst_tlbwi     (m1s_inst_tlbwi     ),
+    .m1s_inst_tlbwr     (m1s_inst_tlbwr     ),
     .m1s_inst_tlbp      (m1s_inst_tlbp      ),
     .tlb_to_cp0_found   (tlb_to_cp0_found   ),
     .tlb_to_cp0_vpn2    (tlb_to_cp0_vpn2    ),
@@ -494,6 +497,7 @@ m1_stage m1_stage(
     .cp0_to_tlb_v1      (cp0_to_tlb_v1      ),
     .cp0_to_tlb_g1      (cp0_to_tlb_g1      ),
     .cp0_to_tlb_index   (cp0_to_tlb_index   ),
+    .cp0_to_tlb_random  (cp0_to_tlb_random  ),
     .m1s_alu_result     (m1s_alu_result     ),
     .data_valid         (data_valid         ),
     .data_op            (data_op            ),
@@ -559,61 +563,63 @@ wb_stage wb_stage(
 
 tlb U_tlb(
     //TODO: add more signals
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .ITLB_vpn2        (prefs_pc[31:13]  ),
-    .ITLB_asid        (cp0_to_tlb_asid  ),
-    .ITLB_found       (ITLB_found       ),
-    .ITLB_pfn0        (ITLB_pfn0        ),   
-    .ITLB_c0          (ITLB_c0          ),
-    .ITLB_d0          (ITLB_d0          ),
-    .ITLB_v0          (ITLB_v0          ),
-    .ITLB_pfn1        (ITLB_pfn1        ), 
-    .ITLB_c1          (ITLB_c1          ),
-    .ITLB_d1          (ITLB_d1          ), 
-    .ITLB_v1          (ITLB_v1          ),
-
-    .DTLB_vpn2        (m1s_alu_result[31:13]),
-    .DTLB_asid        (cp0_to_tlb_asid  ),
-    .DTLB_found       (DTLB_found       ),
-    .DTLB_pfn0        (DTLB_pfn0        ), 
-    .DTLB_c0          (DTLB_c0          ),
-    .DTLB_d0          (DTLB_d0          ),
-    .DTLB_v0          (DTLB_v0          ),
-    .DTLB_pfn1        (DTLB_pfn1        ), 
-    .DTLB_c1          (DTLB_c1          ),
-    .DTLB_d1          (DTLB_d1          ), 
-    .DTLB_v1          (DTLB_v1          ),
-
-    .inst_tlbwi       (m1s_inst_tlbwi   ),
-    .inst_tlbp        (m1s_inst_tlbp    ),
-    .tlb_to_cp0_found (tlb_to_cp0_found ),
-    .tlb_to_cp0_vpn2  (tlb_to_cp0_vpn2  ),
-    .tlb_to_cp0_asid  (tlb_to_cp0_asid  ),
-    .tlb_to_cp0_index (tlb_to_cp0_index ),
-    .tlb_to_cp0_pfn0  (tlb_to_cp0_pfn0  ),
-    .tlb_to_cp0_c0    (tlb_to_cp0_c0    ),
-    .tlb_to_cp0_d0    (tlb_to_cp0_d0    ),
-    .tlb_to_cp0_v0    (tlb_to_cp0_v0    ),
-    .tlb_to_cp0_g0    (tlb_to_cp0_g0    ),
-    .tlb_to_cp0_pfn1  (tlb_to_cp0_pfn1  ),
-    .tlb_to_cp0_c1    (tlb_to_cp0_c1    ),
-    .tlb_to_cp0_d1    (tlb_to_cp0_d1    ),
-    .tlb_to_cp0_v1    (tlb_to_cp0_v1    ),
-    .tlb_to_cp0_g1    (tlb_to_cp0_g1    ),
-    .cp0_to_tlb_vpn2  (cp0_to_tlb_vpn2  ),
-    .cp0_to_tlb_asid  (cp0_to_tlb_asid  ),
-    .cp0_to_tlb_pfn0  (cp0_to_tlb_pfn0  ),
-    .cp0_to_tlb_c0    (cp0_to_tlb_c0    ),
-    .cp0_to_tlb_d0    (cp0_to_tlb_d0    ),
-    .cp0_to_tlb_v0    (cp0_to_tlb_v0    ),
-    .cp0_to_tlb_g0    (cp0_to_tlb_g0    ),
-    .cp0_to_tlb_pfn1  (cp0_to_tlb_pfn1  ),
-    .cp0_to_tlb_c1    (cp0_to_tlb_c1    ),
-    .cp0_to_tlb_d1    (cp0_to_tlb_d1    ),
-    .cp0_to_tlb_v1    (cp0_to_tlb_v1    ),
-    .cp0_to_tlb_g1    (cp0_to_tlb_g1    ),
-    .cp0_to_tlb_index (cp0_to_tlb_index )
+    .clk               (aclk             ),
+    .reset             (reset            ),
+    .ITLB_vpn2         (prefs_pc[31:13]  ),
+    .ITLB_asid         (cp0_to_tlb_asid  ),
+    .ITLB_found        (ITLB_found       ),
+    .ITLB_pfn0         (ITLB_pfn0        ),   
+    .ITLB_c0           (ITLB_c0          ),
+    .ITLB_d0           (ITLB_d0          ),
+    .ITLB_v0           (ITLB_v0          ),
+    .ITLB_pfn1         (ITLB_pfn1        ), 
+    .ITLB_c1           (ITLB_c1          ),
+    .ITLB_d1           (ITLB_d1          ), 
+    .ITLB_v1           (ITLB_v1          ),
+ 
+    .DTLB_vpn2         (m1s_alu_result[31:13]),
+    .DTLB_asid         (cp0_to_tlb_asid  ),
+    .DTLB_found        (DTLB_found       ),
+    .DTLB_pfn0         (DTLB_pfn0        ), 
+    .DTLB_c0           (DTLB_c0          ),
+    .DTLB_d0           (DTLB_d0          ),
+    .DTLB_v0           (DTLB_v0          ),
+    .DTLB_pfn1         (DTLB_pfn1        ), 
+    .DTLB_c1           (DTLB_c1          ),
+    .DTLB_d1           (DTLB_d1          ), 
+    .DTLB_v1           (DTLB_v1          ),
+ 
+    .inst_tlbwi        (m1s_inst_tlbwi   ),
+    .inst_tlbwr        (m1s_inst_tlbwr   ),
+    .inst_tlbp         (m1s_inst_tlbp    ),
+    .tlb_to_cp0_found  (tlb_to_cp0_found ),
+    .tlb_to_cp0_vpn2   (tlb_to_cp0_vpn2  ),
+    .tlb_to_cp0_asid   (tlb_to_cp0_asid  ),
+    .tlb_to_cp0_index  (tlb_to_cp0_index ),
+    .tlb_to_cp0_pfn0   (tlb_to_cp0_pfn0  ),
+    .tlb_to_cp0_c0     (tlb_to_cp0_c0    ),
+    .tlb_to_cp0_d0     (tlb_to_cp0_d0    ),
+    .tlb_to_cp0_v0     (tlb_to_cp0_v0    ),
+    .tlb_to_cp0_g0     (tlb_to_cp0_g0    ),
+    .tlb_to_cp0_pfn1   (tlb_to_cp0_pfn1  ),
+    .tlb_to_cp0_c1     (tlb_to_cp0_c1    ),
+    .tlb_to_cp0_d1     (tlb_to_cp0_d1    ),
+    .tlb_to_cp0_v1     (tlb_to_cp0_v1    ),
+    .tlb_to_cp0_g1     (tlb_to_cp0_g1    ),
+    .cp0_to_tlb_vpn2   (cp0_to_tlb_vpn2  ),
+    .cp0_to_tlb_asid   (cp0_to_tlb_asid  ),
+    .cp0_to_tlb_pfn0   (cp0_to_tlb_pfn0  ),
+    .cp0_to_tlb_c0     (cp0_to_tlb_c0    ),
+    .cp0_to_tlb_d0     (cp0_to_tlb_d0    ),
+    .cp0_to_tlb_v0     (cp0_to_tlb_v0    ),
+    .cp0_to_tlb_g0     (cp0_to_tlb_g0    ),
+    .cp0_to_tlb_pfn1   (cp0_to_tlb_pfn1  ),
+    .cp0_to_tlb_c1     (cp0_to_tlb_c1    ),
+    .cp0_to_tlb_d1     (cp0_to_tlb_d1    ),
+    .cp0_to_tlb_v1     (cp0_to_tlb_v1    ),
+    .cp0_to_tlb_g1     (cp0_to_tlb_g1    ),
+    .cp0_to_tlb_index  (cp0_to_tlb_index ),
+    .cp0_to_tlb_random (cp0_to_tlb_random)
 );
 
 endmodule

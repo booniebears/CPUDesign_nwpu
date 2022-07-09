@@ -77,11 +77,12 @@ assign {rf_we   ,  //37:37
 wire        br_taken;
 wire [31:0] br_target;
 
-wire [40:0] alu_op; //12条ALU指令
+wire [`ALUOP_WD-1:0] alu_op; 
+
 wire        load_op;
 wire        src1_is_sa;
 wire        src1_is_pc;
-wire [ 1:0] src2_is_imm; //lab6修改 要处理零扩展和有符号扩展
+wire [ 1:0] src2_is_imm; 
 wire        src2_is_8;
 wire        gr_we;
 wire        mem_we;
@@ -209,18 +210,18 @@ wire        inst_tltiu;
 wire        inst_tltu;
 wire        inst_tne;
 wire        inst_tnei;
+reg  [2:0]  trap_op;
+
+reg [1:0]   FPU_inst_type; //2'b00:非FPU指令;2'b01:FPU保留指令;2'b10:FPU指令
 
 wire        dst_is_r31;  
 wire        dst_is_rt;   
 
-wire [ 4:0] rf_raddr1; //目前是rs
 wire [31:0] rf_rdata1;
-wire [ 4:0] rf_raddr2; //目前是rt
 wire [31:0] rf_rdata2;
 
 wire        rs_eq_rt; //rs==rt
 
-//lab4添加
 wire        rs_wait;
 wire        rt_wait;
 wire        inst_no_dest; //指令用不着写RF时为1,否则为0
@@ -229,8 +230,6 @@ wire        src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt
 wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停
 wire        mfc0_stall; 
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
-
-//lab7添加 用于辅助判断b型指令的跳转状况
 wire        rsgez;
 wire        rsgtz;
 wire        rslez;
@@ -239,33 +238,34 @@ wire        rsltz;
 assign br_bus       = {br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
-                       inst_tlbp   ,  //181:181
-                       inst_tlbr   ,  //180:180
-                       inst_tlbwi  ,  //179:179
-                       inst_tlbwr  ,  //178:178                          
-                       mfc0_rd     ,  //177:173 --mfc0中的rd域 指定CP0寄存器的读写地址
-                       Overflow_inst, //172:170 --可能涉及整型溢出例外的三条指令:add,addi,sub
-                       ds_ex       ,  //169:169 --ID阶段 发现异常则置为1
-                       ds_Exctype  ,  //168:164 --例外编码
-                       ds_bd       ,  //163:163 --ID阶段 当前指令若在延迟槽中,则置为1
-                       inst_eret   ,  //162:162 --eret指令要送到WB阶段处理
-                       sel         ,  //161:159 --指令sel段要送到WB阶段处理
-                       inst_mtc0   ,  //158:158 --mtc0指令要送到WB阶段处理
-                       inst_mfc0   ,  //157:157 --mfc0指令要送到WB阶段处理
-                       mem_inst    ,  //156:145 --区分不同的存取指令
-                       alu_op      ,  //144:125 --alu指令控制
-                       load_op     ,  //124:124 --是否为load指令
-                       src1_is_sa  ,  //123:123 --移位sa?
-                       src1_is_pc  ,  //122:123 --pc?
-                       src2_is_imm ,  //121:120 --立即数?
-                       src2_is_8   ,  //119:119 --jal指令需要的8?
-                       gr_we       ,  //118:118 --写RF使能
-                       mem_we      ,  //117:117 --写DM使能
-                       dest        ,  //116:112 --写RF的地址
-                       imm         ,  //111:96  --16位立即数
-                       rs_value    ,  //95 :64  --32位rs
-                       rt_value    ,  //63 :32  --32位rt
-                       ds_pc          //31 :0   --ID阶段 PC值
+                       trap_op     ,  //3 bit
+                       inst_tlbp   ,  
+                       inst_tlbr   ,  
+                       inst_tlbwi  ,  
+                       inst_tlbwr  ,                          
+                       mfc0_rd     ,  //--mfc0中的rd域 指定CP0寄存器的读写地址
+                       Overflow_inst, //--可能涉及整型溢出例外的三条指令:add,addi,sub
+                       ds_ex       ,  //--ID阶段 发现异常则置为1
+                       ds_Exctype  ,  //--例外编码
+                       ds_bd       ,  //--ID阶段 当前指令若在延迟槽中,则置为1
+                       inst_eret   ,  //--eret指令要送到WB阶段处理
+                       sel         ,  //--指令sel段要送到WB阶段处理
+                       inst_mtc0   ,  //--mtc0指令要送到WB阶段处理
+                       inst_mfc0   ,  //--mfc0指令要送到WB阶段处理
+                       mem_inst    ,  //--区分不同的存取指令
+                       alu_op      ,  //--alu指令控制
+                       load_op     ,  //--是否为load指令
+                       src1_is_sa  ,  //--移位sa?
+                       src1_is_pc  ,  //--pc?
+                       src2_is_imm ,  //--立即数?
+                       src2_is_8   ,  //--jal指令需要的8?
+                       gr_we       ,  //--写RF使能
+                       mem_we      ,  //--写DM使能
+                       dest        ,  //--写RF的地址
+                       imm         ,  //--16位立即数
+                       rs_value    ,  //--32位rs
+                       rt_value    ,  //--32位rt
+                       ds_pc          //--ID阶段 PC值
                       };
 
 assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
@@ -407,12 +407,12 @@ assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
 assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
 assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
 assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
-assign inst_tltu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tltu  = op_d[6'h00] & func_d[6'h33];
 assign inst_tne   = op_d[6'h00] & func_d[6'h36];
 assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
 
 //已经在该mips指令集中定义过的指令
-assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
+assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
 | inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
 | inst_bne | inst_jal | inst_jr | inst_add | inst_addi | inst_sub | inst_slti | inst_sltiu | inst_andi
 | inst_ori | inst_xori | inst_sllv | inst_srav | inst_srlv | inst_mult | inst_multu | inst_div
@@ -424,13 +424,72 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
 
 
-//lab7添加
-assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
-assign rsgtz=(rs_value[31]==1'b0&&rs_value!=32'b0); //>0
-assign rslez=(rs_value[31]==1'b1||rs_value==32'b0); //<=0
-assign rsltz=(rs_value[31]==1'b1&&rs_value!=32'b0); //<0
 
-//lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
+`ifdef FPU_EX_Valid
+    always @(*) begin
+        case (op)
+            6'b000000: begin // MOCVI(MOVF,MOVT)
+                if(func == 6'b000001)
+                    FPU_inst_type = `FPU_INST;
+                else 
+                    FPU_inst_type = `NOT_FPU;
+            end
+            6'b110101: //LDC1
+                FPU_inst_type = `FPU_INST;
+            6'b111101: //SDC1
+                FPU_inst_type = `FPU_INST;
+            6'b110001: //LWC1
+                FPU_inst_type = `FPU_INST;
+            6'b111001: //SWC1
+                FPU_inst_type = `FPU_INST;
+            6'b010001: begin //COP1
+                case(rs)
+                    5'b00000: FPU_inst_type = `FPU_INST; // MFC1
+                    5'b00010: FPU_inst_type = `FPU_INST; // CFC1
+                    5'b00100: FPU_inst_type = `FPU_INST; // MTC1
+                    5'b00110: FPU_inst_type = `FPU_INST; // CTC1
+                    5'b01000: FPU_inst_type = `FPU_INST; // BC1
+                    5'b10000: begin
+                        casez (func)
+                            6'b000000: FPU_inst_type = `FPU_INST;  // OP_FPU_ADD
+                            6'b000001: FPU_inst_type = `FPU_INST;  // OP_FPU_SUB
+                            6'b000010: FPU_inst_type = `FPU_INST;  // OP_FPU_MUL
+                            6'b000011: FPU_inst_type = `FPU_INST;  // OP_FPU_DIV
+                            6'b000100: FPU_inst_type = `FPU_INST;  // OP_FPU_SQRT
+                            6'b000101: FPU_inst_type = `FPU_INST;  // OP_FPU_ABS
+                            6'b000111: FPU_inst_type = `FPU_INST;  // OP_FPU_NEG
+                            6'b001100: FPU_inst_type = `FPU_INST;  // OP_FPU_ROUND
+                            6'b001101: FPU_inst_type = `FPU_INST;  // OP_FPU_TRUNC
+                            6'b001110: FPU_inst_type = `FPU_INST;  // OP_FPU_CEIL
+                            6'b001111: FPU_inst_type = `FPU_INST;  // OP_FPU_FLOOR
+                            6'b100100: FPU_inst_type = `FPU_INST;  // OP_FPU_CVTW
+                            6'b000110: FPU_inst_type = `FPU_INST;  // OP_FPU_MOV
+                            6'b010001: FPU_inst_type = `FPU_INST;  // OP_FPU_CMOV
+                            6'b01001?: FPU_inst_type = `FPU_INST;  // OP_FPU_CMOV
+                            6'b11????: FPU_inst_type = `FPU_INST;  // OP_FPU_COND
+                            default  : FPU_inst_type = `FPU_RESERVED;  // 浮点指令的保留指令例外
+                        endcase
+                    end
+                    5'b10110 : begin
+                        casez(func)
+                            6'b100000: FPU_inst_type = `FPU_INST;  // CVTS.PU
+                            6'b101000: FPU_inst_type = `FPU_INST;  // CVTS.PL
+                            default  : FPU_inst_type = `FPU_RESERVED;  // 浮点指令的保留指令例外
+                        endcase
+                    end       
+                    default:  FPU_inst_type = `FPU_RESERVED;
+                endcase
+            end
+            default: FPU_inst_type = `NOT_FPU;
+        endcase
+    end
+`endif
+
+assign rsgez = (rs_value[31] == 1'b0 | rs_value == 32'b0); //>=0
+assign rsgtz = (rs_value[31] == 1'b0 & rs_value != 32'b0); //>0
+assign rslez = (rs_value[31] == 1'b1 | rs_value == 32'b0); //<=0
+assign rsltz = (rs_value[31] == 1'b1 & rs_value != 32'b0); //<0
+
 wire has_int; //判定是否接收到中断 需要满足下面的条件
 assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
 
@@ -535,9 +594,20 @@ always @(posedge clk) begin
         Soft_state <= Soft_nextstate;
 end
 
+`ifdef FPU_EX_Valid
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
+                  (has_int & (Time_int | Soft_int)) | (FPU_inst_type == `FPU_RESERVED) |
+                  (FPU_inst_type == `FPU_INST);
+    assign ds_Exctype = temp_ex             ? temp_Exctype :
+                        Time_int | Soft_int ?         `Int :
+                        inst_syscall        ?         `Sys : 
+                        inst_break          ?          `Bp : 
+                        (FPU_inst_type == `FPU_INST) ? `CpU:
+                        ~inst_defined | (FPU_inst_type == `FPU_RESERVED)? `RI : `NO_EX; 
+`endif
 
-assign ds_ex      = temp_ex | !inst_defined | inst_syscall | inst_break | 
-                    has_int & (Time_int | Soft_int);
+assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
+              (has_int & (Time_int | Soft_int));
 assign ds_Exctype = temp_ex             ? temp_Exctype :
                     Time_int | Soft_int ?         `Int :
                     ~inst_defined       ?          `RI : 
@@ -578,56 +648,60 @@ assign alu_op[25] = inst_msubu;
 assign alu_op[26] = inst_mul;
 assign alu_op[27] = inst_movn;
 assign alu_op[28] = inst_movz;
-assign alu_op[29] = inst_teq;
-assign alu_op[30] = inst_teqi;
-assign alu_op[31] = inst_tge;
-assign alu_op[32] = inst_tgei;
-assign alu_op[33] = inst_tgeiu;
-assign alu_op[34] = inst_tgeu;
-assign alu_op[35] = inst_tlt;
-assign alu_op[36] = inst_tlti;
-assign alu_op[37] = inst_tltiu;
-assign alu_op[38] = inst_tltu;
-assign alu_op[39] = inst_tne;
-assign alu_op[40] = inst_tnei;
 
-//lab6添加
-wire imm_zero_ext; //立即数零扩展
-wire imm_sign_ext; //立即数符号扩展
-assign imm_zero_ext  = inst_andi | inst_ori | inst_xori | inst_lui | inst_teqi | inst_tgei | inst_tlti | inst_tnei;
-assign imm_sign_ext  = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu 
-                           | inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh 
-                           | inst_lhu | inst_lwl | inst_lwr | inst_tgeiu | inst_tltiu;
+always @(*) begin //trap指令编码
+    if(inst_teq | inst_teqi)
+        trap_op = `TEQ_TYPE;
+    else if(inst_tge | inst_tgei)
+        trap_op = `TGE_TYPE;
+    else if(inst_tgeu | inst_tgeiu)
+        trap_op = `TGEU_TYPE;
+    else if(inst_tlt | inst_tlti)
+        trap_op = `TLT_TYPE;
+    else if(inst_tltu | inst_tltiu)
+        trap_op = `TLTU_TYPE;
+    else if(inst_tne | inst_tnei)
+        trap_op = `TNE_TYPE;
+    else
+        trap_op = `NOT_TRAP;
+end
+
+wire   imm_zero_ext; //立即数零扩展
+wire   imm_sign_ext; //立即数符号扩展
+assign imm_zero_ext = inst_andi | inst_ori | inst_xori | inst_lui | inst_tgeiu | inst_tltiu;
+assign imm_sign_ext = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu |
+                      inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh |
+                      inst_lhu | inst_lwl | inst_lwr | inst_tgei | inst_tlti | inst_teqi | inst_tnei;
 
 assign load_op      = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr;
 assign src1_is_sa   = inst_sll | inst_srl | inst_sra;
 assign src1_is_pc   = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
-//lab6修改 非立即数:2'b00 立即数零扩展:2'b01 立即数有符号扩展:2'b10
+//非立即数:2'b00 立即数零扩展:2'b01 立即数有符号扩展:2'b10
 assign src2_is_imm  = imm_zero_ext ? 2'b01 : 
                       imm_sign_ext ? 2'b10 : 2'b00; 
 assign src2_is_8    = inst_jal | inst_bgezal | inst_bltzal | inst_jalr;
 assign dst_is_r31   = inst_jal | inst_bgezal | inst_bltzal;
-assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu
-                      | inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu 
-                      | inst_lwl | inst_lwr | inst_mfc0;
-assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne & ~inst_jr & ~inst_bgez & ~inst_bgtz
-& ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~ inst_mtlo & ~inst_sb & ~inst_sh & ~inst_swl 
-& ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall;
+assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu |
+                      inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu |
+                      inst_lwl | inst_lwr | inst_mfc0;
+assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne & ~inst_jr & ~inst_bgez & ~inst_bgtz &
+                      ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~inst_mtlo & ~inst_sb &
+                      ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
+                      ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
+                      ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei;
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
-assign rf_raddr1 = rs;
-assign rf_raddr2 = rt;
 regfile u_regfile(
     .clk    (clk      ),
-    .raddr1 (rf_raddr1),
+    .raddr1 (rs       ),
     .rdata1 (rf_rdata1),
-    .raddr2 (rf_raddr2),
+    .raddr2 (rt       ),
     .rdata2 (rf_rdata2),
     .we     (rf_we    ),
     .waddr  (rf_waddr ),
     .wdata  (rf_wdata ),
     .reset  (reset    )
-    );
+);
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
                              rs == M1s_dest  ?  M1s_result  :
@@ -660,7 +734,7 @@ assign br_target =
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
                    | inst_bgezal | inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
                    (inst_jr | inst_jalr)              ? rs_value :
-                   /*inst_jal,inst_j*/              {fs_pc[31:28], jidx[25:0], 2'b0};
+                   /*inst_jal,inst_j*/            {fs_pc[31:28], jidx[25:0], 2'b0};
 
 assign src1_no_rs = 1'b0;
 assign src2_no_rt = inst_addiu | load_op | inst_jal | inst_lui | inst_addi | inst_slti 

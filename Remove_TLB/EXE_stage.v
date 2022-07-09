@@ -151,11 +151,6 @@ assign es_to_m1s_bus = {
                        es_pc             //31:0 --EXE阶段 PC值
                       };
 
-//m_axis_dout_tvalid除法完成信号 es_alu_op[12]为div指令 es_alu_op[13]为divu指令
-// assign es_ready_go    =  
-//                          ((~es_alu_op[12] & ~es_alu_op[13])
-//                          |(es_alu_op[12] & m_axis_dout_tvalid)
-//                          |(es_alu_op[13] & m_axis_dout_tvalidu));
 assign es_ready_go     = (~isMul & ~isDiv) | (isDiv & (m_axis_dout_tvalid | m_axis_dout_tvalidu))
                          | (isMul & mul_finished);
                          

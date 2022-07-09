@@ -32,6 +32,7 @@ module m1_stage(
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
+    output          m1s_inst_tlbwr, //TLB写使能:对应inst_tlbwr
     output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
     input           tlb_to_cp0_found,//tlb查找是否成功
     input  [18:0]   tlb_to_cp0_vpn2, //以下为tlb写入的数据
@@ -59,7 +60,8 @@ module m1_stage(
     output          cp0_to_tlb_d1 ,
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
-    output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
+    output [3:0]    cp0_to_tlb_index, //tlbwi指令的索引值
+    output [3:0]    cp0_to_tlb_random, //tlbwr指令的索引值
     output [31:0]   m1s_alu_result,
     /********************TLB-CP0交互信号如上********************/
     output reg      data_valid,
@@ -111,7 +113,6 @@ wire        eret_flush;
 
 wire [31:0] CP0_data;
 wire        m1s_inst_tlbr; 
-wire        m1s_inst_tlbwr;
 wire        m1s_mem_we;
 wire [ 3:0] sram_wen;
 wire [31:0] sram_wdata;//位数问题！
@@ -233,6 +234,7 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
+    .cp0_to_tlb_random   (cp0_to_tlb_random),
     .CP0_EPC_out         (CP0_EPC_out),
     .CP0_Status_IE_out   (CP0_Status_IE_out),
     .CP0_Status_EXL_out  (CP0_Status_EXL_out),

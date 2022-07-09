@@ -49,8 +49,10 @@ module tlb
     
     //CP0_TO_TLB port
     input                             inst_tlbwi, //TLB写使能:对应inst_tlbwi
+    input                             inst_tlbwr, //TLB写使能:对应inst_tlbwr
     input                             inst_tlbp , //TLB查询:对应inst_tlbp
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_index,
+    input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_random,
     input        [18:0]               cp0_to_tlb_vpn2,
     input        [7:0]                cp0_to_tlb_asid,
     input                             cp0_to_tlb_g0,
@@ -80,7 +82,10 @@ module tlb
     wire [TLBNUM-1:0]         ITLB_match;
     wire [TLBNUM-1:0]         common_match;
     reg  [$clog2(TLBNUM)-1:0] ITLB_index;                      
-    reg  [$clog2(TLBNUM)-1:0] common_index;                      
+    reg  [$clog2(TLBNUM)-1:0] common_index;
+    wire [$clog2(TLBNUM)-1:0] write_index;
+    //CP0 index与random寄存器二选一 写TLB
+    assign write_index = inst_tlbwi ? cp0_to_tlb_index : cp0_to_tlb_random; 
 
     integer i;
     //write port
@@ -100,18 +105,18 @@ module tlb
                 tlb_v1  [i]  <= 0;
             end
         end
-        if(inst_tlbwi) begin
-            tlb_vpn2[cp0_to_tlb_index] <= cp0_to_tlb_vpn2;
-            tlb_asid[cp0_to_tlb_index] <= cp0_to_tlb_asid;
-            tlb_g[cp0_to_tlb_index]    <= cp0_to_tlb_g0 & cp0_to_tlb_g1;
-            tlb_pfn0[cp0_to_tlb_index] <= cp0_to_tlb_pfn0;
-            tlb_c0[cp0_to_tlb_index]   <= cp0_to_tlb_c0;
-            tlb_d0[cp0_to_tlb_index]   <= cp0_to_tlb_d0;
-            tlb_v0[cp0_to_tlb_index]   <= cp0_to_tlb_v0;
-            tlb_pfn1[cp0_to_tlb_index] <= cp0_to_tlb_pfn1;
-            tlb_c1[cp0_to_tlb_index]   <= cp0_to_tlb_c1;
-            tlb_d1[cp0_to_tlb_index]   <= cp0_to_tlb_d1;
-            tlb_v1[cp0_to_tlb_index]   <= cp0_to_tlb_v1;
+        if(inst_tlbwi | inst_tlbwr) begin
+            tlb_vpn2[write_index] <= cp0_to_tlb_vpn2;
+            tlb_asid[write_index] <= cp0_to_tlb_asid;
+            tlb_g[write_index]    <= cp0_to_tlb_g0 & cp0_to_tlb_g1;
+            tlb_pfn0[write_index] <= cp0_to_tlb_pfn0;
+            tlb_c0[write_index]   <= cp0_to_tlb_c0;
+            tlb_d0[write_index]   <= cp0_to_tlb_d0;
+            tlb_v0[write_index]   <= cp0_to_tlb_v0;
+            tlb_pfn1[write_index] <= cp0_to_tlb_pfn1;
+            tlb_c1[write_index]   <= cp0_to_tlb_c1;
+            tlb_d1[write_index]   <= cp0_to_tlb_d1;
+            tlb_v1[write_index]   <= cp0_to_tlb_v1;
         end
     end
 

@@ -46,6 +46,7 @@ module CP0_Reg
     output        cp0_to_tlb_v1 ,
     output        cp0_to_tlb_g1 ,
     output [ 3:0] cp0_to_tlb_index,//索引值
+    output [ 3:0] cp0_to_tlb_random,//索引值
     output [31:0] CP0_EPC_out, 
     output        CP0_Status_IE_out,
     output        CP0_Status_EXL_out,
@@ -198,6 +199,8 @@ assign CP0_Cause_TI_out = CP0_Cause_TI;
 always @(posedge clk) begin //CE 29-28 R TODO:在发生CpU异常的时候赋值,目前置空
     if(reset) //TODO:按照规范的话，可以不用reset
         CP0_Cause_CE <= 2'b00;
+    else if(Exctype == `CpU)
+        CP0_Cause_CE <= 2'b01;
 end
 
 always @(posedge clk) begin //IP7-IP2 15-10 R TODO: ext_int处理
@@ -236,7 +239,9 @@ always @(posedge clk) begin //ExeCode 6-2 R
             `Sys                : CP0_Cause_ExcCode <= 5'b01000;
             `Bp                 : CP0_Cause_ExcCode <= 5'b01001;
             `RI                 : CP0_Cause_ExcCode <= 5'b01010;
+            `CpU                : CP0_Cause_ExcCode <= 5'b01011;
             `Ov                 : CP0_Cause_ExcCode <= 5'b01100;
+            `Trap               : CP0_Cause_ExcCode <= 5'b01101;
             default             : CP0_Cause_ExcCode <= `NO_EX;
         endcase
     end
@@ -255,13 +260,14 @@ always @(posedge clk) begin
         CP0_Wired_Wired <= m1s_alu_result[3:0];
 end
 
-assign Random_next = CP0_Random_Random + 1'b1;
+assign Random_next = CP0_Random_Random + 1'b1; //由于只有四位,故上限为TLBNUM - 1'b1
 always @(posedge clk) begin //Random 3-0 R
     if(reset)
         CP0_Random_Random <= TLBNUM - 1'b1;
-    else //Random的赋值可参考学长代码,每个时钟周期都会变化。
+    else //Random的赋值 从CP0_Wired_Wired变化到TLBNUM - 1'b1
         CP0_Random_Random <= (CP0_Wired_Wired < Random_next) ? Random_next : CP0_Wired_Wired;
 end
+assign cp0_to_tlb_random = CP0_Random_Random;
 /*************************以上为Random&Wired寄存器部分*************************/
 
 /*************************以下为Context寄存器部分*************************/
