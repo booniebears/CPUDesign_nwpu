@@ -4,8 +4,8 @@ module ITLB_stage(
     input             clk             ,
     input             reset           ,
     input             ITLB_found      ,
-    input      [31:0] ITLB_VAddr      , //ĞéµØÖ·
-    output reg [31:0] ITLB_RAddr      , //ÊµµØÖ·
+    input      [31:0] ITLB_VAddr      , //è™šåœ°å€
+    output reg [31:0] ITLB_RAddr      , //å®åœ°å€
     input      [ 3:0] ITLB_index      ,
     input      [19:0] ITLB_pfn        ,  
     input      [ 3:0] ITLB_asid       , //ASID
@@ -20,8 +20,8 @@ module ITLB_stage(
     output reg        ITLB_Buffer_Valid_ps
 );
 
-parameter   IDLE =   4'd0,//¿ÕÏĞ
-            SEARCH = 4'd1;//ËÑÑ°
+parameter   IDLE =   4'd0,//ç©ºé—²
+            SEARCH = 4'd1;//æœå¯»
 reg ITLB_cstate;
 reg ITLB_nstate;  
 reg ITLB_Buffer_Hit;
@@ -35,17 +35,17 @@ reg          ITLB_Buffer_d         ;
 reg          ITLB_Buffer_v         ;
 
 
-//ĞéÊµµØÖ·×ª»»
+//è™šå®åœ°å€è½¬æ¢
 always @(*) begin
-    if(ITLB_VAddr[31:28] == 4'hA || ITLB_VAddr[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈıÎ»ÇåÁã
+    if(ITLB_VAddr[31:28] == 4'hA || ITLB_VAddr[31:28] == 4'hB) //å®åœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         ITLB_RAddr = {3'b000, ITLB_VAddr[28:0]};
-    else if(ITLB_VAddr[31:28] == 4'h8 || ITLB_VAddr[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(ITLB_VAddr[31:28] == 4'h8 || ITLB_VAddr[31:28] == 4'h9) //å®åœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         ITLB_RAddr = {1'b0  , ITLB_VAddr[30:0]};
     else
         ITLB_RAddr = {ITLB_Buffer_pfn,ITLB_VAddr[11:0]};
 end
 
-//ÀıÍâµÄ¼ÓÈë
+//ä¾‹å¤–çš„åŠ å…¥
 always @(*) begin
     if(~ITLB_Buffer_found && (ITLB_VAddr[31:28] <= 4'h7 || ITLB_VAddr[31:28] >= 4'hC))
         begin           
@@ -77,7 +77,7 @@ always @(*) begin
             ITLB_Buffer_Valid_ps  = 1'b1; 
 end
 
-//BufferÊÇ·ñ¿ÉÒÔÃüÖĞ
+//Bufferæ˜¯å¦å¯ä»¥å‘½ä¸­
 always @(*) begin
     if(ITLB_VAddr[31:28] < 4'hC && ITLB_VAddr[31:28] > 4'h7)
         ITLB_Buffer_Hit = 1'b1;
@@ -88,7 +88,7 @@ always @(*) begin
 end
 assign ITLB_Buffer_Stall    = ~ ITLB_Buffer_Hit; 
 
-//Ğ´ĞÅºÅ
+//å†™ä¿¡å·
 always @(posedge clk) begin
     if(reset) begin
         ITLB_cstate <= IDLE;

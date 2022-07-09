@@ -9,7 +9,6 @@ module CP0_Reg
     input         m1s_valid,
     input         m1s_inst_mtc0,
     input         m1s_inst_eret,
-    input  [31:0] m1s_result,
     input         m1s_bd,
     input         m1s_ex, //ms阶段 若报出例外,置为1,否则为0
     input  [31:0] m1s_alu_result, //若有地址错例外,则需要用BadVAddr寄存器记录错误的虚地址
@@ -94,19 +93,19 @@ always @(posedge clk) begin //28 R/W
     if(reset)
         CP0_Status_CU0 <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_CU0 <= m1s_result[28];
+        CP0_Status_CU0 <= m1s_alu_result[28];
 end
 
 always @(posedge clk) begin //22 R/W Attention:与CPU设计实战定义不同,参考手册
     if(reset)
         CP0_Status_Bev <= 1'b1; //Bev域恒为1,只读
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_Bev <= m1s_result[22]; 
+        CP0_Status_Bev <= m1s_alu_result[22]; 
 end
 
 always @(posedge clk) begin //15-8 R/W
     if(mtc0_we && CP0_Addr==`Status_RegAddr) 
-        CP0_Status_IM <= m1s_result[15:8];
+        CP0_Status_IM <= m1s_alu_result[15:8];
 end
 assign CP0_Status_IM_out = CP0_Status_IM;
 
@@ -114,14 +113,14 @@ always @(posedge clk) begin //4 R/W
     if(reset)
         CP0_Status_UM <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_UM <= m1s_result[4];
+        CP0_Status_UM <= m1s_alu_result[4];
 end
 
 always @(posedge clk) begin //2 R/W
     if(reset) 
         CP0_Status_ERL <= 1'b0; //TODO:手册上写的是1?
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_ERL <= m1s_result[2];
+        CP0_Status_ERL <= m1s_alu_result[2];
 end
 
 always @(posedge clk) begin //1 R/W
@@ -132,7 +131,7 @@ always @(posedge clk) begin //1 R/W
     else if(eret_flush)
         CP0_Status_EXL <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_EXL <= m1s_result[1];
+        CP0_Status_EXL <= m1s_alu_result[1];
 end
 assign CP0_Status_EXL_out = CP0_Status_EXL;
 
@@ -140,7 +139,7 @@ always @(posedge clk) begin //0 R/W
     if(reset)
         CP0_Status_IE <= 1'b0;
     else if(mtc0_we && CP0_Addr == `Status_RegAddr)
-        CP0_Status_IE <= m1s_result[0];
+        CP0_Status_IE <= m1s_alu_result[0];
 end
 assign CP0_Status_IE_out = CP0_Status_IE;
 /*************************以上为Status寄存器部分*************************/
@@ -157,7 +156,7 @@ always @(posedge clk) begin
 
     if(reset) CP0_Count <= 32'b0;
     else if(mtc0_we && CP0_Addr == `Count_RegAddr)
-        CP0_Count <= m1s_result;
+        CP0_Count <= m1s_alu_result;
     else if(tick)
         CP0_Count <= CP0_Count + 1'b1;
 end
@@ -166,7 +165,7 @@ always @(posedge clk) begin //Compare
     if(reset) 
         CP0_Compare <= 32'h000155cc; //TODO:目前是凑出来的,之后要根据时间间隔和主频来计算
     else if(mtc0_we && CP0_Addr == `Compare_RegAddr)
-        CP0_Compare <= m1s_result;
+        CP0_Compare <= m1s_alu_result;
 end
 /*************************以上Count&Compare寄存器部分*************************/
 
@@ -205,9 +204,9 @@ always @(posedge clk) begin //IP7-IP2 15-10 R TODO: ext_int处理
     if(reset)
         CP0_Cause_IP[7:2] <= 6'b0;
     else begin
-        CP0_Cause_IP[7]   <= CP0_Cause_TI;
-        // CP0_Cause_IP[7]<=ext_int[5]|CP0_Cause_TI;
-        // CP0_Cause_IP[6:2]<=ext_int[4:0];
+        // CP0_Cause_IP[7]   <= CP0_Cause_TI;
+        CP0_Cause_IP[7]   <= ext_int[5] | CP0_Cause_TI;
+        CP0_Cause_IP[6:2] <= ext_int[4:0];
     end
 end
 assign CP0_Cause_IP_out = CP0_Cause_IP;
@@ -216,7 +215,7 @@ always @(posedge clk) begin //IP1-IP0 9-8 R/W
     if(reset)
         CP0_Cause_IP[1:0] <= 2'b0;
     else if(mtc0_we && CP0_Addr == `Cause_RegAddr)
-        CP0_Cause_IP[1:0] <= m1s_result[9:8];
+        CP0_Cause_IP[1:0] <= m1s_alu_result[9:8];
 end
 
 always @(posedge clk) begin //ExeCode 6-2 R
@@ -255,7 +254,7 @@ always @(posedge clk) begin
     if(reset)
         CP0_Wired_Wired <= 4'b0;
     else if(mtc0_we && CP0_Addr == `Wired_RegAddr)
-        CP0_Wired_Wired <= m1s_result[3:0];
+        CP0_Wired_Wired <= m1s_alu_result[3:0];
 end
 
 assign Random_next = CP0_Random_Random + 1'b1;
@@ -273,7 +272,7 @@ reg [18:0] CP0_Context_BadVPN2; //22-4 R
 
 always @(posedge clk) begin //PTEBase 31-23 R/W
     if(mtc0_we && CP0_Addr == `Context_RegAddr)
-        CP0_Context_PTEBase <= m1s_result[31:23];
+        CP0_Context_PTEBase <= m1s_alu_result[31:23];
 end
 
 always @(posedge clk) begin //BadVPN2 22-4 R
@@ -295,7 +294,7 @@ always @(posedge clk) begin
         CP0_EPC <= m1s_bd ? m1s_pc - 3'h4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
     end
     else if(mtc0_we && CP0_Addr == `EPC_RegAddr)
-        CP0_EPC <= m1s_result;
+        CP0_EPC <= m1s_alu_result;
 end
 assign CP0_EPC_out = CP0_EPC;
 
@@ -321,8 +320,8 @@ always @(posedge clk) begin
         CP0_Entryhi_ASID <= 8'b0 ;
     end
     else if(mtc0_we && CP0_Addr == `Entryhi_RegAddr) begin
-        CP0_Entryhi_VPN2 <= m1s_result[31:13];
-        CP0_Entryhi_ASID <= m1s_result[7:0];
+        CP0_Entryhi_VPN2 <= m1s_alu_result[31:13];
+        CP0_Entryhi_ASID <= m1s_alu_result[7:0];
     end
     else if(inst_tlbr) begin
         CP0_Entryhi_VPN2 <= tlb_to_cp0_vpn2 ;
@@ -351,11 +350,11 @@ always @(posedge clk) begin
         CP0_Entrylo0_G0   <= 1'b0;
     end
     else if(mtc0_we && CP0_Addr == `Entrylo0_RegAddr) begin
-        CP0_Entrylo0_PFN0 <= m1s_result[25:6];
-        CP0_Entrylo0_C0   <= m1s_result[5:3];
-        CP0_Entrylo0_D0   <= m1s_result[2];
-        CP0_Entrylo0_V0   <= m1s_result[1];
-        CP0_Entrylo0_G0   <= m1s_result[0];
+        CP0_Entrylo0_PFN0 <= m1s_alu_result[25:6];
+        CP0_Entrylo0_C0   <= m1s_alu_result[5:3];
+        CP0_Entrylo0_D0   <= m1s_alu_result[2];
+        CP0_Entrylo0_V0   <= m1s_alu_result[1];
+        CP0_Entrylo0_G0   <= m1s_alu_result[0];
     end
     else if (inst_tlbr) begin
         CP0_Entrylo0_PFN0 <= tlb_to_cp0_pfn0;
@@ -387,11 +386,11 @@ always @(posedge clk) begin
         CP0_Entrylo1_G1   <= 1'b0;
     end
     else if(mtc0_we && CP0_Addr == `Entrylo1_RegAddr) begin
-        CP0_Entrylo1_PFN1 <= m1s_result[25:6];
-        CP0_Entrylo1_C1   <= m1s_result[5:3];
-        CP0_Entrylo1_D1   <= m1s_result[2];
-        CP0_Entrylo1_V1   <= m1s_result[1];
-        CP0_Entrylo1_G1   <= m1s_result[0];
+        CP0_Entrylo1_PFN1 <= m1s_alu_result[25:6];
+        CP0_Entrylo1_C1   <= m1s_alu_result[5:3];
+        CP0_Entrylo1_D1   <= m1s_alu_result[2];
+        CP0_Entrylo1_V1   <= m1s_alu_result[1];
+        CP0_Entrylo1_G1   <= m1s_alu_result[0];
     end
     else if (inst_tlbr) begin
         CP0_Entrylo1_PFN1 <= tlb_to_cp0_pfn1;
@@ -424,7 +423,7 @@ always @(posedge clk) begin
         CP0_Index_Index <= 4'b0;
     end
     else if(mtc0_we && CP0_Addr == `Index_RegAddr) begin
-        CP0_Index_Index <= m1s_result[3:0];
+        CP0_Index_Index <= m1s_alu_result[3:0];
     end
     else if(inst_tlbp && tlb_to_cp0_found) begin
         CP0_Index_Index <= tlb_to_cp0_index;

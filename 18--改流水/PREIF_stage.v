@@ -11,11 +11,14 @@ module pre_if_stage(
     //to ds
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     output                         ps_to_fs_valid,
+
     input                          flush, //flush=1ʱ������Ҫ�����쳣
     input                          flush_refill, //��֪PRE-IF�׶� M!�׶δ�����������TLB Refill
     input  [31:0]                  CP0_EPC_out, //CP0�Ĵ�����,EPC��ֵ
     input                          m1s_inst_eret,
+
     //CPU��ICache�Ľ����ź�����
+ 
     output     [ 7:0]              inst_index,
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
@@ -50,6 +53,7 @@ reg          inst_valid         ;
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
 reg          flush_delayed;
+
 wire         br_taken;
 wire [ 31:0] br_target;
 wire         br_BPU_valid;
@@ -64,6 +68,8 @@ wire         BPU_valid;
 
 assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 
+
+
 assign {
         br_BPU_valid,
         is_branch,
@@ -74,6 +80,7 @@ assign {
         br_ds_pc
         } = br_bus; 
 
+//计数使用，可以注掉//
 reg [31:0] br_ds_pc_buffer;
 reg [31:0] branch_count;
 reg [31:0] right_count;
@@ -94,6 +101,8 @@ end
 always @(posedge clk) begin
     br_ds_pc_buffer <= br_ds_pc;
 end
+
+////////////////////
 
 assign ps_ready_go    = ~icache_busy;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
@@ -195,6 +204,9 @@ always @(*) begin
     else if(prefs_pc[1:0] != 2'b00)
         inst_valid = 1'b0;
     else if(~icache_busy & ps_allowin) begin
+        // if(br_taken & ~br_stall) 
+        //     inst_valid = 1'b0;
+        // else
             inst_valid = 1'b1;
     end
     else

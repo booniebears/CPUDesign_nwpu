@@ -17,8 +17,7 @@ module mem_stage(
     input  [ 31:0] data_rdata, //TODO:data_rdata换成从DCache读回来的数据rdata
     input          dcache_busy,
     output [ 4:0]  MEM_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
-    output [31:0]  MEM_result, //MEM阶段 ms_final_result  
-    output         ms_ex//判定MEM阶段是否有被标记为例外的指令
+    output [31:0]  MEM_result //MEM阶段 ms_final_result  
 );
 
 reg         ms_valid;
@@ -30,7 +29,8 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
-//lab7添加
+wire        ms_ex;
+
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
 wire 		load_sign_lb;
@@ -101,9 +101,6 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]  
                               (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
                                                              {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
-
-
-
 assign ms_ready_go    = ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -119,8 +116,6 @@ end
 always @(posedge clk ) begin
     if (reset)
         m1s_to_ms_bus_r <= 0;
-    //else if (flush) //清除流水线
-    //    m1s_to_ms_bus_r <= 0;
     else if (m1s_to_ms_valid && ms_allowin) begin
         m1s_to_ms_bus_r <= m1s_to_ms_bus;
     end

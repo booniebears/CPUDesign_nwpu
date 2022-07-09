@@ -109,7 +109,7 @@ wire                     data_read_en;
 
 reg  [ASSOC_NUM-1:0]     dirty_we; 
 reg  [ASSOC_NUM-1:0]     tagv_we ;   
-reg [WORDS_PER_LINE-1:0] data_we[ASSOC_NUM-1:0];  //精确到字
+reg [WORDS_PER_LINE-1:0] data_we[ASSOC_NUM-1:0]; //精确到字
 
 wire [INDEX_WIDTH-1:0]   dirty_index;
 wire [INDEX_WIDTH-1:0]   tagv_index;
@@ -171,7 +171,7 @@ assign dcache_wr_req   = (dcache_state == MISSDIRTY);
 //TODO:考虑多路组相连情况
 assign dcache_wr_addr  = {delayed_tag_rdata[plru[reqbuffer_data_index]],reqbuffer_data_index,
                          {OFFSET_WIDTH{1'b0}}}; 
-generate  //TODO:考虑多路组相连情况
+generate //TODO:考虑多路组相连情况
     genvar u;
     for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
         assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[plru[reqbuffer_data_index]][u];

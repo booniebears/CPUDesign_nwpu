@@ -4,9 +4,9 @@ module DTLB_stage(
     input             clk             ,
     input             reset           ,
     input             DTLB_found,
-    input      [31:0] DTLB_VAddr, //ĞéµØÖ·
+    input      [31:0] DTLB_VAddr, //è™šåœ°å€
     input      [3:0]  DTLB_asid, //ASID
-    output reg [31:0] DTLB_RAddr, //ÊµµØÖ·
+    output reg [31:0] DTLB_RAddr, //å®åœ°å€
     input      [ 3:0] DTLB_index,
     input      [19:0] DTLB_pfn,
     input      [ 2:0] DTLB_c,
@@ -26,8 +26,8 @@ module DTLB_stage(
     output reg        DTLB_Buffer_Valid_m1s
 );
 
-parameter   IDLE =   4'd0,//¿ÕÏĞ
-            SEARCH = 4'd1;//ËÑÑ°
+parameter   IDLE =   4'd0,//ç©ºé—²
+            SEARCH = 4'd1;//æœå¯»
 reg         DTLB_cstate;
 reg         DTLB_nstate;  
 reg         DTLB_Buffer_Hit;
@@ -44,15 +44,15 @@ reg          DTLB_Buffer_store     ;
 
 
 always @(*) begin
-    if(DTLB_VAddr[31:28] == 4'hA || DTLB_VAddr[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈıÎ»ÇåÁã
+    if(DTLB_VAddr[31:28] == 4'hA || DTLB_VAddr[31:28] == 4'hB) //å®åœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         DTLB_RAddr <= {3'b000, DTLB_VAddr[28:0]};
-    else if(DTLB_VAddr[31:28] == 4'h8 || DTLB_VAddr[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(DTLB_VAddr[31:28] == 4'h8 || DTLB_VAddr[31:28] == 4'h9) //å®åœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         DTLB_RAddr <= {1'b0  , DTLB_VAddr[30:0]};
     else
         DTLB_RAddr <= {DTLB_Buffer_pfn,DTLB_VAddr[11:0]};
 end
 
-always @(*) begin //TODO:Ä¿Ç°±È½Ï¼ò»¯,Ã»ÓĞ¿¼ÂÇTLB.kseg1¹Ì¶¨Îªuncache,kseg0ÏÈÈÏÎªÊÇcacheÊôĞÔ
+always @(*) begin //TODO:ç›®å‰æ¯”è¾ƒç®€åŒ–,æ²¡æœ‰è€ƒè™‘TLB.kseg1å›ºå®šä¸ºuncache,kseg0å…ˆè®¤ä¸ºæ˜¯cacheå±æ€§
     if(DTLB_VAddr[31:28] == 4'hA || DTLB_VAddr[31:28] == 4'hB)
         isUncache <= 1'b1;
     else
@@ -138,7 +138,7 @@ always @(*) begin
 
 end
 
-//BufferÊÇ·ñ¿ÉÒÔÃüÖĞ
+//Bufferæ˜¯å¦å¯ä»¥å‘½ä¸­
 always @(*) begin
     if(DTLB_VAddr[31:28] < 4'hC && DTLB_VAddr[31:28] > 4'h7)
             DTLB_Buffer_Hit = 1'b1;
@@ -152,7 +152,7 @@ always @(*) begin
 end
 assign DTLB_Buffer_Stall    = ~ DTLB_Buffer_Hit; 
 
-//Ğ´ĞÅºÅ
+//å†™ä¿¡å·
 always @(posedge clk) begin
     if(reset) begin
         DTLB_cstate <= IDLE;
@@ -206,3 +206,7 @@ always @(posedge clk) begin
     end
 end
 endmodule
+
+
+
+

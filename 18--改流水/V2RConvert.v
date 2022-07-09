@@ -1,19 +1,19 @@
 module V2RConvert (
-    input      [31:0] VAddr, //ĞéµØÖ·
-    output reg [31:0] RAddr, //ÊµµØÖ·
+    input      [31:0] VAddr, //è™šåœ°å€
+    output reg [31:0] RAddr, //å®åœ°å€
     output reg        isUncache
 );
 
 always @(*) begin
-    if(VAddr[31:28] == 4'hA || VAddr[31:28] == 4'hB) //ÊµµØÖ·°Ñ×î¸ßÈıÎ»ÇåÁã
+    if(VAddr[31:28] == 4'hA || VAddr[31:28] == 4'hB) //å®åœ°å€æŠŠæœ€é«˜ä¸‰ä½æ¸…é›¶
         RAddr <= {3'b000, VAddr[28:0]};
-    else if(VAddr[31:28] == 4'h8 || VAddr[31:28] == 4'h9) //ÊµµØÖ·°Ñ×î¸ßÎ»ÇåÁã
+    else if(VAddr[31:28] == 4'h8 || VAddr[31:28] == 4'h9) //å®åœ°å€æŠŠæœ€é«˜ä½æ¸…é›¶
         RAddr <= {1'b0  , VAddr[30:0]};
     else
         RAddr <= VAddr;
 end
 
-always @(*) begin //TODO:Ä¿Ç°±È½Ï¼ò»¯,Ã»ÓĞ¿¼ÂÇTLB.kseg1¹Ì¶¨Îªuncache,kseg0ÏÈÈÏÎªÊÇcacheÊôĞÔ
+always @(*) begin //TODO:ç›®å‰æ¯”è¾ƒç®€åŒ–,æ²¡æœ‰è€ƒè™‘TLB.kseg1å›ºå®šä¸ºuncache,kseg0å…ˆè®¤ä¸ºæ˜¯cacheå±æ€§
     if(VAddr[31:28] == 4'hA || VAddr[31:28] == 4'hB)
         isUncache <= 1'b1;
     else
