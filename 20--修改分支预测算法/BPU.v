@@ -68,8 +68,8 @@ wire [31:0] PHT_rout_target;   //读出的目标地址
 wire [1:0] PHT_rout_Count;    //读出的饱和计数器
 wire PHT_hit;
 wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
-
-assign PHT_rd_index = fs_pc[9:2];
+reg [3:0] BHR_cnt;
+assign PHT_rd_index = fs_pc[9:2] ^ BHR_cnt;
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
 assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]) & ~PHT_we; // 写的时候返回数据不是想要读的
 
@@ -116,6 +116,20 @@ always @(posedge clk) begin
     end
     
 end
+
+/*************************************************************************/
+
+/*****************************BHR*****************************************/
+
+always @(posedge clk) begin
+    if(reset) begin
+        BHR_cnt <= 0;
+    end
+    else begin
+        BHR_cnt <= {BHR_cnt[6:0],BPU_br_taken};
+        end
+end
+    
 
 /*************************************************************************/
 
