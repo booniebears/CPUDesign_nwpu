@@ -82,42 +82,41 @@ module m1_stage(
     input           DTLB_d1, 
     input           DTLB_v1,
     output          isUncache,
-    output          TLB_Buffer_Flush //
+    output          TLB_Buffer_Flush,
+    output [31:0]   m1s_pc,     //送到PREIF m1s_pc为refetch地址
+    output          m1s_refetch //表明出现冒险,需要refetch
 );
-wire [31:12]  DTLB_PFN;//实地址
-reg           m1s_valid;
-wire          m1s_ready_go;
+wire [31:12] DTLB_PFN;//实地址
+reg          m1s_valid;
+wire         m1s_ready_go;
   
 reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
-wire          m1s_res_from_mem;
-wire          m1s_gr_we;
-wire [ 4:0]   m1s_dest;
-  
-wire [31:0]   m1s_pc;
-//lab7添加  
-wire [11:0]   m1s_mem_inst;//直接传走
-wire [31:0]   m1s_rt_value;
+wire         m1s_res_from_mem;
+wire         m1s_gr_we;
+wire [ 4:0]  m1s_dest;
+wire [11:0]  m1s_mem_inst;//直接传走
+wire [31:0]  m1s_rt_value;
 
-//lab8添加
-wire [ 2:0] m1s_sel;
-wire [ 4:0] m1s_mtc0_rd; 
-wire        m1s_inst_mtc0;
-wire        m1s_bd;
-wire        temp_m1s_ex;
-wire        DTLB_ex;
-wire [ 4:0] temp_m1s_Exctype;
-wire [ 4:0] m1s_Exctype;
-wire [ 4:0] DTLB_Exctype;
-wire        DTLB_Buffer_Stall;
-wire        eret_flush;
-
-wire [31:0] CP0_data;
-wire        m1s_inst_tlbr; 
-wire        m1s_mem_we;
-wire [ 3:0] sram_wen;
-wire [31:0] sram_wdata;//位数问题！
-wire        debug_sw;
-wire        debug_lw;
+wire [ 2:0]  m1s_sel;
+wire [ 4:0]  m1s_mtc0_rd; 
+wire         m1s_inst_mtc0;
+wire         m1s_bd;
+wire         temp_m1s_ex;
+wire         DTLB_ex;
+wire [ 4:0]  temp_m1s_Exctype;
+wire [ 4:0]  m1s_Exctype;
+wire [ 4:0]  DTLB_Exctype;
+wire         DTLB_Buffer_Stall;
+wire         eret_flush;
+wire         TLB_refetch; //表明出现冒险,需要refetch
+ 
+wire [31:0]  CP0_data;
+wire         m1s_inst_tlbr; 
+wire         m1s_mem_we;
+wire [ 3:0]  sram_wen;
+wire [31:0]  sram_wdata;//位数问题！
+wire         debug_sw;
+wire         debug_lw;
 
 assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
 assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
@@ -177,7 +176,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         es_to_m1s_bus_r <= 0;
-    else if (flush | flush_refill) //清除流水线
+    else if (flush) //清除流水线
         es_to_m1s_bus_r <= 0;
     else if (es_to_m1s_valid && m1s_allowin) begin
         es_to_m1s_bus_r <= es_to_m1s_bus;
@@ -286,17 +285,26 @@ assign data_wdata  = sram_wdata;
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/
-//TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB相对应
+//TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB/ITLB不相对应
 assign TLB_Buffer_Flush = m1s_inst_tlbwi | m1s_inst_tlbr | 
                          (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
 //当一条TLBWI发生在M1级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer
 // assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
-assign flush        = eret_flush | m1s_ex; 
+//Attention:认为refetch也是一种例外,需要清空流水级
+assign flush        = eret_flush | m1s_ex | m1s_refetch; 
 assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_EX_RD_Refill)
-                    | (m1s_Exctype == `DTLB_EX_WR_Refill) ; 
+                    | (m1s_Exctype == `DTLB_EX_WR_Refill); 
 assign m1s_ex       = temp_m1s_ex | DTLB_ex;
 assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
                           DTLB_ex ? DTLB_Exctype     : `NO_EX;    
 /******************例外处理部分********************/
+
+/******************Refetch处理部分********************/
+//以下三种情况发生后,会影响之后指令的虚实地址转换结果,故需要重取
+//就用当前指令对应PC重取,在PREIF级标注,在IF级置为nop,以防止死循环
+assign TLB_refetch  = m1s_inst_tlbwi | m1s_inst_tlbr | 
+                     (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
+assign m1s_refetch  = TLB_refetch; //TODO:之后考虑Cache指令refetch
+/******************Refetch处理部分********************/
 
 endmodule

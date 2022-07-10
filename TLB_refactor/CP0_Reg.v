@@ -57,7 +57,6 @@ module CP0_Reg
 
 /*
     待添加的CP0寄存器模块:
-    CP0_Cause_CE   29-28  R
     CP0_Context_BadVPN2 22-4
     CP0_PageMask 31-0
     CP0_PRId 31-0

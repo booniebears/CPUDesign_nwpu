@@ -17,7 +17,6 @@ module pre_if_stage(
     input                          m1s_inst_eret,
 
     //CPU和ICache的交互信号如下
- 
     output     [ 7:0]              inst_index,
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
@@ -34,7 +33,9 @@ module pre_if_stage(
     input                          ITLB_d1,
     input                          ITLB_v1,
     input                          TLB_Buffer_Flush,
-    output reg                     inst_valid //
+    output reg                     inst_valid, //
+    input                          m1s_refetch,
+    input      [31:0]              m1s_pc
 );
 
 wire         ps_ready_go;
@@ -52,6 +53,7 @@ wire         ITLB_Buffer_Stall;
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
 reg          flush_delayed;
+reg          refetch_delayed;
 
 wire         br_taken;
 wire [ 31:0] br_target;
@@ -78,6 +80,8 @@ always @(*) begin //nextpc
     else if(flush) begin
         if(flush_refill) 
             nextpc = `REFILL_EX_PC;
+        else if(m1s_refetch)
+            nextpc = m1s_pc;
         else 
             nextpc = `GENERAL_EX_PC;
     end
@@ -130,13 +134,22 @@ always @(posedge clk) begin
         flush_delayed <= 1'b0;
 end
 
+always @(posedge clk) begin
+    if(reset)
+        refetch_delayed <= 1'b0;
+    else if(m1s_refetch)
+        refetch_delayed <= 1'b1;
+    else if(~icache_busy)
+        refetch_delayed <= 1'b0;
+end
+
 assign prefs_bdd = br_taken; //br_taken = 1,表明prefs_pc对应指令是跳转指令的下下条
 always @(*) begin
-    if(flush_delayed & ~icache_busy)
+    if(flush_delayed & ~icache_busy & ~refetch_delayed)
         inst_valid = 1'b1;
     else if(ps_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
-    else if(~icache_busy & ps_allowin) 
+    else if(~icache_busy & ps_allowin & ~refetch_delayed) 
         inst_valid = 1'b1;
     else
         inst_valid = 1'b0;

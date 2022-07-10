@@ -7,7 +7,6 @@ module mem_stage(
     input          ws_allowin,
     output         ms_allowin,
     input   [31:0] CP0_data,
-    input          ms_inst_mfc0,
     //from m1s
     input          m1s_to_ms_valid,
     input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
@@ -30,6 +29,7 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 wire        ms_ex;
+wire        ms_inst_mfc0;
 
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
@@ -128,9 +128,9 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[6]) ? mem_result_lwl :
                   (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
-assign ms_final_result = ms_res_from_mem ? mem_data:
+assign ms_final_result = ms_res_from_mem ? mem_data :
                          ms_inst_mfc0    ? CP0_data :
-                                         ms_alu_result;
+                                           ms_alu_result;
                                          
 //lab4添加
 assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性

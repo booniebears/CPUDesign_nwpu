@@ -117,6 +117,8 @@ wire         DTLB_d1;
 wire         DTLB_v1;
 
 wire  [31:0] prefs_pc;
+wire  [31:0] m1s_pc;
+wire         m1s_refetch;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -356,7 +358,9 @@ pre_if_stage pre_if_stage(
     .ITLB_d1          (ITLB_d1          ),
     .ITLB_v1          (ITLB_v1          ),
     .TLB_Buffer_Flush (TLB_Buffer_Flush ),
-    .inst_valid       (inst_valid       )
+    .inst_valid       (inst_valid       ),
+    .m1s_refetch      (m1s_refetch      ),
+    .m1s_pc           (m1s_pc           )
 );
 
 // IF stage
@@ -517,11 +521,12 @@ m1_stage m1_stage(
     .DTLB_d1            (DTLB_d1            ),
     .DTLB_v1            (DTLB_v1            ),
     .isUncache          (isUncache          ),
-    .TLB_Buffer_Flush   (TLB_Buffer_Flush   )
+    .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
+    .m1s_pc             (m1s_pc             ),
+    .m1s_refetch        (m1s_refetch        )
 );
 
 // MEM stage
-wire ms_inst_mfc0;
 mem_stage mem_stage(
     .clk             (aclk             ),
     .reset           (reset            ),
@@ -529,7 +534,6 @@ mem_stage mem_stage(
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
     .CP0_data        (CP0_data         ),
-    .ms_inst_mfc0    (ms_inst_mfc0     ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
