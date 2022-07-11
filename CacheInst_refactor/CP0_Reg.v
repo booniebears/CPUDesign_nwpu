@@ -52,7 +52,8 @@ module CP0_Reg
     output        CP0_Status_EXL_out,
     output [ 7:0] CP0_Status_IM_out,
     output [ 7:0] CP0_Cause_IP_out,
-    output        CP0_Cause_TI_out //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output        CP0_Cause_TI_out, //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [ 2:0] CP0_Config_K0_out 
 );
 
 /*
@@ -61,7 +62,6 @@ module CP0_Reg
     CP0_PageMask 31-0
     CP0_PRId 31-0
     CP0_Ebase 31-0
-    CP0_Config 31-0
     CP0_Config1_M 31 R
     CP0_Config1_MMUSize 30-25 R
     CP0_Config1_IS 24-22 R      
@@ -71,7 +71,8 @@ module CP0_Reg
     CP0_Config1_DL 12-10 R
     CP0_Config1_DA 9-7 R
 */
-parameter TLBNUM = 5'd16;
+parameter TLBNUM           = 5'd16;
+parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b011}; //K0初始赋值为cached
 
 wire [ 7:0] CP0_Addr; //写CP0寄存器组的地址
 wire        mtc0_we; //写CP0寄存器的写使能信号
@@ -438,6 +439,17 @@ always @(posedge clk) begin
     end
 end
 assign cp0_to_tlb_index = CP0_Index_Index;
+
+//10.Config寄存器
+reg [31:0] CP0_Config;
+
+always @(posedge clk) begin
+    if(reset)
+        CP0_Config      <= Config_reset_val;
+    else if(mtc0_we && CP0_Addr == `Config_RegAddr) //K0域 R/W
+        CP0_Config[2:0] <= m1s_alu_result[2:0];
+end
+assign CP0_Config_K0_out = CP0_Config[2:0];
 
 //mfc0指令实现:
 assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:

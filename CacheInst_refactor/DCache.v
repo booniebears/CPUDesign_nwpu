@@ -25,6 +25,8 @@ module DCache #(
     input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
     output                       busy,
+    input                        is_DCacheInst,
+    input  [2:0]                 CacheInst_type,
 
     //与AXI总线接口的交互接口
     output                       dcache_rd_req,

@@ -2,16 +2,17 @@
     `define MYCPU_H
     /*********************模块使能定义*********************/
     `define FPU_EX_Valid
+    `define CacheInst_EN
 
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
-    `define DS_TO_ES_NOALU_WD   165
+    `define DS_TO_ES_NOALU_WD   170
     `define BR_BUS_WD           34
 
     `define PS_TO_FS_BUS_WD     40
     `define FS_TO_DS_BUS_WD     71
     `define DS_TO_ES_BUS_WD     (`ALUOP_WD + `DS_TO_ES_NOALU_WD)
-    `define ES_TO_M1_BUS_WD     175
+    `define ES_TO_M1_BUS_WD     180
     `define M1_TO_MS_BUS_WD     161
     `define MS_TO_WS_BUS_WD     83
     `define WS_TO_RF_BUS_WD     38
@@ -74,5 +75,15 @@
     `define TNE_TYPE            3'b100
     `define TLTU_TYPE           3'b101
     `define TEQ_TYPE            3'b110
+
+    /*********************Cache指令类型*********************/
+    `define NOT_CACHEINST         3'b000
+    `define ICache_IDX_INVALID    3'b001
+    `define ICache_IDX_STORETAG   3'b010
+    `define ICache_HIT_INVALID    3'b011
+    `define DCache_IDX_WB_INVALID 3'b100
+    `define DCache_IDX_STORETAG   3'b101
+    `define DCache_HIT_INVALID    3'b110
+    `define DCache_HIT_WB_INVALID 3'b111
 
 `endif

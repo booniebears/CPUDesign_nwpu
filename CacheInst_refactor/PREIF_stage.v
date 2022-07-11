@@ -35,7 +35,9 @@ module pre_if_stage(
     input                          TLB_Buffer_Flush,
     output reg                     inst_valid, //
     input                          m1s_refetch,
-    input      [31:0]              m1s_pc
+    input      [31:0]              m1s_pc,
+    input                          m1s_is_ICacheInst,
+    input      [31:0]              m1s_alu_result
 );
 
 wire         ps_ready_go;
@@ -145,7 +147,9 @@ end
 
 assign prefs_bdd = br_taken; //br_taken = 1,表明prefs_pc对应指令是跳转指令的下下条
 always @(*) begin
-    if(flush_delayed & ~icache_busy & ~refetch_delayed)
+    if(m1s_is_ICacheInst)
+        inst_valid = 1'b0;
+    else if(flush_delayed & ~icache_busy & ~refetch_delayed)
         inst_valid = 1'b1;
     else if(ps_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
@@ -156,7 +160,7 @@ always @(*) begin
 end
 
 assign inst_tag       = ITLB_PFN;
-assign inst_index     = prefs_pc[11:4];
+assign inst_index     = m1s_is_ICacheInst ? m1s_alu_result[11:4] : prefs_pc[11:4];
 assign inst_offset    = prefs_pc[3:0];
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule

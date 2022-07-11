@@ -27,6 +27,9 @@ wire        es_ready_go   ;
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire [`ALUOP_WD-1:0] es_alu_op;
 wire [2:0]           es_trap_op;
+wire [2:0]           es_CacheInst_type;
+wire                 es_is_ICacheInst;
+wire                 es_is_DCacheInst;
 
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
@@ -64,6 +67,9 @@ wire        es_inst_tlbwi;
 wire        es_inst_tlbwr;
 
 assign {
+        es_is_ICacheInst,
+        es_is_DCacheInst,
+        es_CacheInst_type,
         es_trap_op     ,
         es_inst_tlbp   ,  
         es_inst_tlbr   ,  
@@ -128,6 +134,9 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 assign es_res_from_mem = es_load_op;
 assign es_to_m1s_bus = {
+                       es_is_ICacheInst, //179:179
+                       es_is_DCacheInst, //178:178
+                       es_CacheInst_type,//177:175
                        sram_wdata     ,  //174:143
                        sram_wen       ,  //142:139
                        es_mem_we      ,  //138:138

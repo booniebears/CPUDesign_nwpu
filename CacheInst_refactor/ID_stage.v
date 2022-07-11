@@ -212,7 +212,13 @@ wire        inst_tne;
 wire        inst_tnei;
 reg  [2:0]  trap_op;
 
-reg [1:0]   FPU_inst_type; //2'b00:非FPU指令;2'b01:FPU保留指令;2'b10:FPU指令
+reg  [1:0]  FPU_inst_type; //2'b00:非FPU指令;2'b01:FPU保留指令;2'b10:FPU指令
+
+//cache指令
+wire        inst_cache;
+reg  [2:0]  CacheInst_type; //Cache指令类型
+wire        is_ICacheInst; //指令针对ICache
+wire        is_DCacheInst; //指令针对DCache
 
 wire        dst_is_r31;  
 wire        dst_is_rt;   
@@ -238,6 +244,9 @@ wire        rsltz;
 assign br_bus       = {br_stall,br_taken,br_target};
 
 assign ds_to_es_bus = {
+                       is_ICacheInst, //1 bit
+                       is_DCacheInst, //1 bit
+                       CacheInst_type, //3 bit
                        trap_op     ,  //3 bit
                        inst_tlbp   ,  
                        inst_tlbr   ,  
@@ -395,35 +404,36 @@ assign inst_msubu  = op_d[6'h1c] & func_d[6'h05];
 assign inst_mul    = op_d[6'h1c] & func_d[6'h02];
 
 //movn, movz
-assign inst_movn  = op_d[6'h00] & func_d[6'h0b];
-assign inst_movz  = op_d[6'h00] & func_d[6'h0a];
-//trap
-assign inst_teq   = op_d[6'h00] & func_d[6'h34];
-assign inst_teqi  = op_d[6'h01] & rt_d[5'h0c];
-assign inst_tge   = op_d[6'h00] & func_d[6'h30];
-assign inst_tgei  = op_d[6'h01] & rt_d[5'h08];
-assign inst_tgeiu = op_d[6'h01] & rt_d[5'h09];
-assign inst_tgeu  = op_d[6'h00] & func_d[6'h31];
-assign inst_tlt   = op_d[6'h00] & func_d[6'h32];
-assign inst_tlti  = op_d[6'h01] & rt_d[5'h0a];
-assign inst_tltiu = op_d[6'h01] & rt_d[5'h0b];
-assign inst_tltu  = op_d[6'h00] & func_d[6'h33];
-assign inst_tne   = op_d[6'h00] & func_d[6'h36];
-assign inst_tnei  = op_d[6'h01] & rt_d[5'h0e];
+assign inst_movn   = op_d[6'h00] & func_d[6'h0b];
+assign inst_movz   = op_d[6'h00] & func_d[6'h0a];
+//trap 
+assign inst_teq    = op_d[6'h00] & func_d[6'h34];
+assign inst_teqi   = op_d[6'h01] & rt_d[5'h0c];
+assign inst_tge    = op_d[6'h00] & func_d[6'h30];
+assign inst_tgei   = op_d[6'h01] & rt_d[5'h08];
+assign inst_tgeiu  = op_d[6'h01] & rt_d[5'h09];
+assign inst_tgeu   = op_d[6'h00] & func_d[6'h31];
+assign inst_tlt    = op_d[6'h00] & func_d[6'h32];
+assign inst_tlti   = op_d[6'h01] & rt_d[5'h0a];
+assign inst_tltiu  = op_d[6'h01] & rt_d[5'h0b];
+assign inst_tltu   = op_d[6'h00] & func_d[6'h33];
+assign inst_tne    = op_d[6'h00] & func_d[6'h36];
+assign inst_tnei   = op_d[6'h01] & rt_d[5'h0e];
+//cache 
+assign inst_cache  = op_d[6'h2f];
 
 //已经在该mips指令集中定义过的指令
-assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor 
-| inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq
-| inst_bne | inst_jal | inst_jr | inst_add | inst_addi | inst_sub | inst_slti | inst_sltiu | inst_andi
-| inst_ori | inst_xori | inst_sllv | inst_srav | inst_srlv | inst_mult | inst_multu | inst_div
-| inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez
-| inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb
-| inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0
-| inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo
-| inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | inst_teq | inst_teqi 
-| inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
-
-
+assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor | 
+inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq |
+inst_bne | inst_jal | inst_jr | inst_add | inst_addi | inst_sub | inst_slti | inst_sltiu | inst_andi|  
+inst_ori | inst_xori | inst_sllv | inst_srav | inst_srlv | inst_mult | inst_multu | inst_div |
+inst_divu | inst_mfhi | inst_mflo | inst_mthi | inst_mtlo | inst_bgez | inst_bgtz | inst_blez | 
+inst_bltz | inst_bgezal | inst_bltzal | inst_j | inst_jalr | inst_swl | inst_swr | inst_sb | 
+inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_mtc0 | inst_mfc0 | 
+inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo | 
+inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | 
+inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | 
+inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache;
 
 `ifdef FPU_EX_Valid
     always @(*) begin
@@ -484,6 +494,49 @@ assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | 
         endcase
     end
 `endif
+
+`ifdef CacheInst_EN
+    always @(*) begin
+        if(inst_cache) begin
+            case (rt) //rt即为Cache指令所需op
+                5'b00000: 
+                    CacheInst_type = `ICache_IDX_INVALID;  
+                5'b01000:
+                    CacheInst_type = `ICache_IDX_STORETAG;
+                5'b10000:
+                    CacheInst_type = `ICache_HIT_INVALID;
+                5'b00001:
+                    CacheInst_type = `DCache_IDX_WB_INVALID;
+                5'b01001:
+                    CacheInst_type = `DCache_IDX_STORETAG;
+                5'b10001:
+                    CacheInst_type = `DCache_HIT_INVALID;
+                5'b10101:
+                    CacheInst_type = `DCache_HIT_WB_INVALID;
+                default: 
+                    CacheInst_type = `NOT_CACHEINST;
+            endcase
+        end
+        else
+            CacheInst_type = `NOT_CACHEINST;
+    end
+    assign is_ICacheInst = (CacheInst_type == `ICache_IDX_INVALID) | 
+                           (CacheInst_type == `ICache_IDX_STORETAG) |
+                           (CacheInst_type == `ICache_HIT_INVALID);
+    assign is_DCacheInst = (CacheInst_type == `DCache_IDX_WB_INVALID) |
+                           (CacheInst_type == `DCache_IDX_STORETAG) |
+                           (CacheInst_type == `DCache_HIT_INVALID) |
+                           (CacheInst_type == `DCache_HIT_WB_INVALID);
+`else
+    always @(*) begin
+        if(inst_cache)
+            CacheInst_type = `NOT_CACHEINST;
+        else
+            CacheInst_type = `NOT_CACHEINST;
+    end
+    assign is_ICacheInst = 1'b0;
+    assign is_DCacheInst = 1'b0;
+`endif 
 
 assign rsgez = (rs_value[31] == 1'b0 | rs_value == 32'b0); //>=0
 assign rsgtz = (rs_value[31] == 1'b0 & rs_value != 32'b0); //>0
@@ -671,7 +724,8 @@ wire   imm_sign_ext; //立即数符号扩展
 assign imm_zero_ext = inst_andi | inst_ori | inst_xori | inst_lui | inst_tgeiu | inst_tltiu;
 assign imm_sign_ext = inst_addiu | inst_lw | inst_sw | inst_addi | inst_slti | inst_sltiu |
                       inst_sb | inst_sh | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh |
-                      inst_lhu | inst_lwl | inst_lwr | inst_tgei | inst_tlti | inst_teqi | inst_tnei;
+                      inst_lhu | inst_lwl | inst_lwr | inst_tgei | inst_tlti | inst_teqi | inst_tnei|
+                      inst_cache;
 
 assign load_op      = inst_lw | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr;
 assign src1_is_sa   = inst_sll | inst_srl | inst_sra;
@@ -688,7 +742,8 @@ assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne & ~inst_jr & ~inst_bgez &
                       ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~inst_mtlo & ~inst_sb &
                       ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
                       ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
-                      ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei;
+                      ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei &
+                      ~inst_cache;
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
 regfile u_regfile(

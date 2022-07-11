@@ -119,6 +119,9 @@ wire         DTLB_v1;
 wire  [31:0] prefs_pc;
 wire  [31:0] m1s_pc;
 wire         m1s_refetch;
+wire         m1s_is_ICacheInst;
+wire         m1s_is_DCacheInst;
+wire  [ 2:0] m1s_CacheInst_type;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -278,89 +281,94 @@ AXI_Interface U_AXI_Interface(
 );
 
 Icache U_Icache(
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .inst_valid       (inst_valid       ),
-    .inst_index       (inst_index       ),
-    .inst_tag         (inst_tag         ),
-    .inst_offset      (inst_offset      ),
-    .icache_busy      (icache_busy      ),
-    .inst_rdata       (inst_rdata       ),
+    .clk                 (aclk              ),
+    .reset               (reset             ),
+    .inst_valid          (inst_valid        ),
+    .inst_index          (inst_index        ),
+    .inst_tag            (inst_tag          ),
+    .inst_offset         (inst_offset       ),
+    .icache_busy         (icache_busy       ),
+    .inst_rdata          (inst_rdata        ),
+    .is_ICacheInst       (m1s_is_ICacheInst ),
 
-    .icache_rd_req    (icache_rd_req    ),
-    .icache_rd_addr   (icache_rd_addr   ),
-    .icache_rd_rdy    (icache_rd_rdy    ),
-    .icache_ret_valid (icache_ret_valid ),
-    .icache_ret_data  (icache_ret_data  )
+    .icache_rd_req       (icache_rd_req     ),
+    .icache_rd_addr      (icache_rd_addr    ),
+    .icache_rd_rdy       (icache_rd_rdy     ),
+    .icache_ret_valid    (icache_ret_valid  ),
+    .icache_ret_data     (icache_ret_data   )
 );
 
 DCache U_DCache(
-    .clk                 (aclk              ),
-    .reset               (reset             ),
-    .data_valid          (data_valid        ),
-    .data_op             (data_op           ),
-    .data_index          (data_index        ),
-    .data_tag            (data_tag          ),
-    .data_offset         (data_offset       ),
-    .data_wstrb          (data_wstrb        ),
-    .data_wdata          (data_wdata        ),
-    .data_rdata          (data_rdata        ),
-    .busy                (dcache_busy       ),
+    .clk                 (aclk               ),
+    .reset               (reset              ),
+    .data_valid          (data_valid         ),
+    .data_op             (data_op            ),
+    .data_index          (data_index         ),
+    .data_tag            (data_tag           ),
+    .data_offset         (data_offset        ),
+    .data_wstrb          (data_wstrb         ),
+    .data_wdata          (data_wdata         ),
+    .data_rdata          (data_rdata         ),
+    .busy                (dcache_busy        ),
+    .is_DCacheInst       (m1s_is_DCacheInst  ),
+    .CacheInst_type      (m1s_CacheInst_type ),
  
-    .dcache_rd_req       (dcache_rd_req     ),
-    .dcache_rd_addr      (dcache_rd_addr    ),
-    .dcache_rd_rdy       (dcache_rd_rdy     ),
-    .dcache_ret_valid    (dcache_ret_valid  ),
-    .dcache_ret_data     (dcache_ret_data   ),
-    .dcache_wr_req       (dcache_wr_req     ),
-    .dcache_wr_addr      (dcache_wr_addr    ),
-    .dcache_wr_data      (dcache_wr_data    ),
-    .dcache_wr_rdy       (dcache_wr_rdy     ),
-    .dcache_wr_valid     (dcache_wr_valid   ),
+    .dcache_rd_req       (dcache_rd_req      ),
+    .dcache_rd_addr      (dcache_rd_addr     ),
+    .dcache_rd_rdy       (dcache_rd_rdy      ),
+    .dcache_ret_valid    (dcache_ret_valid   ),
+    .dcache_ret_data     (dcache_ret_data    ),
+    .dcache_wr_req       (dcache_wr_req      ),
+    .dcache_wr_addr      (dcache_wr_addr     ),
+    .dcache_wr_data      (dcache_wr_data     ),
+    .dcache_wr_rdy       (dcache_wr_rdy      ),
+    .dcache_wr_valid     (dcache_wr_valid    ),
 
-    .udcache_rd_req      (udcache_rd_req    ),
-    .udcache_rd_addr     (udcache_rd_addr   ),
-    .udcache_rd_rdy      (udcache_rd_rdy    ),
-    .udcache_ret_valid   (udcache_ret_valid ),
-    .udcache_ret_data    (udcache_ret_data  ),
-    .udcache_wr_req      (udcache_wr_req    ),
-    .udcache_wr_addr     (udcache_wr_addr   ),
-    .udcache_wr_strb     (udcache_wr_strb   ),
-    .udcache_wr_data     (udcache_wr_data   ),
-    .udcache_wr_rdy      (udcache_wr_rdy    ),
-    .udcache_wr_valid    (udcache_wr_valid  ),
-    .isUncache           (isUncache         ) 
+    .udcache_rd_req      (udcache_rd_req     ),
+    .udcache_rd_addr     (udcache_rd_addr    ),
+    .udcache_rd_rdy      (udcache_rd_rdy     ),
+    .udcache_ret_valid   (udcache_ret_valid  ),
+    .udcache_ret_data    (udcache_ret_data   ),
+    .udcache_wr_req      (udcache_wr_req     ),
+    .udcache_wr_addr     (udcache_wr_addr    ),
+    .udcache_wr_strb     (udcache_wr_strb    ),
+    .udcache_wr_data     (udcache_wr_data    ),
+    .udcache_wr_rdy      (udcache_wr_rdy     ),
+    .udcache_wr_valid    (udcache_wr_valid   ),
+    .isUncache           (isUncache          ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .fs_allowin       (fs_allowin       ),
-    .br_bus           (br_bus           ),
-    .ps_to_fs_bus     (ps_to_fs_bus     ),
-    .ps_to_fs_valid   (ps_to_fs_valid   ),
-    .flush            (flush            ),
-    .flush_refill     (flush_refill     ),
-    .CP0_EPC_out      (CP0_EPC_out      ),
-    .m1s_inst_eret    (m1s_inst_eret    ),
-    .inst_index       (inst_index       ),
-    .inst_tag         (inst_tag         ),
-    .inst_offset      (inst_offset      ),
-    .icache_busy      (icache_busy      ),
-    .prefs_pc         (prefs_pc         ),
-    .ITLB_found       (ITLB_found       ),
-    .ITLB_pfn0        (ITLB_pfn0        ),
-    .ITLB_c0          (ITLB_c0          ),
-    .ITLB_d0          (ITLB_d0          ),
-    .ITLB_v0          (ITLB_v0          ),
-    .ITLB_pfn1        (ITLB_pfn1        ),
-    .ITLB_c1          (ITLB_c1          ),
-    .ITLB_d1          (ITLB_d1          ),
-    .ITLB_v1          (ITLB_v1          ),
-    .TLB_Buffer_Flush (TLB_Buffer_Flush ),
-    .inst_valid       (inst_valid       ),
-    .m1s_refetch      (m1s_refetch      ),
-    .m1s_pc           (m1s_pc           )
+    .clk                 (aclk              ),
+    .reset               (reset             ),
+    .fs_allowin          (fs_allowin        ),
+    .br_bus              (br_bus            ),
+    .ps_to_fs_bus        (ps_to_fs_bus      ),
+    .ps_to_fs_valid      (ps_to_fs_valid    ),
+    .flush               (flush             ),
+    .flush_refill        (flush_refill      ),
+    .CP0_EPC_out         (CP0_EPC_out       ),
+    .m1s_inst_eret       (m1s_inst_eret     ),
+    .inst_index          (inst_index        ),
+    .inst_tag            (inst_tag          ),
+    .inst_offset         (inst_offset       ),
+    .icache_busy         (icache_busy       ),
+    .prefs_pc            (prefs_pc          ),
+    .ITLB_found          (ITLB_found        ),
+    .ITLB_pfn0           (ITLB_pfn0         ),
+    .ITLB_c0             (ITLB_c0           ),
+    .ITLB_d0             (ITLB_d0           ),
+    .ITLB_v0             (ITLB_v0           ),
+    .ITLB_pfn1           (ITLB_pfn1         ),
+    .ITLB_c1             (ITLB_c1           ),
+    .ITLB_d1             (ITLB_d1           ),
+    .ITLB_v1             (ITLB_v1           ),
+    .TLB_Buffer_Flush    (TLB_Buffer_Flush  ),
+    .inst_valid          (inst_valid        ),
+    .m1s_refetch         (m1s_refetch       ),
+    .m1s_pc              (m1s_pc            ),
+    .m1s_alu_result      (m1s_alu_result    ),
+    .m1s_is_ICacheInst   (m1s_is_ICacheInst )
 );
 
 // IF stage
@@ -523,7 +531,8 @@ m1_stage m1_stage(
     .isUncache          (isUncache          ),
     .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
     .m1s_pc             (m1s_pc             ),
-    .m1s_refetch        (m1s_refetch        )
+    .m1s_refetch        (m1s_refetch        ),
+    .m1s_is_ICacheInst  (m1s_is_ICacheInst  )
 );
 
 // MEM stage

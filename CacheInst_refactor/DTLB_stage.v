@@ -20,7 +20,8 @@ module DTLB_stage(
     output reg [ 4:0]  DTLB_Exctype     ,
     output reg         DTLB_ex          ,
     output reg         isUncache        ,
-    output             DTLB_Buffer_Stall //
+    output             DTLB_Buffer_Stall, 
+    input      [ 2:0]  CP0_Config_K0_out
 );
 
 parameter    IDLE   = 1'b0,
@@ -58,8 +59,12 @@ end
 always @(*) begin //TODO:目前比较简化,没有考虑Config寄存器.kseg1固定为uncache,kseg0先认为是cache属性
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache = 1'b1;
-    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9)
-        isUncache = 1'b0;
+    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) begin
+        if(CP0_Config_K0_out == 3'b011)
+            isUncache = 1'b0;
+        else
+            isUncache = 1'b1;
+    end
     else begin //考虑TLB控制Cache属性
         if(DTLB_VPN[12]) begin
             if(DTLB_Buffer_c1 == 3'b011)

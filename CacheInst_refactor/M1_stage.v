@@ -30,6 +30,7 @@ module m1_stage(
     output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
     output          m1s_inst_tlbwr, //TLB写使能:对应inst_tlbwr
@@ -64,6 +65,7 @@ module m1_stage(
     output [3:0]    cp0_to_tlb_random, //tlbwr指令的索引值
     output [31:0]   m1s_alu_result,
     /********************TLB-CP0交互信号如上********************/
+    
     output reg      data_valid,
     output          data_op,
     output [ 7:0]   data_index,
@@ -84,8 +86,12 @@ module m1_stage(
     output          isUncache,
     output          TLB_Buffer_Flush,
     output [31:0]   m1s_pc,     //送到PREIF m1s_pc为refetch地址
-    output          m1s_refetch //表明出现冒险,需要refetch
+    output          m1s_refetch, //表明出现冒险,需要refetch
+    output          m1s_is_ICacheInst,
+    output          m1s_is_DCacheInst,
+    output [ 2:0]   m1s_CacheInst_type //
 );
+
 wire [31:12] DTLB_PFN;//实地址
 reg          m1s_valid;
 wire         m1s_ready_go;
@@ -109,7 +115,9 @@ wire [ 4:0]  DTLB_Exctype;
 wire         DTLB_Buffer_Stall;
 wire         eret_flush;
 wire         TLB_refetch; //表明出现冒险,需要refetch
- 
+wire         ICache_refetch; //表明出现冒险,需要refetch
+wire [ 2:0]  CP0_Config_K0_out;
+
 wire [31:0]  CP0_data;
 wire         m1s_inst_tlbr; 
 wire         m1s_mem_we;
@@ -122,6 +130,9 @@ assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
 assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
 
 assign {
+        m1s_is_ICacheInst, //179:179
+        m1s_is_DCacheInst, //178:178
+        m1s_CacheInst_type, //177:175
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
         m1s_mem_we      ,  //138:138
@@ -239,7 +250,8 @@ CP0_Reg u_CP0_Reg(
     .CP0_Status_EXL_out  (CP0_Status_EXL_out),
     .CP0_Status_IM_out   (CP0_Status_IM_out),
     .CP0_Cause_IP_out    (CP0_Cause_IP_out),
-    .CP0_Cause_TI_out    (CP0_Cause_TI_out)
+    .CP0_Cause_TI_out    (CP0_Cause_TI_out),
+    .CP0_Config_K0_out   (CP0_Config_K0_out)
 );
 /******************CP0推到MEM阶段******************/
 
@@ -263,7 +275,8 @@ DTLB_stage DTLB(
         .DTLB_Exctype        (DTLB_Exctype          ),
         .DTLB_ex             (DTLB_ex               ),
         .TLB_Buffer_Flush    (TLB_Buffer_Flush      ),
-        .DTLB_Buffer_Stall   (DTLB_Buffer_Stall     )
+        .DTLB_Buffer_Stall   (DTLB_Buffer_Stall     ),
+        .CP0_Config_K0_out   (CP0_Config_K0_out     )
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
@@ -300,11 +313,15 @@ assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
 /******************例外处理部分********************/
 
 /******************Refetch处理部分********************/
+//1. TLB refetch
 //以下三种情况发生后,会影响之后指令的虚实地址转换结果,故需要重取
 //就用当前指令对应PC重取,在PREIF级标注,在IF级置为nop,以防止死循环
 assign TLB_refetch  = m1s_inst_tlbwi | m1s_inst_tlbr | 
                      (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
-assign m1s_refetch  = TLB_refetch; //TODO:之后考虑Cache指令refetch
+
+//2. ICache refetch
+assign ICache_refetch = m1s_is_ICacheInst;
+assign m1s_refetch    = TLB_refetch | ICache_refetch;
 /******************Refetch处理部分********************/
 
 endmodule
