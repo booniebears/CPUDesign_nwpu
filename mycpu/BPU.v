@@ -20,7 +20,7 @@ module BPU#(
 );
 
 /*************************写入PHT*************************************/
-reg [31:0] BPU_ds_pc;
+reg [31:0] BPU_es_pc;
 reg [1:0] BPU_old_Count;
 reg BPU_is_branch;
 reg BPU_br_stall;
@@ -28,7 +28,7 @@ reg BPU_br_taken;
 reg [31:0] BPU_br_target;
 
 always @(posedge clk) begin
-    {   BPU_ds_pc,      //跳转指令的PC
+    {   BPU_es_pc,      //跳转指令的PC
         BPU_old_Count,  //跳转指令PC跳转次数的历史记录，2位饱和计数器，需更新后再写入PHT
         BPU_is_branch,  //PC是否是跳转指令
         BPU_br_stall,  // 当判断阶段已到exe阶段时，此信号可删除
@@ -54,8 +54,8 @@ always @(*) begin
 end
 
 assign PHT_we = BPU_is_branch;
-assign PHT_wr_index = BPU_ds_pc[9:2];
-assign PHT_wr_tag = BPU_ds_pc[31:10];
+assign PHT_wr_index = BPU_es_pc[9:2];
+assign PHT_wr_tag = BPU_es_pc[31:10];
 assign PHT_wr_data = {BPU_new_Count, PHT_wr_tag, BPU_br_target};
 
 /*************************************************************************/

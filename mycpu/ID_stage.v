@@ -14,8 +14,8 @@ module id_stage(
     output       ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to fs
-    output [`BR_BUS_WD       -1:0] br_bus,
-    output [`BRESULT_WD      -1:0] BResult,
+    // output [`BR_BUS_WD       -1:0] br_bus,
+    // output [`BRESULT_WD      -1:0] BResult,
     output                         is_branch,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
@@ -32,7 +32,7 @@ module id_stage(
     input        flush, //flush=1时表明需要处理异常
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
-  //  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
+//  input        ms_inst_mfc0, //以上为从EXE,MEM阶段传来的mfc0指令信号
     input        CP0_Status_IE_out, //IE=1,全局中断使能开启
     input        CP0_Status_EXL_out, //EXL=0,没有例外正在处理
     input [ 7:0] CP0_Status_IM_out, //IM对应各个中断源屏蔽位
@@ -253,17 +253,25 @@ wire        rsltz;
 wire br_right; // 指令跳转了，并且BPU预测跳转正确
 wire BPU_right; // BPU预测正确
 
-assign br_bus       = { 
-                        BPU_valid, // 该条指令BPU进行了预测
-                        is_branch, // 该条指令是跳转指令
-                        br_stall,   //
-                        br_taken,   //ID阶段确认该条指令需要跳转
-                        BPU_right, // BPU预测正确
-                        br_target, //ID阶段确认跳转的地址
-                        ds_pc       
-                        };
+// assign br_bus       = { 
+//                         BPU_valid, // 该条指令BPU进行了预测
+//                         is_branch, // 该条指令是跳转指令
+//                         br_stall,  //
+//                         br_taken,  //ID阶段确定该条指令需要进行跳转
+//                         BPU_right, // BPU预测正确
+//                         br_target, //ID阶段确定跳转的地址
+//                         ds_pc       
+//                         };
 
 assign ds_to_es_bus = {
+                       BPU_ret_addr,  //252:221
+                       BPU_is_taken,  //220:220
+                       BPU_valid   ,  //219:219
+                       Count       ,  //218:217
+                       is_branch   ,  //216:216
+                       br_stall    ,  //215:215
+                       br_taken    ,  //214:214
+                       br_target   ,  //213:182
                        inst_tlbp   ,  //181:181
                        inst_tlbr   ,  //180:180
                        inst_tlbwi  ,  //179:179
@@ -720,12 +728,12 @@ assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 
 
-assign BResult = {  ds_pc,
-                    Count,
-                    is_branch,
-                    br_stall,
-                    br_taken,
-                    br_target
-                    };
+// assign BResult = {  ds_pc,
+//                     Count,//
+//                     is_branch,//
+//                     br_stall,//
+//                     br_taken,//
+//                     br_target//
+//                     };
 
 endmodule

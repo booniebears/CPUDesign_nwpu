@@ -17,6 +17,7 @@ module if_stage(
     output                         fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
     output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus,
+    input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
     input                          icache_busy,
     input  [31:0]                  inst_rdata
@@ -34,11 +35,9 @@ wire [31:0]                   temp_fs_pc;
 wire [31:0]                   fs_pc;
 wire [31:0]                   fs_inst;
 wire                          fs_inst_valid;
-wire                          fs_bdd;
 
 assign {
     fs_inst_valid,
-    fs_bdd,
     temp_fs_pc,
     ps_ex,
     ps_Exctype
@@ -72,7 +71,7 @@ end
 wire [31:0] BPU_target;
 wire BPU_valid;
 wire predict_valid;
-assign predict_valid = BPU_valid & fs_valid & ~fs_bdd;
+assign predict_valid = BPU_valid & fs_valid & ~br_flush & fs_inst_valid;
 
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -90,9 +89,9 @@ assign BPU_to_ps_bus = {
 assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
-assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
+assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
 //在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
-assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
+assign fs_pc      = br_flush ? temp_fs_pc - 4'h8 : temp_fs_pc;
 
 BPU u_BPU(
     .clk                (clk),

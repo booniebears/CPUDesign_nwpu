@@ -1,16 +1,21 @@
 `include "global_defines.vh"
 
 module exe_stage(
-    input                          clk ,
-    input                          reset,
+    input         clk ,
+    input         reset,
     //allowin                 
-    input                          m1s_allowin,
-    output                         es_allowin,
+    input         m1s_allowin,
+    output        es_allowin,
     //from ds                 
-    input                          ds_to_es_valid,
+    input         ds_to_es_valid,
     input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
+    //to pre_if
+    output [`BR_BUS_WD       -1:0] EXE_br_bus,
+    //to fs
+    output [`BRESULT_WD      -1:0] EXE_BResult,
+    output                         es_br_flush,
     //to ms
-    output                         es_to_m1s_valid,
+    output        es_to_m1s_valid,
     output [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
     output [ 4:0]                  EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
     output [31:0]                  EXE_result, //EXE阶段 es_alu_result      
@@ -38,7 +43,7 @@ wire [31:0] es_rs_value   ;
 wire [31:0] es_rt_value   ;
 wire [31:0] es_pc         ;
 wire [11:0] es_mem_inst; //lab7添加 区别不同的存取数指令
-wire [3:0]  sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
+wire [3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 
 wire [ 2:0] es_sel; 
@@ -55,12 +60,26 @@ wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,a
 wire        ADES_ex; //地址错例外(写数据)
 wire        ADEL_ex; //地址错例外(读数据)
 
-wire        es_inst_tlbp ;
-wire        es_inst_tlbr ;
-wire        es_inst_tlbwi;
-wire        es_inst_tlbwr;
+wire es_BPU_right;
+
+wire [31:0] es_BPU_ret_addr;
+wire es_BPU_is_taken;
+wire es_BPU_valid;
+wire [1:0] es_Count;
+wire es_is_branch;
+wire es_br_stall;
+wire es_br_taken;
+wire [31:0] es_br_target;
 
 assign {
+        es_BPU_ret_addr,  //252:221
+        es_BPU_is_taken,  //220:220
+        es_BPU_valid   ,  //219:219
+        es_Count       ,  //218:217
+        es_is_branch   ,  //216:216
+        es_br_stall    ,  //215:215
+        es_br_taken    ,  //214:214
+        es_br_target   ,  //213:182////////////////
         es_inst_tlbp   ,  //181:181
         es_inst_tlbr   ,  //180:180
         es_inst_tlbwi  ,  //179:179
@@ -89,6 +108,28 @@ assign {
         es_rt_value    ,  //63 :32
         es_pc             //31 :0
        } = ds_to_es_bus_r;
+
+assign EXE_BResult = {  es_pc,
+                        es_Count,//
+                        es_is_branch,//
+                        es_br_stall,//
+                        es_br_taken,//
+                        es_br_target//
+                    };
+
+assign es_BPU_right = es_br_taken ? ( es_br_target == es_BPU_ret_addr) : ~es_BPU_is_taken;
+
+assign EXE_br_bus       = { 
+                            es_BPU_valid, // 该条指令BPU进行了预测
+                            es_is_branch, // 该条指令是跳转指令
+                            es_br_stall,  //
+                            es_br_taken,  //ID阶段确定该条指令需要进行跳转
+                            es_BPU_right, // BPU预测正确
+                            es_br_target, //ID阶段确定跳转的地址
+                            es_pc       
+                        };
+
+assign es_br_flush = es_BPU_valid ? ( es_is_branch & ~es_BPU_right ) : es_br_taken;
 
 wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;

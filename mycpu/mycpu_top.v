@@ -73,6 +73,7 @@ wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
 wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
 wire  [`BRESULT_WD      -1:0] BResult;
+wire         br_flush;
 wire         is_branch;
 
 wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
@@ -312,6 +313,7 @@ pre_if_stage pre_if_stage(
     .BPU_to_ps_bus    (BPU_to_ps_bus    ),
     .ps_to_fs_bus     (ps_to_fs_bus     ),
     .ps_to_fs_valid   (ps_to_fs_valid   ),
+    .br_flush         (br_flush         ),
     .flush            (flush            ),
     .CP0_EPC_out      (CP0_EPC_out      ),
     .m1s_inst_eret    (m1s_inst_eret    ),
@@ -339,6 +341,7 @@ if_stage if_stage(
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
     .BPU_to_ds_bus  (BPU_to_ds_bus  ),
+    .br_flush       (br_flush       ),
     .flush          (flush          ),
     .icache_busy    (icache_busy    ),
     .inst_rdata     (inst_rdata     )
@@ -358,8 +361,6 @@ id_stage id_stage(
     .ds_to_es_valid     (ds_to_es_valid     ),
     .ds_to_es_bus       (ds_to_es_bus       ),
     //to fs        
-    .br_bus             (br_bus             ),
-    .BResult            (BResult            ),
     .is_branch          (is_branch          ),
     //to rf: for write back
     .ws_to_rf_bus       (ws_to_rf_bus       ),
@@ -394,6 +395,11 @@ exe_stage exe_stage(
     //from ds  
     .ds_to_es_valid  (ds_to_es_valid  ),
     .ds_to_es_bus    (ds_to_es_bus    ),
+    //to pre_if
+    .EXE_br_bus      (br_bus         ),
+    //to fs
+    .EXE_BResult     (BResult        ),
+    .es_br_flush     (br_flush       ),
     //to ms
     .es_to_m1s_valid (es_to_m1s_valid ),
     .es_to_m1s_bus   (es_to_m1s_bus   ),
