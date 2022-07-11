@@ -1,5 +1,3 @@
-`include "global_defines.vh"
-
 module DCache #(
     parameter  DATA_WIDTH      = 32, 
     parameter  CACHELINE_WIDTH = 128, 
@@ -26,9 +24,8 @@ module DCache #(
     input [DATA_WIDTH-1:0]       data_wdata,
     input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
+    input  [2:0]                 load_size,
     output                       busy,
-    input                        is_DCacheInst,
-    input  [2:0]                 CacheInst_type,
 
     //与AXI总线接口的交互接口
     output                       dcache_rd_req,
@@ -44,6 +41,7 @@ module DCache #(
 
     output                       udcache_rd_req,
     output [31:0]                udcache_rd_addr,
+    output [ 2:0]                udcache_load_size,
     input                        udcache_rd_rdy,
     input                        udcache_ret_valid,
     input                        udcache_wr_valid,
@@ -75,20 +73,12 @@ parameter  UNCACHE_LOOKUP = 3'd0,
 parameter  WRITE_IDLE     = 1'd0,
            WRITE_START    = 1'd1;
 
-//define CacheInst FSM
-parameter  CACHEINST_IDLE   = 2'd0,
-           CACHEINST_LOOKUP = 2'd1,
-           CACHEINST_WAIT   = 2'd2,
-           CACHEINST_DONE   = 2'd3;
-
 reg [2:0] dcache_state;
 reg [2:0] dcache_nextstate;
 reg [2:0] uncache_state;
 reg [2:0] uncache_nextstate;
 reg       write_state;
 reg       write_nextstate;
-reg [1:0] CacheInst_state;
-reg [1:0] CacheInst_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
@@ -100,9 +90,8 @@ reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
 reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
 reg [WSTRB_WIDTH-1:0]  reqbuffer_data_wstrb;
+reg [2:0]              reqbuffer_load_size;
 reg                    reqbuffer_data_isUncache;
-reg                    reqbuffer_is_DCacheInst;
-reg [2:0]              reqbuffer_CacheInst_type;
 /****************define req_buffer***************/
 
 /****************define write_buffer***************/
@@ -193,12 +182,13 @@ generate //TODO:考虑多路组相连情况
 endgenerate
 
 //uncache AXI
-assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD);
-assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_strb = reqbuffer_data_wstrb;
-assign udcache_wr_req  = (uncache_state == UNCACHE_STORE);
-assign udcache_wr_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_data = reqbuffer_data_wdata;
+assign udcache_rd_req    = (uncache_state == UNCACHE_LOAD);
+assign udcache_rd_addr   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+assign udcache_load_size = reqbuffer_load_size;
+assign udcache_wr_strb   = reqbuffer_data_wstrb;
+assign udcache_wr_req    = (uncache_state == UNCACHE_STORE);
+assign udcache_wr_addr   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+assign udcache_wr_data   = reqbuffer_data_wdata;
 
 generate
     genvar t;
@@ -272,20 +262,17 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_wdata     <= 0;
         reqbuffer_data_wstrb     <= 0;
         reqbuffer_data_isUncache <= 0;
-        reqbuffer_is_DCacheInst  <= 0;
-        reqbuffer_CacheInst_type <= 0;
     end
     else if(reqbuffer_en) begin
-        reqbuffer_data_valid     <= data_valid    ;
-        reqbuffer_data_op        <= data_op       ;
-        reqbuffer_data_index     <= data_index    ;
-        reqbuffer_data_tag       <= data_tag      ;
-        reqbuffer_data_offset    <= data_offset   ;
-        reqbuffer_data_wdata     <= data_wdata    ;
-        reqbuffer_data_wstrb     <= data_wstrb    ; //字节写使能wstrb
-        reqbuffer_data_isUncache <= isUncache     ;
-        reqbuffer_is_DCacheInst  <= is_DCacheInst ;
-        reqbuffer_CacheInst_type <= CacheInst_type;
+        reqbuffer_data_valid     <= data_valid ;
+        reqbuffer_data_op        <= data_op    ;
+        reqbuffer_data_index     <= data_index ;
+        reqbuffer_data_tag       <= data_tag   ;
+        reqbuffer_data_offset    <= data_offset;
+        reqbuffer_data_wdata     <= data_wdata ;
+        reqbuffer_data_wstrb     <= data_wstrb ; //字节写使能wstrb
+        reqbuffer_load_size      <= load_size  ; //load_size
+        reqbuffer_data_isUncache <= isUncache  ;
     end
 end
 
@@ -297,47 +284,24 @@ always @(*) begin
     end
     else if(write_state == WRITE_START)
         dirty_we    = delayed_hit;
-    else if(CacheInst_state == CACHEINST_LOOKUP) begin
-        if( reqbuffer_CacheInst_type == `DCache_IDX_WB_INVALID || 
-            reqbuffer_CacheInst_type == `DCache_IDX_STORETAG) 
-            dirty_we = reqbuffer_data_tag[0] ? 2'b10 : 2'b01;
-
-        else if(reqbuffer_CacheInst_type == `DCache_HIT_INVALID || 
-                reqbuffer_CacheInst_type == `DCache_HIT_WB_INVALID)
-            dirty_we = delayed_cache_hit ? delayed_hit : 0;
-        else
-            dirty_we = 0;
-    end 
     else
         dirty_we    = 0;
 end
 assign dirty_index = (write_state == WRITE_START) ? writebuffer_data_index : reqbuffer_data_index;
-assign dirty_wbit  = (dcache_state == REFILL || CacheInst_state == CACHEINST_LOOKUP) ? 1'b0 : 1'b1;
+assign dirty_wbit  = (dcache_state == REFILL) ? 1'b0 : 1'b1;
 
 //tagv lutram
 always @(*) begin
-    if(dcache_state == REFILL & dcache_ret_valid) begin
-        tagv_we = 0;
+    tagv_we = 0;
+    if(dcache_state == REFILL & dcache_ret_valid)
         tagv_we[plru[reqbuffer_data_index]] = 1'b1; 
-    end
-    else if(CacheInst_state == CACHEINST_LOOKUP) begin
-        if( reqbuffer_CacheInst_type == `DCache_IDX_WB_INVALID || 
-            reqbuffer_CacheInst_type == `DCache_IDX_STORETAG) 
-            tagv_we = reqbuffer_data_tag[0] ? 2'b10 : 2'b01;
-
-        else if(reqbuffer_CacheInst_type == `DCache_HIT_INVALID || 
-                reqbuffer_CacheInst_type == `DCache_HIT_WB_INVALID)
-            tagv_we = delayed_cache_hit ? delayed_hit : 0;
-        else
-            tagv_we = 0;
-    end 
     else
         tagv_we = 0;
 end
 
-assign tagv_index = (dcache_state == REFILL || dcache_state == REFILLDONE || 
-                     CacheInst_state == CACHEINST_LOOKUP) ? reqbuffer_data_index : data_index;
-assign tagv_wdata = (CacheInst_state == CACHEINST_LOOKUP) ? 0 : {reqbuffer_data_tag,1'b1};
+assign tagv_index = (dcache_state == REFILL || dcache_state == REFILLDONE) 
+                    ? reqbuffer_data_index : data_index;
+assign tagv_wdata = {reqbuffer_data_tag,1'b1};
 
 //data ram
 always @(*) begin //TODO:之后修改为四路组相连
@@ -445,67 +409,6 @@ generate
         );
     end
 endgenerate
-
-always @(posedge clk) begin
-    if(reset)
-        CacheInst_state <= CACHEINST_IDLE;
-    else
-        CacheInst_state <= CacheInst_nextstate;
-end
-
-always @(*) begin //CacheInst 
-    case (CacheInst_state)
-        CACHEINST_IDLE: 
-            if(is_DCacheInst & ~dcache_busy) //Attention:考虑CacheInst阻塞在M1 stage的情况
-                CacheInst_nextstate = CACHEINST_LOOKUP;
-            else
-                CacheInst_nextstate = CACHEINST_IDLE;
-        
-        CACHEINST_LOOKUP:
-            if(reqbuffer_CacheInst_type == `DCache_IDX_STORETAG | 
-               reqbuffer_CacheInst_type == `DCache_HIT_INVALID)
-                CacheInst_nextstate = CACHEINST_IDLE;
-            else if(reqbuffer_CacheInst_type == `DCache_IDX_WB_INVALID) begin
-                if(reqbuffer_data_tag[0]) begin //第1路 tag[0] = 1选中way1
-                    if(dirty_rbit[1] & valid_rdata[1])
-                        CacheInst_nextstate = CACHEINST_WAIT;
-                    else
-                        CacheInst_nextstate = CACHEINST_IDLE; 
-                end
-                else begin //第0路
-                    if(dirty_rbit[0] & valid_rdata[0])
-                        CacheInst_nextstate = CACHEINST_WAIT;
-                    else
-                        CacheInst_nextstate = CACHEINST_IDLE; 
-                end
-            end
-            else if(reqbuffer_CacheInst_type == `DCache_HIT_WB_INVALID) begin
-                if(delayed_hit == 2'b01 && dirty_rbit[0]) //Cache hit 第0路
-                    CacheInst_nextstate = CACHEINST_WAIT;
-                else if(delayed_hit == 2'b10 && dirty_rbit[1]) //Cache hit 第1路
-                    CacheInst_nextstate = CACHEINST_WAIT;
-                else
-                    CacheInst_nextstate = CACHEINST_IDLE;
-            end
-            else
-                CacheInst_nextstate = CACHEINST_IDLE;
-
-        CACHEINST_WAIT:
-            if(dcache_wr_rdy)
-                CacheInst_nextstate = CACHEINST_DONE;
-            else
-                CacheInst_nextstate = CACHEINST_WAIT;
-
-        CACHEINST_DONE:
-            if(dcache_wr_valid)
-                CacheInst_nextstate = CACHEINST_IDLE;
-            else
-                CacheInst_nextstate = CACHEINST_DONE;
-
-        default: CacheInst_nextstate = CACHEINST_IDLE;
-    endcase
-    
-end
 
 always @(posedge clk) begin
     if(reset)

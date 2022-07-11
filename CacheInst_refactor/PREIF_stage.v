@@ -33,11 +33,12 @@ module pre_if_stage(
     input                          ITLB_d1,
     input                          ITLB_v1,
     input                          TLB_Buffer_Flush,
-    output reg                     inst_valid, //
+    output reg                     inst_valid, 
     input                          m1s_refetch,
     input      [31:0]              m1s_pc,
     input                          m1s_is_ICacheInst,
-    input      [31:0]              m1s_alu_result
+    input      [11:4]              cache_index, //M1阶段传回 Cache指令使用的index
+    output reg                     ICacheInst_delayed
 );
 
 wire         ps_ready_go;
@@ -56,6 +57,7 @@ reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
 reg          flush_delayed;
 reg          refetch_delayed;
+reg   [11:4] cache_index_delayed;
 
 wire         br_taken;
 wire [ 31:0] br_target;
@@ -145,11 +147,27 @@ always @(posedge clk) begin
         refetch_delayed <= 1'b0;
 end
 
+always @(posedge clk) begin
+    if(reset)
+        ICacheInst_delayed <= 1'b0;
+    else if(m1s_is_ICacheInst)
+        ICacheInst_delayed <= 1'b1;
+    else if(~icache_busy)
+        ICacheInst_delayed <= 1'b0;
+end
+
+always @(posedge clk) begin
+    if(reset)
+        cache_index_delayed <= 8'b0;
+    else if(m1s_is_ICacheInst)
+        cache_index_delayed <= cache_index;
+    else if(~icache_busy)
+        cache_index_delayed <= 8'b0;
+end
+
 assign prefs_bdd = br_taken; //br_taken = 1,表明prefs_pc对应指令是跳转指令的下下条
 always @(*) begin
-    if(m1s_is_ICacheInst)
-        inst_valid = 1'b0;
-    else if(flush_delayed & ~icache_busy & ~refetch_delayed)
+    if(flush_delayed & ~icache_busy & ~refetch_delayed)
         inst_valid = 1'b1;
     else if(ps_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
@@ -160,7 +178,7 @@ always @(*) begin
 end
 
 assign inst_tag       = ITLB_PFN;
-assign inst_index     = m1s_is_ICacheInst ? m1s_alu_result[11:4] : prefs_pc[11:4];
+assign inst_index     = ICacheInst_delayed ? cache_index_delayed : prefs_pc[11:4];
 assign inst_offset    = prefs_pc[3:0];
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule

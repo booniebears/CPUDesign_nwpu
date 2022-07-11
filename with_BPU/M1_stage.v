@@ -23,18 +23,13 @@ module m1_stage(
     output          m1s_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
-    output          flush_refill,
     output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
     output          CP0_Status_IE_out, //IE=1,全局中断使能开启
     output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
     output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
-
     /********************TLB-CP0交互信号如下********************/
-    output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
-    output          m1s_inst_tlbwr, //TLB写使能:对应inst_tlbwr
-    output          m1s_inst_tlbp , //TLB查询:对应inst_tlbp
     input           tlb_to_cp0_found,//tlb查找是否成功
     input  [18:0]   tlb_to_cp0_vpn2, //以下为tlb写入的数据
     input  [7:0]    tlb_to_cp0_asid ,
@@ -61,11 +56,8 @@ module m1_stage(
     output          cp0_to_tlb_d1 ,
     output          cp0_to_tlb_v1 ,
     output          cp0_to_tlb_g1 ,
-    output [3:0]    cp0_to_tlb_index, //tlbwi指令的索引值
-    output [3:0]    cp0_to_tlb_random, //tlbwr指令的索引值
-    output [31:0]   m1s_alu_result,
+    output [3:0]    cp0_to_tlb_index, //tlbwr指令的索引值
     /********************TLB-CP0交互信号如上********************/
-    
     output reg      data_valid,
     output          data_op,
     output [ 7:0]   data_index,
@@ -73,66 +65,47 @@ module m1_stage(
     output [ 3:0]   data_offset,
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
+    output [ 2:0]   load_size,
     input           dcache_busy,
-    input           DTLB_found,
-    input  [19:0]   DTLB_pfn0,
-    input  [ 2:0]   DTLB_c0,
-    input           DTLB_d0, 
-    input           DTLB_v0,
-    input  [19:0]   DTLB_pfn1,
-    input  [ 2:0]   DTLB_c1,
-    input           DTLB_d1, 
-    input           DTLB_v1,
-    output          isUncache,
-    output          TLB_Buffer_Flush,
-    output [31:0]   m1s_pc,     //送到PREIF m1s_pc为refetch地址
-    output          m1s_refetch, //表明出现冒险,需要refetch
-    output          m1s_is_ICacheInst,
-    output          m1s_is_DCacheInst,
-    output [ 2:0]   m1s_CacheInst_type //
+    output          isUncache
 );
 
-wire [31:12] DTLB_PFN;//实地址
-reg          m1s_valid;
-wire         m1s_ready_go;
+reg           m1s_valid;
+wire          m1s_ready_go;
   
 reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
-wire         m1s_res_from_mem;
-wire         m1s_gr_we;
-wire [ 4:0]  m1s_dest;
-wire [11:0]  m1s_mem_inst;//直接传走
-wire [31:0]  m1s_rt_value;
+wire          m1s_res_from_mem;
+wire          m1s_gr_we;
+wire [ 4:0]   m1s_dest;
+  
+wire [31:0]   m1s_pc;
+wire [11:0]   m1s_mem_inst;//直接传走
+wire [31:0]   m1s_rt_value;
 
-wire [ 2:0]  m1s_sel;
-wire [ 4:0]  m1s_mtc0_rd; 
-wire         m1s_inst_mtc0;
-wire         m1s_bd;
-wire         temp_m1s_ex;
-wire         DTLB_ex;
-wire [ 4:0]  temp_m1s_Exctype;
-wire [ 4:0]  m1s_Exctype;
-wire [ 4:0]  DTLB_Exctype;
-wire         DTLB_Buffer_Stall;
-wire         eret_flush;
-wire         TLB_refetch; //表明出现冒险,需要refetch
-wire         ICache_refetch; //表明出现冒险,需要refetch
-wire [ 2:0]  CP0_Config_K0_out;
-
-wire [31:0]  CP0_data;
-wire         m1s_inst_tlbr; 
-wire         m1s_mem_we;
-wire [ 3:0]  sram_wen;
-wire [31:0]  sram_wdata;//位数问题！
-wire         debug_sw;
-wire         debug_lw;
+wire [ 2:0]   m1s_sel;
+wire [ 4:0]   m1s_mfc0_rd; 
+wire          m1s_inst_mtc0;
+wire          m1s_bd;
+wire [ 4:0]   m1s_Exctype;
+wire [31:0]   m1s_alu_result;
+wire [31:12]  DTLB_PFN;
+wire          eret_flush;
+ 
+wire [31:0]   CP0_data;
+wire          m1s_inst_tlbr; 
+wire          m1s_inst_tlbwr;
+wire          m1s_inst_tlbp;
+wire          m1s_inst_tlbwi;
+wire          m1s_mem_we;
+wire [ 3:0]   sram_wen;
+wire [31:0]   sram_wdata;//位数问题！
+wire          debug_sw;
+wire          debug_lw;
 
 assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
 assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
 
 assign {
-        m1s_is_ICacheInst, //179:179
-        m1s_is_DCacheInst, //178:178
-        m1s_CacheInst_type, //177:175
         sram_wdata      ,  //174:143
         sram_wen        ,  //142:139
         m1s_mem_we      ,  //138:138
@@ -141,9 +114,9 @@ assign {
         m1s_inst_tlbwi  ,  //135:135
         m1s_inst_tlbwr  ,  //134:134
         m1s_load_op     ,  //133
-        m1s_mtc0_rd     ,  //132:128
-        temp_m1s_ex     ,  //127:127
-        temp_m1s_Exctype,  //126:122 
+        m1s_mfc0_rd     ,  //132:128
+        m1s_ex          ,  //127:127
+        m1s_Exctype     ,  //126:122 
         m1s_bd          ,  //121:121
         m1s_inst_eret   ,  //120:120
         m1s_sel         ,  //119:117 
@@ -172,7 +145,7 @@ assign m1s_to_ms_bus = {
                         } ;               
 
 assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we) | 
-                        ((m1s_load_op | m1s_mem_we) & ~dcache_busy & ~DTLB_Buffer_Stall);
+                        ((m1s_load_op | m1s_mem_we) & ~dcache_busy);
 assign m1s_allowin     = ~m1s_valid || m1s_ready_go && ms_allowin;
 assign m1s_to_ms_valid = m1s_valid && m1s_ready_go;
 always @(posedge clk) begin
@@ -202,7 +175,7 @@ assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_result
 CP0_Reg u_CP0_Reg(
     .clk                 (clk),
     .reset               (reset),
-    .m1s_mtc0_rd         (m1s_mtc0_rd),
+    .m1s_mfc0_rd         (m1s_mfc0_rd),
     .m1s_sel             (m1s_sel),
     .m1s_valid           (m1s_valid),
     .m1s_inst_mtc0       (m1s_inst_mtc0),
@@ -244,84 +217,47 @@ CP0_Reg u_CP0_Reg(
     .cp0_to_tlb_v1       (cp0_to_tlb_v1),
     .cp0_to_tlb_g1       (cp0_to_tlb_g1),
     .cp0_to_tlb_index    (cp0_to_tlb_index),
-    .cp0_to_tlb_random   (cp0_to_tlb_random),
     .CP0_EPC_out         (CP0_EPC_out),
     .CP0_Status_IE_out   (CP0_Status_IE_out),
     .CP0_Status_EXL_out  (CP0_Status_EXL_out),
     .CP0_Status_IM_out   (CP0_Status_IM_out),
     .CP0_Cause_IP_out    (CP0_Cause_IP_out),
-    .CP0_Cause_TI_out    (CP0_Cause_TI_out),
-    .CP0_Config_K0_out   (CP0_Config_K0_out)
+    .CP0_Cause_TI_out    (CP0_Cause_TI_out)
 );
 /******************CP0推到MEM阶段******************/
 
 DTLB_stage DTLB(
-        .clk                 (clk                   ),
-        .reset               (reset                 ),
-        .DTLB_found          (DTLB_found            ),
-        .DTLB_VPN            (m1s_alu_result[31:12] ), 
-        .DTLB_PFN            (DTLB_PFN              ),
-        .DTLB_pfn0           (DTLB_pfn0             ),
-        .DTLB_c0             (DTLB_c0               ),
-        .DTLB_d0             (DTLB_d0               ),
-        .DTLB_v0             (DTLB_v0               ),
-        .DTLB_pfn1           (DTLB_pfn1             ),
-        .DTLB_c1             (DTLB_c1               ),
-        .DTLB_d1             (DTLB_d1               ),
-        .DTLB_v1             (DTLB_v1               ),
-        .isUncache           (isUncache             ),
-        .DTLB_read           (m1s_load_op           ),
-        .DTLB_store          (m1s_mem_we            ),
-        .DTLB_Exctype        (DTLB_Exctype          ),
-        .DTLB_ex             (DTLB_ex               ),
-        .TLB_Buffer_Flush    (TLB_Buffer_Flush      ),
-        .DTLB_Buffer_Stall   (DTLB_Buffer_Stall     ),
-        .CP0_Config_K0_out   (CP0_Config_K0_out     )
+    .clk                 (clk                   ),
+    .reset               (reset                 ),
+    .DTLB_VPN            (m1s_alu_result[31:12] ), 
+    .DTLB_PFN            (DTLB_PFN              ),
+    .isUncache           (isUncache             )
 );
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin
-    if(m1s_ex | m1s_inst_eret | DTLB_Buffer_Stall)
+    if(m1s_ex | m1s_inst_eret)
         data_valid = 1'b0;
-    else if((m1s_load_op | m1s_mem_we | m1s_is_DCacheInst) & ~dcache_busy & ms_allowin & m1s_valid)
+    else if((m1s_load_op | m1s_mem_we) & ~dcache_busy & ms_allowin & m1s_valid)
         data_valid = 1'b1;
     else
         data_valid = 1'b0;
 end
+
 assign data_op     = m1s_mem_we ? 1'b1 : 1'b0;
 assign data_tag    = DTLB_PFN;
 assign data_index  = m1s_alu_result[11:4];
 assign data_offset = m1s_alu_result[3:0];
-assign data_wstrb  = m1s_ex | m1s_inst_eret ? 4'b0 :
+assign data_wstrb  = m1s_ex | m1s_inst_eret  ? 4'b0 :
                      m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata  = sram_wdata;
+assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: arsize = 3'b000
+                     (m1s_mem_inst[4] | m1s_mem_inst[5]) ? 3'b001 : //lh,lhu: arsize = 3'b001
+                                                           3'b010; //其余: arsize = 3'b010
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/
-//TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB/ITLB不相对应
-assign TLB_Buffer_Flush = m1s_inst_tlbwi | m1s_inst_tlbr | 
-                         (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
-//当一条TLBWI发生在M1级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer
-// assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
-//Attention:认为refetch也是一种例外,需要清空流水级
-assign flush        = eret_flush | m1s_ex | m1s_refetch; 
-assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_EX_RD_Refill)
-                    | (m1s_Exctype == `DTLB_EX_WR_Refill); 
-assign m1s_ex       = temp_m1s_ex | DTLB_ex;
-assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
-                          DTLB_ex ? DTLB_Exctype     : `NO_EX;    
+assign flush       = eret_flush | m1s_ex; //调用eret指令,以及在WB阶段检测出例外时,都需要清空流水线
 /******************例外处理部分********************/
-
-/******************Refetch处理部分********************/
-//1. TLB refetch
-//以下三种情况发生后,会影响之后指令的虚实地址转换结果,故需要重取
-//就用当前指令对应PC重取,在PREIF级标注,在IF级置为nop,以防止死循环
-assign TLB_refetch  = m1s_inst_tlbwi | m1s_inst_tlbr | 
-                     (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
-
-//2. ICache refetch
-assign ICache_refetch = m1s_is_ICacheInst;
-assign m1s_refetch    = TLB_refetch | ICache_refetch;
-/******************Refetch处理部分********************/
 
 endmodule
