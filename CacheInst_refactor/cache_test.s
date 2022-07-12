@@ -399,13 +399,13 @@ bfc00614:	35290fe0 	ori	t1,t1,0xfe0
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:22
 bfc00618:	01094024 	and	t0,t0,t1
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:24
-bfc0061c:	bd090000 	0xbd090000
+bfc0061c:	bd090000 	0xbd090000 //cache DCIndexStTag, 0(t0)
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:26
 bfc00620:	00000000 	nop
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:28
 bfc00624:	35081000 	ori	t0,t0,0x1000
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:30
-bfc00628:	bd090000 	0xbd090000
+bfc00628:	bd090000 	0xbd090000 //cache DCIndexStTag, 0(t0)
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:32
 bfc0062c:	00000000 	nop
 /media/sf_ucas19_20_all/release/cache_func/inst/n5_dc_idx_sttag.S:34
@@ -467,13 +467,13 @@ bfc006a4:	35290fe0 	ori	t1,t1,0xfe0
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:22
 bfc006a8:	01094024 	and	t0,t0,t1
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:24
-bfc006ac:	bd010000 	0xbd010000
+bfc006ac:	bd010000 	0xbd010000 //cache DCIndexWBInv, 0(t0)
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:26
 bfc006b0:	00000000 	nop
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:28
 bfc006b4:	35081000 	ori	t0,t0,0x1000
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:30
-bfc006b8:	bd010000 	0xbd010000
+bfc006b8:	bd010000 	0xbd010000 //cache DCIndexWBInv, 0(t0)
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:32
 bfc006bc:	00000000 	nop
 /media/sf_ucas19_20_all/release/cache_func/inst/n4_dc_idx_wbinv.S:34

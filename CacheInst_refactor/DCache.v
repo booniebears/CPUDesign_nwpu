@@ -16,44 +16,44 @@ module DCache #(
 )
 (
     //与CPU流水线的交互接口
-    input                        clk,
-    input                        reset,
-    input                        data_valid,
-    input                        data_op,
-    input [INDEX_WIDTH-1:0]      data_index,
-    input [TAG_WIDTH-1:0]        data_tag,
-    input [OFFSET_WIDTH-1:0]     data_offset,
-    input [DATA_WIDTH-1:0]       data_wdata,
-    input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
-    output [DATA_WIDTH-1:0]      data_rdata,
-    output                       busy,
-    input                        is_DCacheInst,
-    input  [2:0]                 CacheInst_type,
+    input                            clk,
+    input                            reset,
+    input                            data_valid,
+    input                            data_op,
+    input [INDEX_WIDTH-1:0]          data_index,
+    input [TAG_WIDTH-1:0]            data_tag,
+    input [OFFSET_WIDTH-1:0]         data_offset,
+    input [DATA_WIDTH-1:0]           data_wdata,
+    input [WSTRB_WIDTH-1:0]          data_wstrb, //字节写使能wstrb
+    output [DATA_WIDTH-1:0]          data_rdata,
+    output                           busy,
+    input                            is_DCacheInst,
+    input  [2:0]                     CacheInst_type,
 
     //与AXI总线接口的交互接口
-    output                       dcache_rd_req,
-    output [DATA_WIDTH-1:0]      dcache_rd_addr,
-    input                        dcache_rd_rdy,
-    input                        dcache_wr_valid,
-    input                        dcache_ret_valid,
-    input [CACHELINE_WIDTH-1:0]  dcache_ret_data,
-    output                       dcache_wr_req,
-    input                        dcache_wr_rdy,
-    output [DATA_WIDTH-1:0]      dcache_wr_addr,
-    output [CACHELINE_WIDTH-1:0] dcache_wr_data,
+    output                           dcache_rd_req,
+    output [DATA_WIDTH-1:0]          dcache_rd_addr,
+    input                            dcache_rd_rdy,
+    input                            dcache_wr_valid,
+    input                            dcache_ret_valid,
+    input [CACHELINE_WIDTH-1:0]      dcache_ret_data,
+    output                           dcache_wr_req,
+    input                            dcache_wr_rdy,
+    output reg [DATA_WIDTH-1:0]      dcache_wr_addr,
+    output reg [CACHELINE_WIDTH-1:0] dcache_wr_data,
 
-    output                       udcache_rd_req,
-    output [31:0]                udcache_rd_addr,
-    input                        udcache_rd_rdy,
-    input                        udcache_ret_valid,
-    input                        udcache_wr_valid,
-    input [DATA_WIDTH-1:0]       udcache_ret_data,
-    output [WSTRB_WIDTH-1:0]     udcache_wr_strb,
-    output                       udcache_wr_req,
-    input                        udcache_wr_rdy,
-    output [31:0]                udcache_wr_addr,
-    output [DATA_WIDTH-1:0]      udcache_wr_data,
-    input                        isUncache //
+    output                           udcache_rd_req,
+    output [31:0]                    udcache_rd_addr,
+    input                            udcache_rd_rdy,
+    input                            udcache_ret_valid,
+    input                            udcache_wr_valid,
+    input [DATA_WIDTH-1:0]           udcache_ret_data,
+    output [WSTRB_WIDTH-1:0]         udcache_wr_strb,
+    output                           udcache_wr_req,
+    input                            udcache_wr_rdy,
+    output [31:0]                    udcache_wr_addr,
+    output [DATA_WIDTH-1:0]          udcache_wr_data,
+    input                            isUncache //
 );
 
 //define Cache FSM 
@@ -149,6 +149,7 @@ reg                          plru_en;
 
 wire                     uncache_busy;
 wire                     dcache_busy;
+wire                     CacheInst_busy;
 wire                     write_busy;
 
 //与CPU流水线的交互接口
@@ -162,10 +163,11 @@ endgenerate
 assign sel_way      = delayed_hit[0] ? 1'b0 : 1'b1;
 assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[sel_way];
 assign uncache_busy = (uncache_state == UNCACHE_DONE | uncache_state == UNCACHE_LOOKUP) ? 1'b0 : 1'b1;
-assign dcache_busy  = reqbuffer_data_valid & ~reqbuffer_data_isUncache & 
+assign dcache_busy  = reqbuffer_data_valid & ~reqbuffer_data_isUncache & ~reqbuffer_is_DCacheInst &
                       (~delayed_cache_hit | (delayed_cache_hit & reqbuffer_data_op));
                     //sw并且hit,要阻塞在MEM
-assign busy         = uncache_busy | dcache_busy;
+assign CacheInst_busy = (CacheInst_state != CACHEINST_IDLE);
+assign busy         = uncache_busy | dcache_busy | CacheInst_busy;
 
 //TODO:之后改成四路组相连
 assign dcache_write_data[7:0]   = reqbuffer_data_wstrb[0] ? reqbuffer_data_wdata[7:0] :
@@ -181,14 +183,30 @@ assign dcache_write_data[31:24] = reqbuffer_data_wstrb[3] ? reqbuffer_data_wdata
 //dcache AXI
 assign dcache_rd_req   = (dcache_state == MISSCLEAN);
 assign dcache_rd_addr  = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
-assign dcache_wr_req   = (dcache_state == MISSDIRTY);
-//TODO:考虑多路组相连情况
-assign dcache_wr_addr  = {delayed_tag_rdata[plru[reqbuffer_data_index]],reqbuffer_data_index,
+assign dcache_wr_req   = (dcache_state == MISSDIRTY || CacheInst_state == CACHEINST_WAIT);
+
+always @(*) begin //考虑两种不同的Cache指令
+    if(reqbuffer_CacheInst_type == `DCache_IDX_WB_INVALID)
+        dcache_wr_addr = {delayed_tag_rdata[reqbuffer_data_tag[0]],reqbuffer_data_index,
+                         {OFFSET_WIDTH{1'b0}}};
+    else if(reqbuffer_CacheInst_type == `DCache_HIT_WB_INVALID)
+        //必然是在命中的情况下才能写回,此时reqbuffer_data_tag即为所需
+        dcache_wr_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+    else
+        dcache_wr_addr = {delayed_tag_rdata[plru[reqbuffer_data_index]],reqbuffer_data_index,
                          {OFFSET_WIDTH{1'b0}}}; 
-generate //TODO:考虑多路组相连情况
+end
+generate
     genvar u;
     for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
-        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[plru[reqbuffer_data_index]][u];
+        always @(*) begin
+            if(reqbuffer_CacheInst_type == `DCache_IDX_WB_INVALID)
+                dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[reqbuffer_data_tag[0]][u];
+            else if(reqbuffer_CacheInst_type == `DCache_HIT_WB_INVALID)
+                dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[sel_way][u];
+            else
+                dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[plru[reqbuffer_data_index]][u];
+        end
     end
 endgenerate
 
@@ -453,7 +471,7 @@ always @(posedge clk) begin
         CacheInst_state <= CacheInst_nextstate;
 end
 
-always @(*) begin //CacheInst 
+always @(*) begin //CacheInst 每条Cache指令至少需要两拍解决
     case (CacheInst_state)
         CACHEINST_IDLE: 
             if(is_DCacheInst & ~dcache_busy) //Attention:考虑CacheInst阻塞在M1 stage的情况
@@ -531,7 +549,7 @@ end
 always @(*) begin //uncache
     case (uncache_state)
         UNCACHE_LOOKUP: 
-            if(data_valid & isUncache) begin
+            if(data_valid & isUncache & ~is_DCacheInst) begin
                 if(data_op)
                     uncache_nextstate = UNCACHE_STORE;
                 else
@@ -579,10 +597,10 @@ always @(posedge clk) begin
         dcache_state <= dcache_nextstate;
 end
 
-always @(*) begin //Cache 不处理Uncache和store类指令
+always @(*) begin //Cache 不处理Uncache,store和Cache指令
     case (dcache_state)
         LOOKUP: 
-            if(reqbuffer_data_isUncache) begin
+            if(reqbuffer_data_isUncache | reqbuffer_is_DCacheInst) begin
                 dcache_nextstate = LOOKUP;
             end
             else begin

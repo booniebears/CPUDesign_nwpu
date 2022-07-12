@@ -534,7 +534,9 @@ m1_stage m1_stage(
     .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
     .m1s_pc             (m1s_pc             ),
     .m1s_refetch        (m1s_refetch        ),
-    .m1s_is_ICacheInst  (m1s_is_ICacheInst  )
+    .m1s_is_ICacheInst  (m1s_is_ICacheInst  ),
+    .m1s_is_DCacheInst  (m1s_is_DCacheInst  ),
+    .m1s_CacheInst_type (m1s_CacheInst_type )
 );
 
 // MEM stage

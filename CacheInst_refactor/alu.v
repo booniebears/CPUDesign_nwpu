@@ -344,12 +344,12 @@ always @(posedge clk) begin
 end
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
-always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
+always @(posedge clk) begin //HI LO更新的前提是EXE和M1阶段的指令没有报出异常
     if(reset) begin
         HI <= 32'b0;
         LO <= 32'b0;
     end
-    else if(!es_ex && !m1s_ex) begin
+    else if(!m1s_ex) begin
         if(op_div) begin
             HI <= div_result[31:0];//商写LO,余数写HI
             LO <= div_result[63:32];

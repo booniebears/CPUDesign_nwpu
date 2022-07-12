@@ -672,7 +672,7 @@ assign Overflow_inst = {inst_add,inst_addi,inst_sub};
 assign alu_op[ 0] = inst_addu | inst_addiu | inst_lw | inst_sw | inst_jal | inst_add 
                     | inst_addi | inst_bgezal | inst_bltzal | inst_jalr | inst_sb | inst_sh
                     | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl
-                    | inst_lwr; //加法操作
+                    | inst_lwr | inst_cache; //加法操作
 assign alu_op[ 1] = inst_subu | inst_sub; //减法操作
 assign alu_op[ 2] = inst_slt | inst_slti; //有符号比较，小于置位
 assign alu_op[ 3] = inst_sltu | inst_sltiu; //无符号比较，小于置位
@@ -801,8 +801,9 @@ assign rs_wait = ~src1_no_rs & (rs!=5'd0) & ds_valid
 assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
                  & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
+//TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
 assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
-| inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret;
+| inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache;
 
 assign dest         = dst_is_r31   ? 5'd31 :
                       dst_is_rt    ? rt    : 
