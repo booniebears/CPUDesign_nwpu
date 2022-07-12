@@ -26,6 +26,8 @@ module exe_stage(
     input                          m1s_inst_eret
 );
 
+wire [31                 :0] ds_pc;
+assign ds_pc = ds_to_es_bus[31:0];
 reg         es_valid      ;
 wire        es_ready_go   ;
 
@@ -66,35 +68,43 @@ wire [31:0] es_BPU_ret_addr;
 wire es_BPU_is_taken;
 wire es_BPU_valid;
 wire [1:0] es_Count;
+wire [3:0] es_branch_type;
+wire [25:0] es_jidx;
 wire es_is_branch;
-wire es_br_stall;
+// wire es_br_stall;
 wire es_br_taken;
 wire [31:0] es_br_target;
 
+wire es_rs_eq_rt;
+//lab7添加 用于辅助判断b型指令的跳转状况
+wire        es_rsgez;
+wire        es_rsgtz;
+wire        es_rslez;
+wire        es_rsltz;
+
 assign {
-        es_BPU_ret_addr,  //252:221
-        es_BPU_is_taken,  //220:220
-        es_BPU_valid   ,  //219:219
-        es_Count       ,  //218:217
-        es_is_branch   ,  //216:216
-        es_br_stall    ,  //215:215
-        es_br_taken    ,  //214:214
-        es_br_target   ,  //213:182////////////////
-        es_inst_tlbp   ,  //181:181
-        es_inst_tlbr   ,  //180:180
-        es_inst_tlbwi  ,  //179:179
-        es_inst_tlbwr  ,  //178:178
-        es_mfc0_rd     ,  //177:173 
-        Overflow_inst  ,  //172:170
-        temp_ex        ,  //169:169 
-        temp_ExcCode   ,  //168:164 
-        es_bd          ,  //163:163
-        es_inst_eret   ,  //162:162
-        es_sel         ,  //161:159 
-        es_inst_mtc0   ,  //158:158 
-        es_inst_mfc0   ,  //157:157 
-        es_mem_inst    ,  //156:145
-        es_alu_op      ,  //144:125
+        es_BPU_ret_addr,  //269:238
+        es_BPU_is_taken,  //237:237
+        es_BPU_valid   ,  //236:236
+        es_Count       ,  //235:234
+        es_is_branch   ,  //233:233 
+        es_branch_type ,  //232:229 
+        es_jidx        ,  //228:203
+        es_inst_tlbp   ,  //202:202
+        es_inst_tlbr   ,  //201:201
+        es_inst_tlbwi  ,  //200:200
+        es_inst_tlbwr  ,  //199:199
+        es_mfc0_rd     ,  //198:194 
+        Overflow_inst  ,  //193:191
+        temp_ex        ,  //190:190 
+        temp_ExcCode   ,  //189:185 
+        es_bd          ,  //184:184
+        es_inst_eret   ,  //183:183
+        es_sel         ,  //182:180 
+        es_inst_mtc0   ,  //179:179 
+        es_inst_mfc0   ,  //178:178 
+        es_mem_inst    ,  //177:166
+        es_alu_op      ,  //165:125
         es_load_op     ,  //124:124
         es_src1_is_sa  ,  //123:123
         es_src1_is_pc  ,  //122:122
@@ -103,16 +113,51 @@ assign {
         es_gr_we       ,  //118:118 --写RF使能
         es_mem_we      ,  //117:117 --写DM使能
         es_dest        ,  //116:112 
-        es_imm         ,  //111:96
-        es_rs_value    ,  //95 :64
-        es_rt_value    ,  //63 :32
-        es_pc             //31 :0
+        es_imm         ,  //111:96 
+        es_rs_value    ,  //95 :64 
+        es_rt_value    ,  //63 :32 
+        es_pc             //31 :0  
        } = ds_to_es_bus_r;
+
+assign es_rs_eq_rt = (es_rs_value == es_rt_value);
+
+//lab7添加
+assign es_rsgez = (es_rs_value[31] == 1'b0  ||  es_rs_value == 32'b0); //>=0
+assign es_rsgtz = (es_rs_value[31] == 1'b0  &&  es_rs_value != 32'b0); //>0
+assign es_rslez = (es_rs_value[31] == 1'b1  ||  es_rs_value == 32'b0); //<=0
+assign es_rsltz = (es_rs_value[31] == 1'b1  &&  es_rs_value != 32'b0); //<0
+
+assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
+                        || es_branch_type == `BRANCH_TYPE_BNE
+                        || es_branch_type == `BRANCH_TYPE_BGEZ
+                        || es_branch_type == `BRANCH_TYPE_BGTZ
+                        || es_branch_type == `BRANCH_TYPE_BLEZ
+                        || es_branch_type == `BRANCH_TYPE_BLTZ
+                        || es_branch_type == `BRANCH_TYPE_BGEZAL
+                        || es_branch_type == `BRANCH_TYPE_BLTZAL ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
+                      (    es_branch_type == `BRANCH_TYPE_JR
+                        || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
+
+assign es_br_taken =  (    (es_branch_type == `BRANCH_TYPE_BEQ     &  es_rs_eq_rt)
+                        || (es_branch_type == `BRANCH_TYPE_BNE     & !es_rs_eq_rt)
+                        || (es_branch_type == `BRANCH_TYPE_JAL                   )
+                        || (es_branch_type == `BRANCH_TYPE_JR                    )
+                        || (es_branch_type == `BRANCH_TYPE_J                     )
+                        || (es_branch_type == `BRANCH_TYPE_JALR                  )
+                        || (es_branch_type == `BRANCH_TYPE_BGEZ    & es_rsgez    )
+                        || (es_branch_type == `BRANCH_TYPE_BGTZ    & es_rsgtz    )
+                        || (es_branch_type == `BRANCH_TYPE_BLEZ    & es_rslez    )
+                        || (es_branch_type == `BRANCH_TYPE_BLTZ    & es_rsltz    )
+                        || (es_branch_type == `BRANCH_TYPE_BGEZAL  & es_rsgez   )
+                        || (es_branch_type == `BRANCH_TYPE_BLTZAL  & es_rsltz   )
+                      ) ;           
+                    //   ) & es_valid;           
+
+
 
 assign EXE_BResult = {  es_pc,
                         es_Count,//
                         es_is_branch,//
-                        es_br_stall,//
                         es_br_taken,//
                         es_br_target//
                     };
@@ -122,7 +167,6 @@ assign es_BPU_right = es_br_taken ? ( es_br_target == es_BPU_ret_addr) : ~es_BPU
 assign EXE_br_bus       = { 
                             es_BPU_valid, // 该条指令BPU进行了预测
                             es_is_branch, // 该条指令是跳转指令
-                            es_br_stall,  //
                             es_br_taken,  //ID阶段确定该条指令需要进行跳转
                             es_BPU_right, // BPU预测正确
                             es_br_target, //ID阶段确定跳转的地址

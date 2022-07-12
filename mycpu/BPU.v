@@ -23,7 +23,6 @@ module BPU#(
 reg [31:0] BPU_es_pc;
 reg [1:0] BPU_old_Count;
 reg BPU_is_branch;
-reg BPU_br_stall;
 reg BPU_br_taken;
 reg [31:0] BPU_br_target;
 
@@ -31,7 +30,6 @@ always @(posedge clk) begin
     {   BPU_es_pc,      //跳转指令的PC
         BPU_old_Count,  //跳转指令PC跳转次数的历史记录，2位饱和计数器，需更新后再写入PHT
         BPU_is_branch,  //PC是否是跳转指令
-        BPU_br_stall,  // 当判断阶段已到exe阶段时，此信号可删除
         BPU_br_taken,   //是否成功跳转
         BPU_br_target   //跳转的目标地址
                         } <=  BResult;
