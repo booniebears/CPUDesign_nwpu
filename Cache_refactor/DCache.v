@@ -444,7 +444,7 @@ end
 assign FIFO_din   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset,
                      reqbuffer_data_wdata,reqbuffer_data_wstrb}; //addr + wdata + wstrb
 assign FIFO_rd_en = ~FIFO_rd_rst_busy & ~FIFO_empty & udcache_wr_rdy;
-assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_rd_rst_busy & ~FIFO_full
+assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_full
                     & (FIFO_en & reqbuffer_data_isUncache & reqbuffer_data_op);
 
 
@@ -467,7 +467,7 @@ U_Store_Buffer (
 
 always @(posedge clk) begin
     if(reset)
-        write_state <= LOOKUP;
+        write_state <= WRITE_IDLE;
     else
         write_state <= write_nextstate;
 end

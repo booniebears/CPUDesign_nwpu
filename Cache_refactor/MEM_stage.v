@@ -6,8 +6,6 @@ module mem_stage(
     //allowin 
     input          ws_allowin,
     output         ms_allowin,
-    input   [31:0] CP0_data,
-    input          ms_inst_mfc0,
     //from m1s
     input          m1s_to_ms_valid,
     input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
@@ -26,9 +24,11 @@ wire        ms_ready_go;
 reg [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus_r;
 wire        ms_res_from_mem;
 wire        ms_gr_we;
+wire        ms_inst_mfc0;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
+wire [31:0] CP0_data;
 wire        ms_ex;
 
 wire [11:0] ms_mem_inst;
@@ -45,14 +45,14 @@ wire [31:0] mem_result_lwr;
 assign {
         ms_inst_mfc0   ,
         CP0_data       ,
-        ms_ex          ,  //127:127                                 
-        ms_rt_value    ,  //114:83
-        ms_mem_inst    ,  //82:71
-        ms_res_from_mem,  //70:70
-        ms_gr_we       ,  //69:69
-        ms_dest        ,  //68:64
-        ms_alu_result  ,  //63:32
-        ms_pc             //31:0
+        ms_ex          ,                                
+        ms_rt_value    ,
+        ms_mem_inst    ,
+        ms_res_from_mem,
+        ms_gr_we       ,
+        ms_dest        ,
+        ms_alu_result  ,
+        ms_pc           
        } = m1s_to_ms_bus_r;
 
 wire [31:0] mem_data;

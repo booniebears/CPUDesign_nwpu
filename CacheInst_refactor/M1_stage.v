@@ -159,9 +159,9 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
-                        m1s_inst_mfc0   ,  //160:160
-                        CP0_data        ,  //128:159
-                        m1s_ex          ,  //127:127                                 
+                        m1s_inst_mfc0   ,  //138:138
+                        CP0_data        ,  //137:116
+                        m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83
                         m1s_mem_inst    ,  //82:71
                         m1s_res_from_mem,  //70:70
@@ -169,7 +169,7 @@ assign m1s_to_ms_bus = {
                         m1s_dest        ,  //68:64
                         m1s_alu_result  ,  //63:32
                         m1s_pc             //31:0
-                        } ;               
+                        } ;                
 
 assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we) | 
                         ((m1s_load_op | m1s_mem_we) & ~dcache_busy & ~DTLB_Buffer_Stall);

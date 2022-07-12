@@ -442,8 +442,8 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `EPC_RegAddr     )? CP0_EPC:
                   (CP0_Addr == `Index_RegAddr   )? {CP0_Index_P,27'b0,CP0_Index_Index}:
                   (CP0_Addr == `Entryhi_RegAddr )? {CP0_Entryhi_VPN2,5'b0,CP0_Entryhi_ASID}:
-                  (CP0_Addr == `Entrylo0_RegAddr)? {5'b0,CP0_Entrylo0_PFN0,CP0_Entrylo0_C0,CP0_Entrylo0_D0,CP0_Entrylo0_V0,CP0_Entrylo0_G0}:
-                  (CP0_Addr == `Entrylo1_RegAddr)? {5'b0,CP0_Entrylo1_PFN1,CP0_Entrylo1_C1,CP0_Entrylo1_D1,CP0_Entrylo1_V1,CP0_Entrylo1_G1}:
+                  (CP0_Addr == `Entrylo0_RegAddr)? {6'b0,CP0_Entrylo0_PFN0,CP0_Entrylo0_C0,CP0_Entrylo0_D0,CP0_Entrylo0_V0,CP0_Entrylo0_G0}:
+                  (CP0_Addr == `Entrylo1_RegAddr)? {6'b0,CP0_Entrylo1_PFN1,CP0_Entrylo1_C1,CP0_Entrylo1_D1,CP0_Entrylo1_V1,CP0_Entrylo1_G1}:
                   (CP0_Addr == `Random_RegAddr  )? {28'b0,CP0_Random_Random}:
                   (CP0_Addr == `Wired_RegAddr   )? {28'b0,CP0_Wired_Wired}:
                   (CP0_Addr == `Context_RegAddr )? {CP0_Context_PTEBase,CP0_Context_BadVPN2,4'b0}:

@@ -527,7 +527,7 @@ end
 
 always @(posedge clk) begin
     if(reset)
-        write_state <= LOOKUP;
+        write_state <= WRITE_IDLE;
     else
         write_state <= write_nextstate;
 end
