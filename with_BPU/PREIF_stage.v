@@ -47,7 +47,7 @@ wire         br_BPU_valid;
 wire         is_branch;
 wire         br_BPU_right;
 wire [ 31:0] br_es_pc;
-wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
+// wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 wire         prefs_bdd; //跳转指令的下下条
 
 wire [31:0]  BPU_target;
@@ -60,7 +60,6 @@ assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 assign {
         br_BPU_valid,
         is_branch,
-        br_stall,
         br_taken,
         br_BPU_right,
         br_target,

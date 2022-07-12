@@ -74,6 +74,8 @@ wire [31:0] BPU_ret_addr;
 wire BPU_valid;
 wire BPU_is_taken;
 
+reg [3:0] branch_type;
+
 assign {
         BPU_is_taken,
         Count, 
@@ -232,7 +234,7 @@ wire [31:0] rf_rdata1;
 wire [ 4:0] rf_raddr2; //目前是rt
 wire [31:0] rf_rdata2;
 
-wire        rs_eq_rt; //rs==rt
+// wire        rs_eq_rt; //rs==rt
 
 //lab4添加
 wire        rs_wait;
@@ -244,14 +246,14 @@ wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂�
 wire        mfc0_stall;
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
-//lab7添加 用于辅助判断b型指令的跳转状况
-wire        rsgez;
-wire        rsgtz;
-wire        rslez;
-wire        rsltz;
+// //lab7添加 用于辅助判断b型指令的跳转状况
+// wire        rsgez;
+// wire        rsgtz;
+// wire        rslez;
+// wire        rsltz;
 
-wire br_right; // 指令跳转了，并且BPU预测跳转正确
-wire BPU_right; // BPU预测正确
+// wire br_right; // 指令跳转了，并且BPU预测跳转正确
+// wire BPU_right; // BPU预测正确
 
 // assign br_bus       = { 
 //                         BPU_valid, // 该条指令BPU进行了预测
@@ -264,32 +266,31 @@ wire BPU_right; // BPU预测正确
 //                         };
 
 assign ds_to_es_bus = {
-                       BPU_ret_addr,  //252:221
-                       BPU_is_taken,  //220:220
-                       BPU_valid   ,  //219:219
-                       Count       ,  //218:217
-                       is_branch   ,  //216:216
-                       br_stall    ,  //215:215
-                       br_taken    ,  //214:214
-                       br_target   ,  //213:182
-                       inst_tlbp   ,  //181:181
-                       inst_tlbr   ,  //180:180
-                       inst_tlbwi  ,  //179:179
-                       inst_tlbwr  ,  //178:178                          
-                       mfc0_rd     ,  //177:173 --mfc0中的rd域 指定CP0寄存器的读写地址
-                       Overflow_inst, //172:170 --可能涉及整型溢出例外的三条指令:add,addi,sub
-                       ds_ex       ,  //169:169 --ID阶段 发现异常则置为1
-                       ds_Exctype  ,  //168:164 --例外编码
-                       ds_bd       ,  //163:163 --ID阶段 当前指令若在延迟槽中,则置为1
-                       inst_eret   ,  //162:162 --eret指令要送到WB阶段处理
-                       sel         ,  //161:159 --指令sel段要送到WB阶段处理
-                       inst_mtc0   ,  //158:158 --mtc0指令要送到WB阶段处理
-                       inst_mfc0   ,  //157:157 --mfc0指令要送到WB阶段处理
-                       mem_inst    ,  //156:145 --区分不同的存取指令
-                       alu_op      ,  //144:125 --alu指令控制
+                       BPU_ret_addr,  //269:238
+                       BPU_is_taken,  //237:237
+                       BPU_valid   ,  //236:236
+                       Count       ,  //235:234
+                       is_branch   ,  //233:233
+                       branch_type ,  //232:229
+                       jidx        ,  //228:203
+                       inst_tlbp   ,  //202:202
+                       inst_tlbr   ,  //201:201
+                       inst_tlbwi  ,  //200:200
+                       inst_tlbwr  ,  //199:199                          
+                       mfc0_rd     ,  //198:194 --mfc0中的rd域 指定CP0寄存器的读写地址
+                       Overflow_inst, //193:191 --可能涉及整型溢出例外的三条指令:add,addi,sub
+                       ds_ex       ,  //190:190 --ID阶段 发现异常则置为1
+                       ds_Exctype  ,  //189:185 --例外编码
+                       ds_bd       ,  //184:184 --ID阶段 当前指令若在延迟槽中,则置为1
+                       inst_eret   ,  //183:183 --eret指令要送到WB阶段处理
+                       sel         ,  //182:180 --指令sel段要送到WB阶段处理
+                       inst_mtc0   ,  //179:179 --mtc0指令要送到WB阶段处理
+                       inst_mfc0   ,  //178:178 --mfc0指令要送到WB阶段处理
+                       mem_inst    ,  //177:166 --区分不同的存取指令
+                       alu_op      ,  //165:125 --alu指令控制
                        load_op     ,  //124:124 --是否为load指令
                        src1_is_sa  ,  //123:123 --移位sa?
-                       src1_is_pc  ,  //122:123 --pc?
+                       src1_is_pc  ,  //122:122 --pc?
                        src2_is_imm ,  //121:120 --立即数?
                        src2_is_8   ,  //119:119 --jal指令需要的8?
                        gr_we       ,  //118:118 --写RF使能
@@ -457,11 +458,11 @@ assign inst_defined= inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | i
 | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
 
 
-//lab7添加
-assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
-assign rsgtz=(rs_value[31]==1'b0&&rs_value!=32'b0); //>0
-assign rslez=(rs_value[31]==1'b1||rs_value==32'b0); //<=0
-assign rsltz=(rs_value[31]==1'b1&&rs_value!=32'b0); //<0
+// //lab7添加
+// assign rsgez=(rs_value[31]==1'b0||rs_value==32'b0); //>=0
+// assign rsgtz=(rs_value[31]==1'b0&&rs_value!=32'b0); //>0
+// assign rslez=(rs_value[31]==1'b1||rs_value==32'b0); //<=0
+// assign rsltz=(rs_value[31]==1'b1&&rs_value!=32'b0); //<0
 
 //lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
 wire has_int; //判定是否接收到中断 需要满足下面的条件
@@ -671,27 +672,47 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
                              rt == MEM_dest ?  MEM_result : WB_result)
                             : rf_rdata2;
 
-assign rs_eq_rt  = (rs_value == rt_value);
+// assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
 | inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
 
-assign BPU_right = br_taken ? ( br_target == BPU_ret_addr) : ~BPU_is_taken;
 
-assign br_right = br_taken & BPU_right; // 
+always @(*) begin
+    case ({inst_beq, inst_bne, inst_jal, inst_jr, inst_j, inst_jalr, inst_bgez, inst_bgtz, inst_blez, inst_bltz, inst_bgezal, inst_bltzal})
+        12'b000000000000:branch_type = `BRANCH_TYPE_NONE;
+        12'b000000000001:branch_type = `BRANCH_TYPE_BLTZAL;
+        12'b000000000010:branch_type = `BRANCH_TYPE_BGEZAL;
+        12'b000000000100:branch_type = `BRANCH_TYPE_BLTZ;
+        12'b000000001000:branch_type = `BRANCH_TYPE_BLEZ;
+        12'b000000010000:branch_type = `BRANCH_TYPE_BGTZ;
+        12'b000000100000:branch_type = `BRANCH_TYPE_BGEZ;
+        12'b000001000000:branch_type = `BRANCH_TYPE_JALR;
+        12'b000010000000:branch_type = `BRANCH_TYPE_J;
+        12'b000100000000:branch_type = `BRANCH_TYPE_JR;
+        12'b001000000000:branch_type = `BRANCH_TYPE_JAL;
+        12'b010000000000:branch_type = `BRANCH_TYPE_BNE;
+        12'b100000000000:branch_type = `BRANCH_TYPE_BEQ;
+        default: branch_type = `BRANCH_TYPE_ERROR;
+    endcase
+end
 
-assign br_taken =  (  inst_beq  &  rs_eq_rt
-                   || inst_bne  & !rs_eq_rt
-                   || inst_jal
-                   || inst_jr
-                   || inst_j
-                   || inst_jalr
-                   || inst_bgez & rsgez
-                   || inst_bgtz & rsgtz
-                   || inst_blez & rslez
-                   || inst_bltz & rsltz
-                   || inst_bgezal & rsgez
-                   || inst_bltzal & rsltz
-                   ) & ds_valid; 
+// assign BPU_right = br_taken ? ( br_target == BPU_ret_addr) : ~BPU_is_taken;
+
+// assign br_right = br_taken & BPU_right; // 
+
+// assign br_taken =  (  inst_beq  &  rs_eq_rt
+//                    || inst_bne  & !rs_eq_rt
+//                    || inst_jal
+//                    || inst_jr
+//                    || inst_j
+//                    || inst_jalr
+//                    || inst_bgez & rsgez
+//                    || inst_bgtz & rsgtz
+//                    || inst_blez & rslez
+//                    || inst_bltz & rsltz
+//                    || inst_bgezal & rsgez
+//                    || inst_bltzal & rsltz
+//                    ) & ds_valid; 
 
 assign br_target = 
                    (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
@@ -720,7 +741,7 @@ assign load_stall = (rs_wait & (rs == EXE_dest) & es_load_op ) ||
                     (rs_wait & (rs == M1s_dest ) & m1s_load_op ) ||
                     (rt_wait & (rt == M1s_dest ) & m1s_load_op ) ||                   
                     (rt_wait & (rt == EXE_dest) & es_load_op );  
-assign br_stall   = (load_stall | mfc0_stall) & br_taken; //Attention:删掉ds_valid
+// assign br_stall   = (load_stall | mfc0_stall) & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
