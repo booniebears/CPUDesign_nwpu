@@ -197,16 +197,16 @@ endgenerate
 
 //uncache AXI
 //加上限制:FIFO empty 且udcache_wr_rdy时(表明已经缓冲区写完的时候) 可以发load请求
-reg wr_done;
+reg FIFO_done;
 always @(posedge clk) begin
     if(reset)
-        wr_done <= 1'b0;
+        FIFO_done <= 1'b0;
     else if(FIFO_empty & udcache_wr_rdy)
-        wr_done <= 1'b1;
+        FIFO_done <= 1'b1;
     else
-        wr_done <= 1'b0;
+        FIFO_done <= 1'b0;
 end
-assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD & wr_done); 
+assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD & FIFO_done); 
 assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
 assign udcache_wr_strb = FIFO_wr_strb;
 assign udcache_wr_req  = (FIFO_empty | FIFO_rd_rst_busy) ? 1'b0 : 1'b1; //TODO:存疑??
@@ -496,7 +496,7 @@ always @(*) begin //uncache
                 uncache_nextstate = UNCACHE_LOOKUP;
         
         UNCACHE_LOAD:
-            if(udcache_rd_rdy & wr_done) 
+            if(udcache_rd_rdy & FIFO_done) 
                 uncache_nextstate = UNCACHE_RETURN;
             else
                 uncache_nextstate = UNCACHE_LOAD;
