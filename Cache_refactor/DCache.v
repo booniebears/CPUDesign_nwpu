@@ -143,6 +143,8 @@ wire                     write_busy;
 wire [FIFO_WIDTH-1:0]    FIFO_din;
 wire                     FIFO_empty;
 wire                     FIFO_full;
+wire                     FIFO_data_valid;
+wire                     FIFO_wr_ack;
 wire                     FIFO_rd_rst_busy;
 wire                     FIFO_wr_rst_busy;
 wire                     FIFO_rd_en;
@@ -448,21 +450,23 @@ assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_full
                     & (FIFO_en & reqbuffer_data_isUncache & reqbuffer_data_op);
 
 
-Store_Buffer #(
+FIFO #(
     .LATENCY    (0),
     .FIFO_WIDTH (FIFO_WIDTH) //addr 32bit + data 32bit + wstrb 4bit
 )
-U_Store_Buffer (
+U_FIFO (
     .clk              (clk              ),
-    .reset            (reset            ),
-    .FIFO_din         (FIFO_din         ),
-    .FIFO_empty       (FIFO_empty       ),
-    .FIFO_full        (FIFO_full        ),
-    .FIFO_rd_rst_busy (FIFO_rd_rst_busy ),
-    .FIFO_wr_rst_busy (FIFO_wr_rst_busy ),
-    .FIFO_rd_en       (FIFO_rd_en       ),
-    .FIFO_wr_en       (FIFO_wr_en       ),
-    .FIFO_dout        ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_strb})
+    .rst              (reset            ),
+    .rd_en            (FIFO_rd_en       ),
+    .wr_en            (FIFO_wr_en       ),
+    .rd_rst_busy      (FIFO_rd_rst_busy ),
+    .wr_rst_busy      (FIFO_wr_rst_busy ),
+    .din              (FIFO_din         ),
+    .empty            (FIFO_empty       ),
+    .full             (FIFO_full        ),
+    .data_valid       (FIFO_data_valid  ),
+    .wr_ack           (FIFO_wr_ack      ),
+    .dout             ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_strb})
 );
 
 always @(posedge clk) begin
