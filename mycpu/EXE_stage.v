@@ -49,6 +49,10 @@ wire [3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋�
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 
 wire [ 2:0] es_sel; 
+wire        es_inst_tlbp ;
+wire        es_inst_tlbr ;
+wire        es_inst_tlbwi;
+wire        es_inst_tlbwr;
 wire [ 4:0] es_mfc0_rd;
 wire        es_inst_mtc0; 
 wire        es_inst_eret;
@@ -323,10 +327,10 @@ assign es_alu_result = es_inst_mtc0 ? es_rt_value : temp_alu_result;
 //lab8添加 处理整型溢出例外 处理地址错例外(写数据)和地址错例外(读数据)
 //TODO:es_alu_result目前暂代data_sram_addr
 assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
-                 inst_is_sw && es_alu_result[1:0] ? 1'b1 : 1'b0;
+                 inst_is_sw && (es_alu_result[1:0] != 0) ? 1'b1 : 1'b0;
                  
 assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
-                 inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
+                 inst_is_lw && (es_alu_result[1:0] != 0) ? 1'b1 : 1'b0;
 
 assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
 assign es_Exctype = temp_ex     ? temp_ExcCode:

@@ -131,9 +131,9 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
-                        m1s_inst_mfc0   ,  //160:160
-                        CP0_data        ,  //128:159
-                        m1s_ex          ,  //127:127                                 
+                        m1s_inst_mfc0   ,  //148:148
+                        CP0_data        ,  //147:116
+                        m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83
                         m1s_mem_inst    ,  //82:71
                         m1s_res_from_mem,  //70:70

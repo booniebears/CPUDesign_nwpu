@@ -67,26 +67,48 @@ assign {
         } = br_bus; 
 
 //计数使用，可以注掉//
-// reg [31:0] br_ds_pc_buffer;
-// reg [31:0] branch_count;
-// reg [31:0] right_count;
-// always @(br_es_pc) begin
-//     if(reset)begin
-//         branch_count = 0;
-//         right_count = 0;
-//     end
+reg [31:0] br_ds_pc_buffer;
+reg [31:0] branch_count;
+reg [31:0] right_count;
+`ifdef OPEN_VA_PERF
+    always_latch @(br_es_pc) begin
+        if(reset)begin
+            branch_count = 0;
+            right_count = 0;
+        end
 
-//     if(is_branch)begin
-//         branch_count = branch_count + 1;
-//     end
+        if(is_branch)begin
+        branch_count = branch_count + 1;
+        end
 
-//     if(is_branch & br_BPU_right)begin
-//         right_count = right_count + 1;
-//     end
-// end
-// always @(posedge clk) begin
-//     br_ds_pc_buffer <= br_es_pc;
-// end
+        if(is_branch & br_BPU_right)begin
+            right_count = right_count + 1;
+        end
+    end
+    always @(posedge clk) begin
+        br_ds_pc_buffer <= br_es_pc;
+    end
+`else
+
+    // always @(br_es_pc) begin
+    //     if(reset)begin
+    //         branch_count = 0;
+    //         right_count = 0;
+    //     end
+
+    //     if(is_branch)begin
+    //     branch_count = branch_count + 1;
+    //     end
+
+    //     if(is_branch & br_BPU_right)begin
+    //         right_count = right_count + 1;
+    //     end
+    // end
+    // always @(posedge clk) begin
+    //     br_ds_pc_buffer <= br_es_pc;
+    // end
+
+ `endif 
 
 ////////////////////
 
@@ -100,7 +122,7 @@ assign ps_to_fs_bus   = {
                           ps_Exctype  //4:0
                         };
 
-assign seq_pc = prefs_pc + 3'd4;
+assign seq_pc = prefs_pc + 4;
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;

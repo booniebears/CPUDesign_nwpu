@@ -119,7 +119,7 @@ end
 
 assign target = BPU_ret_addr;
 assign BPU_valid = PHT_hit;
-assign Count = BPU_Count_reg;
+// assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;
 assign index_addr = PHT_we ? PHT_wr_index : PHT_rd_index;
