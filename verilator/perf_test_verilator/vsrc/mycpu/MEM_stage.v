@@ -129,14 +129,14 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
 
-`ifdef OPEN_VA
+`ifdef OPEN_VA_PERF
+    reg [31:0] getsoccount; 
     //lw v0, -8192(t9)
     assign ms_final_result =((ms_mem_inst[0] == 1) && (ms_alu_result == 32'hbfafe000) && (ms_dest == 5'h02)) ?
                             getsoccount :
                             ms_res_from_mem ? mem_data :
                             ms_inst_mfc0    ? CP0_data :
                                               ms_alu_result;
-    reg [31:0] getsoccount;                                   
     always @(posedge clk) begin //set values for soc count
         if(reset)
             getsoccount <= 0;
