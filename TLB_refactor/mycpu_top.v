@@ -169,6 +169,7 @@ wire  [31:0] data_wdata;
 wire  [31:0] data_rdata;
 wire         isUncache;
 wire         dcache_busy;
+wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
 
 /********************TLB-CP0交互信号如下********************/
 wire           m1s_inst_tlbwi   ; //写使能:对应inst_tlbwi
@@ -306,6 +307,7 @@ DCache U_DCache(
     .data_wdata          (data_wdata        ),
     .data_rdata          (data_rdata        ),
     .busy                (dcache_busy       ),
+    .store_record        (store_record      ),
  
     .dcache_rd_req       (dcache_rd_req     ),
     .dcache_rd_addr      (dcache_rd_addr    ),
@@ -511,6 +513,7 @@ m1_stage m1_stage(
     .data_wstrb         (data_wstrb         ),
     .data_wdata         (data_wdata         ),
     .dcache_busy        (dcache_busy        ),
+    .store_record       (store_record       ),
     .DTLB_found         (DTLB_found         ),
     .DTLB_pfn0          (DTLB_pfn0          ),
     .DTLB_c0            (DTLB_c0            ),

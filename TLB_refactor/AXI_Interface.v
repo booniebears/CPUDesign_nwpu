@@ -798,34 +798,35 @@ module AXI_Interface(
     input          bvalid,
     output         bready,
 
-    input             icache_rd_req, 
-    input  [31:0]     icache_rd_addr, 
-    output            icache_rd_rdy, 
-    output            icache_ret_valid, 
-    output    [127:0] icache_ret_data,
+    input          icache_rd_req, 
+    input  [31:0]  icache_rd_addr, 
+    output         icache_rd_rdy, 
+    output         icache_ret_valid, 
+    output [127:0] icache_ret_data,
 
-    input             dcache_rd_req, 
-    input   [31:0]    dcache_rd_addr, 
-    output            dcache_rd_rdy, 
-    output            dcache_ret_valid, 
-    output    [127:0] dcache_ret_data, 
-    input             dcache_wr_req, 
-    input   [31:0]    dcache_wr_addr,     
-    input  [127:0]    dcache_wr_data, 
-    output            dcache_wr_rdy,
-    output            dcache_wr_valid, 
+    input          dcache_rd_req, 
+    input   [31:0] dcache_rd_addr, 
+    output         dcache_rd_rdy, 
+    output         dcache_ret_valid, 
+    output [127:0] dcache_ret_data, 
+    input          dcache_wr_req, 
+    input   [31:0] dcache_wr_addr,     
+    input  [127:0] dcache_wr_data, 
+    output         dcache_wr_rdy,
+    output         dcache_wr_valid, 
 
-    input             udcache_rd_req, 
-    input      [31:0] udcache_rd_addr, 
-    output            udcache_rd_rdy, 
-    output            udcache_ret_valid,
-    output     [31:0] udcache_ret_data, 
-    input             udcache_wr_req, 
-    input      [31:0] udcache_wr_addr,     
-    input      [ 3:0] udcache_wr_strb, 
-    input      [31:0] udcache_wr_data, 
-    output            udcache_wr_rdy,   
-    output            udcache_wr_valid //
+    input          udcache_rd_req, 
+    input   [31:0] udcache_rd_addr, 
+    input   [ 2:0] udcache_load_size, 
+    output         udcache_rd_rdy, 
+    output         udcache_ret_valid,
+    output  [31:0] udcache_ret_data, 
+    input          udcache_wr_req, 
+    input   [31:0] udcache_wr_addr,     
+    input   [ 3:0] udcache_wr_strb, 
+    input   [31:0] udcache_wr_data, 
+    output         udcache_wr_rdy,   
+    output         udcache_wr_valid //
 );
 
 // Icache 
@@ -961,6 +962,7 @@ module AXI_Interface(
     reg   [  1:0] U_RD_state;
     reg   [  1:0] U_RD_nextstate;
     reg   [ 31:0] U_RD_Addr;
+    reg   [  3:0] U_RD_load_size;
     reg   [ 31:0] AXI_U_RData;
 
     reg   [  2:0] U_WR_state;
@@ -1008,11 +1010,13 @@ module AXI_Interface(
     //U$ RD
     always @(posedge clk) begin
         if (~resetn) begin
-            U_RD_Addr <= 0;
+            U_RD_Addr      <= 0;
+            U_RD_load_size <= 0;
         end 
         else begin  
             if (udcache_rd_req == 1'b1 && U_RD_state == `UD_RD_IDLE) begin
-                U_RD_Addr <= udcache_rd_addr;
+                U_RD_Addr      <= udcache_rd_addr;
+                U_RD_load_size <= udcache_load_size;
             end
         end 
     end
@@ -1083,7 +1087,7 @@ module AXI_Interface(
 /********************* ubus ******************/
     assign udata_arid     = 4'b0011;
     assign udata_arlen    = 4'b0000; 
-    assign udata_arsize   = 3'b010; 
+    assign udata_arsize   = U_RD_load_size;  //Attention: 必须严格指定arsize
     assign udata_arburst  = 2'b01;
     assign udata_arlock   = 0;
     assign udata_arcache  = 0;

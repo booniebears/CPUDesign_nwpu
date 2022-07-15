@@ -12,7 +12,7 @@
     `define FS_TO_DS_BUS_WD     71
     `define DS_TO_ES_BUS_WD     (`ALUOP_WD + `DS_TO_ES_NOALU_WD)
     `define ES_TO_M1_BUS_WD     175
-    `define M1_TO_MS_BUS_WD     149
+    `define M1_TO_MS_BUS_WD     150
     `define MS_TO_WS_BUS_WD     83
     `define WS_TO_RF_BUS_WD     38
 

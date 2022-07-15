@@ -30,6 +30,7 @@ wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 wire        ms_ex;
 wire        ms_inst_mfc0;
+wire        ms_store_flow;
 
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
@@ -43,6 +44,7 @@ wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
 
 assign {
+        ms_store_flow  ,
         ms_inst_mfc0   ,
         CP0_data       ,
         ms_ex          ,                                
@@ -59,7 +61,6 @@ wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
-                       //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //82:82
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
@@ -101,7 +102,7 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]  
                               (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
                                                              {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
-assign ms_ready_go    = ~dcache_busy;
+assign ms_ready_go    = ms_store_flow | ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin

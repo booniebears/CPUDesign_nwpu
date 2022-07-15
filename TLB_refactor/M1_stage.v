@@ -71,6 +71,7 @@ module m1_stage(
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
     input           dcache_busy,
+    input           store_record,
     input           DTLB_found,
     input  [19:0]   DTLB_pfn0,
     input  [ 2:0]   DTLB_c0,
@@ -114,11 +115,15 @@ wire         m1s_inst_tlbr;
 wire         m1s_mem_we;
 wire [ 3:0]  sram_wen;
 wire [31:0]  sram_wdata;//位数问题！
+wire         m1s_store_flow; //m1s_store_flow = 1,表明当前store指令可以从MEM流动到WB,整个流水不会阻塞
 wire         debug_sw;
 wire         debug_lw;
 
-assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
-assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
+assign debug_sw       = (data_index == 8'h9e) & m1s_mem_we & data_valid;
+assign debug_lw       = (data_index == 8'h9e) & m1s_load_op & data_valid;
+//当前指令为store指令,且store_record = 1'b0,则store_flow = 1'b1 
+//TODO:感觉Cached和Uncached store都可以考虑按以下逻辑放行?
+assign m1s_store_flow = m1s_mem_we & ~store_record; 
 
 assign {
         sram_wdata      ,  //174:143
@@ -147,6 +152,7 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
+                        m1s_store_flow  ,  //149:149
                         m1s_inst_mfc0   ,  //148:148
                         CP0_data        ,  //147:116
                         m1s_ex          ,  //115:115                                 
