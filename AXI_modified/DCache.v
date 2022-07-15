@@ -1,6 +1,7 @@
 module DCache #(
     parameter  DATA_WIDTH      = 32, 
     parameter  CACHELINE_WIDTH = 128, 
+    parameter  FIFO_WIDTH      = 68, //addr + wdata + wstrb
     parameter  ASSOC_NUM       = 2, //组相连数
     parameter  WORDS_PER_LINE  = 4, //一行4字
     parameter  WAY_SIZE        = 4*1024*8, //一路Cache 容量大小
@@ -65,7 +66,7 @@ parameter  LOOKUP         = 3'd0,
 //define Uncache FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
            UNCACHE_LOAD   = 3'd1,
-           UNCACHE_STORE  = 3'd2,
+           WRITE_FIFO     = 3'd2,
            UNCACHE_RETURN = 3'd3,
            UNCACHE_DONE   = 3'd4;
 
@@ -73,12 +74,19 @@ parameter  UNCACHE_LOOKUP = 3'd0,
 parameter  WRITE_IDLE     = 1'd0,
            WRITE_START    = 1'd1;
 
+//define FIFO Write FSM
+parameter  FIFO_IDLE      = 2'd0,
+           FIFO_WAIT      = 2'd1,
+           FIFO_RETURN    = 2'd2;
+
 reg [2:0] dcache_state;
 reg [2:0] dcache_nextstate;
 reg [2:0] uncache_state;
 reg [2:0] uncache_nextstate;
 reg       write_state;
 reg       write_nextstate;
+reg [1:0] fifo_state;
+reg [1:0] fifo_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
@@ -140,6 +148,17 @@ wire                     uncache_busy;
 wire                     dcache_busy;
 wire                     write_busy;
 
+/****************define FIFO***************/
+wire [FIFO_WIDTH-1:0]  FIFO_din     ;
+wire                   FIFO_rd_en   ;
+wire                   FIFO_wr_en   ;
+wire                   FIFO_full    ;
+wire                   FIFO_empty   ;
+wire [31:0]            FIFO_wr_addr ;
+wire [DATA_WIDTH-1:0]  FIFO_wr_data ;
+wire [WSTRB_WIDTH-1:0] FIFO_wr_wstrb;
+/****************define FIFO***************/
+
 //与CPU流水线的交互接口
 generate
     genvar n;
@@ -182,13 +201,13 @@ generate //TODO:考虑多路组相连情况
 endgenerate
 
 //uncache AXI
-assign udcache_rd_req    = (uncache_state == UNCACHE_LOAD);
+assign udcache_rd_req    = (uncache_state == UNCACHE_LOAD) & (fifo_state == FIFO_IDLE) & FIFO_empty;
 assign udcache_rd_addr   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
 assign udcache_load_size = reqbuffer_load_size;
-assign udcache_wr_strb   = reqbuffer_data_wstrb;
-assign udcache_wr_req    = (uncache_state == UNCACHE_STORE);
-assign udcache_wr_addr   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_data   = reqbuffer_data_wdata;
+assign udcache_wr_strb   = FIFO_wr_wstrb;
+assign udcache_wr_req    = (fifo_state == FIFO_WAIT);
+assign udcache_wr_addr   = FIFO_wr_addr;
+assign udcache_wr_data   = FIFO_wr_data;
 
 generate
     genvar t;
@@ -410,9 +429,56 @@ generate
     end
 endgenerate
 
+assign FIFO_din   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset,
+                     reqbuffer_data_wdata,reqbuffer_data_wstrb};
+assign FIFO_rd_en = (fifo_state == FIFO_WAIT) & udcache_wr_rdy;
+assign FIFO_wr_en = (uncache_state == WRITE_FIFO) & ~FIFO_full;
+
+FIFO U_FIFO(
+    .clk     (clk        ),
+    .reset   (reset      ),
+    .din     (FIFO_din   ),
+    .rd_en   (FIFO_rd_en ),
+    .wr_en   (FIFO_wr_en ),
+    .full    (FIFO_full  ),
+    .empty   (FIFO_empty ),
+    .dout    ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_wstrb})
+);
+
 always @(posedge clk) begin
     if(reset)
-        write_state <= LOOKUP;
+        fifo_state <= FIFO_IDLE;
+    else
+        fifo_state <= fifo_nextstate;
+end
+
+always @(*) begin
+    case (fifo_state)
+        FIFO_IDLE: 
+            if(~FIFO_empty)
+                fifo_nextstate = FIFO_WAIT;
+            else
+                fifo_nextstate = FIFO_IDLE;
+        
+        FIFO_WAIT:
+            if(udcache_wr_rdy)
+                fifo_nextstate = FIFO_RETURN;
+            else
+                fifo_nextstate = FIFO_WAIT;
+        
+        FIFO_RETURN:
+            if(udcache_wr_valid)
+                fifo_nextstate = FIFO_IDLE;
+            else
+                fifo_nextstate = FIFO_RETURN;
+                
+        default: fifo_nextstate = FIFO_IDLE;
+    endcase    
+end
+
+always @(posedge clk) begin
+    if(reset)
+        write_state <= WRITE_IDLE;
     else
         write_state <= write_nextstate;
 end
@@ -436,7 +502,7 @@ always @(*) begin //uncache
         UNCACHE_LOOKUP: 
             if(data_valid & isUncache) begin
                 if(data_op)
-                    uncache_nextstate = UNCACHE_STORE;
+                    uncache_nextstate = WRITE_FIFO;
                 else
                     uncache_nextstate = UNCACHE_LOAD;
             end
@@ -444,19 +510,19 @@ always @(*) begin //uncache
                 uncache_nextstate = UNCACHE_LOOKUP;
         
         UNCACHE_LOAD:
-            if(udcache_rd_rdy) 
+            if(udcache_rd_rdy & (fifo_state == FIFO_IDLE) & FIFO_empty) 
                 uncache_nextstate = UNCACHE_RETURN;
             else
                 uncache_nextstate = UNCACHE_LOAD;
             
-        UNCACHE_STORE:
-            if(udcache_wr_rdy)
-                uncache_nextstate = UNCACHE_RETURN;
+        WRITE_FIFO:
+            if(~FIFO_full)
+                uncache_nextstate = UNCACHE_DONE;
             else
-                uncache_nextstate = UNCACHE_STORE;
+                uncache_nextstate = WRITE_FIFO;
 
         UNCACHE_RETURN:
-            if(udcache_ret_valid | udcache_wr_valid)
+            if(udcache_ret_valid)
                 uncache_nextstate = UNCACHE_DONE;
             else
                 uncache_nextstate = UNCACHE_RETURN;
@@ -464,7 +530,7 @@ always @(*) begin //uncache
         UNCACHE_DONE:
             if(data_valid & isUncache) begin
                 if(data_op)
-                    uncache_nextstate = UNCACHE_STORE;
+                    uncache_nextstate = WRITE_FIFO;
                 else
                     uncache_nextstate = UNCACHE_LOAD;
             end
