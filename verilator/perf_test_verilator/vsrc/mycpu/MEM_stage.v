@@ -30,6 +30,7 @@ wire [31:0] ms_pc;
 wire        ms_ex;
 wire        ms_inst_mfc0;
 wire [31:0] CP0_data;
+wire        ms_store_flow;
 
 wire [11:0] ms_mem_inst;
 wire [31:0] ms_rt_value;
@@ -43,23 +44,23 @@ wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
 
 assign {
+        ms_store_flow  ,
         ms_inst_mfc0   ,
         CP0_data       ,
-        ms_ex          ,  //127:127                                 
-        ms_rt_value    ,  //114:83
-        ms_mem_inst    ,  //82:71
-        ms_res_from_mem,  //70:70
-        ms_gr_we       ,  //69:69
-        ms_dest        ,  //68:64
-        ms_alu_result  ,  //63:32
-        ms_pc             //31:0
+        ms_ex          ,                                
+        ms_rt_value    ,
+        ms_mem_inst    ,
+        ms_res_from_mem,
+        ms_gr_we       ,
+        ms_dest        ,
+        ms_alu_result  ,
+        ms_pc           
        } = m1s_to_ms_bus_r;
 
 wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
-                       //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //70:70
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
@@ -101,7 +102,7 @@ assign mem_result_lwr       = (ms_alu_result[1:0] == 2'd0) ?  data_rdata[31:0]  
                               (ms_alu_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
                                                              {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
-assign ms_ready_go    = ~dcache_busy;
+assign ms_ready_go    = ms_store_flow | ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin
@@ -150,7 +151,7 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                              ms_inst_mfc0    ? CP0_data :
                                                ms_alu_result;
 `endif
-                                         
+
 //lab4添加
 assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign MEM_result = ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
