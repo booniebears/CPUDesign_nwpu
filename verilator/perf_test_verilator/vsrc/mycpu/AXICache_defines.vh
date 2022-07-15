@@ -72,7 +72,7 @@
     `define U_WR_S       3'b011
     `define U_WR_FINISH  3'b100
 
-    // `define use_crossbar_ip
+
     
 /*******************AXI定义部分如上******************/
 `endif 

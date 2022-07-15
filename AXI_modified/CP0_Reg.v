@@ -260,7 +260,7 @@ end
 assign Random_next = CP0_Random_Random + 1'b1;
 always @(posedge clk) begin //Random 3-0 R
     if(reset)
-        CP0_Random_Random <= 4'b1111;
+        CP0_Random_Random <= TLBNUM - 1'b1;
     else //Random的赋值可参考学长代码,每个时钟周期都会变化。
         CP0_Random_Random <= (CP0_Wired_Wired < Random_next) ? Random_next : CP0_Wired_Wired;
 end
@@ -291,7 +291,7 @@ end
 reg [31:0] CP0_EPC;
 always @(posedge clk) begin
     if(m1s_ex && ~CP0_Status_EXL) begin //EXL为0的时候才能写EPC
-        CP0_EPC <= m1s_bd ? m1s_pc - 4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
+        CP0_EPC <= m1s_bd ? m1s_pc - 3'h4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
     end
     else if(mtc0_we && CP0_Addr == `EPC_RegAddr)
         CP0_EPC <= m1s_alu_result;
@@ -305,7 +305,7 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写s
         if(Exctype == `AdES)
             CP0_BadVAddr <= m1s_alu_result;
         else if(Exctype == `AdEL)
-            CP0_BadVAddr <= ( m1s_pc[1:0] != 0 ) ? m1s_pc : m1s_alu_result;
+            CP0_BadVAddr <= m1s_pc[1:0] ? m1s_pc : m1s_alu_result;
        /* else if(Exctype==`TLBL||Exctype==`TLBS ||Exctype==`Mod)
             CP0_BadVAddr <= m1s_alu_result;*/
     end
@@ -442,8 +442,8 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `EPC_RegAddr     )? CP0_EPC:
                   (CP0_Addr == `Index_RegAddr   )? {CP0_Index_P,27'b0,CP0_Index_Index}:
                   (CP0_Addr == `Entryhi_RegAddr )? {CP0_Entryhi_VPN2,5'b0,CP0_Entryhi_ASID}:
-                  (CP0_Addr == `Entrylo0_RegAddr)? {6'b0,CP0_Entrylo0_PFN0,CP0_Entrylo0_C0,CP0_Entrylo0_D0,CP0_Entrylo0_V0,CP0_Entrylo0_G0}:
-                  (CP0_Addr == `Entrylo1_RegAddr)? {6'b0,CP0_Entrylo1_PFN1,CP0_Entrylo1_C1,CP0_Entrylo1_D1,CP0_Entrylo1_V1,CP0_Entrylo1_G1}:
+                  (CP0_Addr == `Entrylo0_RegAddr)? {5'b0,CP0_Entrylo0_PFN0,CP0_Entrylo0_C0,CP0_Entrylo0_D0,CP0_Entrylo0_V0,CP0_Entrylo0_G0}:
+                  (CP0_Addr == `Entrylo1_RegAddr)? {5'b0,CP0_Entrylo1_PFN1,CP0_Entrylo1_C1,CP0_Entrylo1_D1,CP0_Entrylo1_V1,CP0_Entrylo1_G1}:
                   (CP0_Addr == `Random_RegAddr  )? {28'b0,CP0_Random_Random}:
                   (CP0_Addr == `Wired_RegAddr   )? {28'b0,CP0_Wired_Wired}:
                   (CP0_Addr == `Context_RegAddr )? {CP0_Context_PTEBase,CP0_Context_BadVPN2,4'b0}:

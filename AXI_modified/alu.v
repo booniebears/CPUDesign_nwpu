@@ -81,13 +81,13 @@ wire [31:0] mflo_result   ;
 // 32-bit adder
 wire [31:0] adder_a;
 wire [31:0] adder_b;
-wire [31:0] adder_cin;
+wire        adder_cin;
 wire [31:0] adder_result;
 wire        adder_cout;
 
 assign adder_a   = alu_src1;
 assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
-assign adder_cin = (op_sub | op_slt | op_sltu) ? 32'b1      : 32'b0;
+assign adder_cin = (op_sub | op_slt | op_sltu) ? 1'b1      : 1'b0;
 assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
 
 //lab8添加
@@ -204,9 +204,6 @@ wire s_axis_dividend_treadyu;
 //带符号除法
 mydiv u_mydiv(
     .aclk                    (clk),
-`ifdef OPEN_VA
-    .aresetn                 (~reset),
-`endif
     .s_axis_divisor_tvalid   (s_axis_divisor_tvalid),
     .s_axis_divisor_tready   (s_axis_divisor_tready),
     .s_axis_divisor_tdata    (alu_src2), //src2为除数
@@ -220,9 +217,6 @@ mydiv u_mydiv(
 //无符号除法
 mydiv_unsigned u_mydiv_unsigned(
     .aclk                    (clk),
-`ifdef OPEN_VA
-    .aresetn                 (~reset),
-`endif
     .s_axis_divisor_tvalid   (s_axis_divisor_tvalidu),
     .s_axis_divisor_tready   (s_axis_divisor_treadyu),
     .s_axis_divisor_tdata    (alu_src2), //src2为除数
@@ -304,7 +298,7 @@ always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没�
         HI <= 32'b0;
         LO <= 32'b0;
     end
-    else if(!m1s_ex) begin
+    else if(!es_ex && !m1s_ex) begin
         if(op_div) begin
             HI <= div_result[31:0];//商写LO,余数写HI
             LO <= div_result[63:32];

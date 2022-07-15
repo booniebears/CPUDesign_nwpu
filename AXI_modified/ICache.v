@@ -169,7 +169,7 @@ generate
             .douta({tag_rdata[i],valid_rdata[i]})
         );
         for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
-            simple_port_ram #(
+            simple_port_ram_without_bypass #(
                 .SIZE(BLOCK_NUMS),
                 .DATA_WIDTH(DATA_WIDTH)
             ) ram_bank(

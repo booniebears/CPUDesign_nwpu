@@ -65,10 +65,11 @@ module m1_stage(
     output [ 3:0]   data_offset,
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
+    output [ 2:0]   load_size,
     input           dcache_busy,
     output          isUncache
 );
-wire  [31:0]  DTLB_RAddr;//实地址
+
 reg           m1s_valid;
 wire          m1s_ready_go;
   
@@ -131,9 +132,9 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
-                        m1s_inst_mfc0   ,  //148:148
-                        CP0_data        ,  //147:116
-                        m1s_ex          ,  //115:115                                 
+                        m1s_inst_mfc0   ,  //160:160
+                        CP0_data        ,  //128:159
+                        m1s_ex          ,  //127:127                                 
                         m1s_rt_value    ,  //114:83
                         m1s_mem_inst    ,  //82:71
                         m1s_res_from_mem,  //70:70
@@ -250,6 +251,9 @@ assign data_offset = m1s_alu_result[3:0];
 assign data_wstrb  = m1s_ex | m1s_inst_eret  ? 4'b0 :
                      m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata  = sram_wdata;
+assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: arsize = 3'b000
+                     (m1s_mem_inst[4] | m1s_mem_inst[5]) ? 3'b001 : //lh,lhu: arsize = 3'b001
+                                                           3'b010; //其余: arsize = 3'b010
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/

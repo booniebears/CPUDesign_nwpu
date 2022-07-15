@@ -47,7 +47,7 @@ wire         br_BPU_valid;
 wire         is_branch;
 wire         br_BPU_right;
 wire [ 31:0] br_es_pc;
-// wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
+wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 wire         prefs_bdd; //跳转指令的下下条
 
 wire [31:0]  BPU_target;
@@ -60,6 +60,7 @@ assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 assign {
         br_BPU_valid,
         is_branch,
+        br_stall,
         br_taken,
         br_BPU_right,
         br_target,
@@ -67,48 +68,26 @@ assign {
         } = br_bus; 
 
 //计数使用，可以注掉//
-reg [31:0] br_ds_pc_buffer;
-reg [31:0] branch_count;
-reg [31:0] right_count;
-`ifdef OPEN_VA_PERF
-    always_latch @(br_es_pc) begin
-        if(reset)begin
-            branch_count = 0;
-            right_count = 0;
-        end
+// reg [31:0] br_ds_pc_buffer;
+// reg [31:0] branch_count;
+// reg [31:0] right_count;
+// always @(br_es_pc) begin
+//     if(reset)begin
+//         branch_count = 0;
+//         right_count = 0;
+//     end
 
-        if(is_branch)begin
-        branch_count = branch_count + 1;
-        end
+//     if(is_branch)begin
+//         branch_count = branch_count + 1;
+//     end
 
-        if(is_branch & br_BPU_right)begin
-            right_count = right_count + 1;
-        end
-    end
-    always @(posedge clk) begin
-        br_ds_pc_buffer <= br_es_pc;
-    end
-`else
-
-    // always @(br_es_pc) begin
-    //     if(reset)begin
-    //         branch_count = 0;
-    //         right_count = 0;
-    //     end
-
-    //     if(is_branch)begin
-    //     branch_count = branch_count + 1;
-    //     end
-
-    //     if(is_branch & br_BPU_right)begin
-    //         right_count = right_count + 1;
-    //     end
-    // end
-    // always @(posedge clk) begin
-    //     br_ds_pc_buffer <= br_es_pc;
-    // end
-
- `endif 
+//     if(is_branch & br_BPU_right)begin
+//         right_count = right_count + 1;
+//     end
+// end
+// always @(posedge clk) begin
+//     br_ds_pc_buffer <= br_es_pc;
+// end
 
 ////////////////////
 
@@ -122,7 +101,7 @@ assign ps_to_fs_bus   = {
                           ps_Exctype  //4:0
                         };
 
-assign seq_pc = prefs_pc + 4;
+assign seq_pc = prefs_pc + 3'd4;
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
