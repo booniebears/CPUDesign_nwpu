@@ -1698,13 +1698,13 @@ module AXI_Interface(
     output    [127:0] dcache_ret_data, 
     input             dcache_wr_req, 
     input   [31:0]    dcache_wr_addr,     
-    // input   [ 3:0] dcache_wr_strb, 
     input  [127:0]    dcache_wr_data, 
     output            dcache_wr_rdy,
     output            dcache_wr_valid, 
 
     input             udcache_rd_req, 
-    input      [31:0] udcache_rd_addr, 
+    input      [31:0] udcache_rd_addr,
+    input      [ 2:0] udcache_load_size,
     output            udcache_rd_rdy, 
     output            udcache_ret_valid,
     output     [31:0] udcache_ret_data, 
@@ -1829,26 +1829,27 @@ module AXI_Interface(
     wire          ubus_bvalid;
     wire          ubus_bready;
     
-    (*mark_debug = "true"*)reg   [  2:0] I_RD_pre_state;
-    (*mark_debug = "true"*)reg   [  2:0] I_RD_next_state;
+    reg   [  2:0] I_RD_pre_state;
+    reg   [  2:0] I_RD_next_state;
     wire  [  2:0] I_RD_DataReady;
-    reg  [ 31:0] I_RD_Addr;
-    reg  [127:0] AXI_I_RData;
+    reg  [ 31:0]  I_RD_Addr;
+    reg  [127:0]  AXI_I_RData;
 
-    (*mark_debug = "true"*)reg   [  2:0] D_RD_pre_state;
-    (*mark_debug = "true"*)reg   [  2:0] D_RD_next_state;
-    wire  [ 2:0]   D_RD_DataReady;
+    reg   [  2:0] D_RD_pre_state;
+    reg   [  2:0] D_RD_next_state;
+    wire  [ 2:0]  D_RD_DataReady;
     reg  [ 31:0]  D_RD_Addr;
     reg  [ 127:0] AXI_D_RData;
 
-    (*mark_debug = "true"*)reg   [2:0]  D_WR_pre_state;
-    (*mark_debug = "true"*)reg   [2:0]  D_WR_next_state;
+    reg   [2:0]  D_WR_pre_state;
+    reg   [2:0]  D_WR_next_state;
     reg  [31:0]  D_WR_Addr;
     reg  [127:0] AXI_D_WData;
 
-    reg   [1:0] U_RD_pre_state;
-    reg   [1:0] U_RD_next_state;
+    reg   [1:0]  U_RD_pre_state;
+    reg   [1:0]  U_RD_next_state;
     reg  [31:0]  U_RD_Addr;
+    reg   [2:0]  U_RD_load_size;
     reg  [31:0]  AXI_U_RData;
 
     reg   [2:0] U_WR_pre_state;
@@ -1896,11 +1897,13 @@ module AXI_Interface(
     //U$ RD
     always @(posedge clk) begin
         if (~resetn) begin
-            U_RD_Addr <= 0;
+            U_RD_Addr      <= 0;
+            U_RD_load_size <= 0;
         end 
         else begin  
             if (udcache_rd_req == 1'b1 && U_RD_pre_state == `U_RD_EMPTY) begin
-                U_RD_Addr <= udcache_rd_addr;
+                U_RD_Addr      <= udcache_rd_addr;
+                U_RD_load_size <= udcache_load_size;
             end
         end 
     end
@@ -1973,7 +1976,7 @@ module AXI_Interface(
 /********************* ubus ******************/
     assign ubus_arid     = 4'b0011;
     assign ubus_arlen    = 4'b0000; 
-    assign ubus_arsize   = 3'b010; 
+    assign ubus_arsize   = U_RD_load_size; //Attention: 必须严格指定arsize
     assign ubus_arburst  = 2'b01;
     assign ubus_arlock   = 0;
     assign ubus_arcache  = 0;

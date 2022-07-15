@@ -25,6 +25,7 @@ module DCache #(
     input [DATA_WIDTH-1:0]       data_wdata,
     input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
+    input  [2:0]                 load_size,
     output                       busy,
 
     //与AXI总线接口的交互接口
@@ -41,6 +42,7 @@ module DCache #(
 
     output                       udcache_rd_req,
     output [31:0]                udcache_rd_addr,
+    output [ 2:0]                udcache_load_size,
     input                        udcache_rd_rdy,
     input                        udcache_ret_valid,
     input                        udcache_wr_valid,
@@ -96,6 +98,7 @@ reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
 reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
 reg [WSTRB_WIDTH-1:0]  reqbuffer_data_wstrb;
+reg [2:0]              reqbuffer_load_size;
 reg                    reqbuffer_data_isUncache;
 /****************define req_buffer***************/
 
@@ -198,12 +201,13 @@ generate //TODO:考虑多路组相连情况
 endgenerate
 
 //uncache AXI
-assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD) & (fifo_state == FIFO_IDLE) & FIFO_empty;
-assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_strb = FIFO_wr_wstrb;
-assign udcache_wr_req  = (fifo_state == FIFO_WAIT);
-assign udcache_wr_addr = FIFO_wr_addr;
-assign udcache_wr_data = FIFO_wr_data;
+assign udcache_rd_req    = (uncache_state == UNCACHE_LOAD) & (fifo_state == FIFO_IDLE) & FIFO_empty;
+assign udcache_rd_addr   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
+assign udcache_load_size = reqbuffer_load_size;
+assign udcache_wr_strb   = FIFO_wr_wstrb;
+assign udcache_wr_req    = (fifo_state == FIFO_WAIT);
+assign udcache_wr_addr   = FIFO_wr_addr;
+assign udcache_wr_data   = FIFO_wr_data;
 
 generate
     genvar t;
@@ -286,6 +290,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= data_offset;
         reqbuffer_data_wdata     <= data_wdata ;
         reqbuffer_data_wstrb     <= data_wstrb ; //字节写使能wstrb
+        reqbuffer_load_size      <= load_size  ; //load_size
         reqbuffer_data_isUncache <= isUncache  ;
     end
 end
