@@ -280,6 +280,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= 0;
         reqbuffer_data_wdata     <= 0;
         reqbuffer_data_wstrb     <= 0;
+        reqbuffer_load_size      <= 0;
         reqbuffer_data_isUncache <= 0;
     end
     else if(reqbuffer_en) begin

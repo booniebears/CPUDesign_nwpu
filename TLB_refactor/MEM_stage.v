@@ -6,7 +6,6 @@ module mem_stage(
     //allowin 
     input          ws_allowin,
     output         ms_allowin,
-    input   [31:0] CP0_data,
     //from m1s
     input          m1s_to_ms_valid,
     input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
@@ -30,6 +29,7 @@ wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 wire        ms_ex;
 wire        ms_inst_mfc0;
+wire [31:0] CP0_data;
 wire        ms_store_flow;
 
 wire [11:0] ms_mem_inst;

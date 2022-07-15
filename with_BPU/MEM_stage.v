@@ -6,7 +6,6 @@ module mem_stage(
     //allowin 
     input          ws_allowin,
     output         ms_allowin,
-    input   [31:0] CP0_data,
     input          ms_inst_mfc0,
     //from m1s
     input          m1s_to_ms_valid,

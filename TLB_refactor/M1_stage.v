@@ -70,6 +70,7 @@ module m1_stage(
     output [ 3:0]   data_offset,
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
+    output [ 2:0]   load_size,
     input           dcache_busy,
     input           store_record,
     input           DTLB_found,
@@ -287,6 +288,9 @@ assign data_offset = m1s_alu_result[3:0];
 assign data_wstrb  = m1s_ex | m1s_inst_eret ? 4'b0 :
                      m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata  = sram_wdata;
+assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: arsize = 3'b000
+                     (m1s_mem_inst[4] | m1s_mem_inst[5]) ? 3'b001 : //lh,lhu: arsize = 3'b001
+                                                           3'b010; //其余: arsize = 3'b010
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/

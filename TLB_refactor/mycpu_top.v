@@ -46,7 +46,6 @@ module mycpu_top(
     output [ 4:0]   debug_wb_rf_wnum,
     output [31:0]   debug_wb_rf_wdata
 );
-wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
@@ -140,6 +139,7 @@ wire         dcache_wr_valid;
 //AXI和Uncache(DCache)的交互信号
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
+wire  [ 2:0] udcache_load_size;
 wire         udcache_rd_rdy; 
 wire         udcache_ret_valid; //传输完成后ret_valid置1
 wire  [31:0] udcache_ret_data; //一次一个字
@@ -167,6 +167,7 @@ wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
 wire  [31:0] data_rdata;
+wire  [ 2:0] load_size;
 wire         isUncache;
 wire         dcache_busy;
 wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
@@ -249,33 +250,34 @@ AXI_Interface U_AXI_Interface(
     .bready  (bready   ),
     //TODO:这里需要Cache的接线,注意信号引用
     //Attention:发请求在IF和EXE阶段处理
-    .icache_rd_req    (icache_rd_req    ),
-    .icache_rd_addr   (icache_rd_addr   ),
-    .icache_rd_rdy    (icache_rd_rdy    ),
-    .icache_ret_valid (icache_ret_valid ),
-    .icache_ret_data  (icache_ret_data  ),
-
-    .dcache_rd_req    (dcache_rd_req    ),
-    .dcache_rd_addr   (dcache_rd_addr   ),
-    .dcache_rd_rdy    (dcache_rd_rdy    ),
-    .dcache_ret_valid (dcache_ret_valid ),
-    .dcache_ret_data  (dcache_ret_data  ),
-    .dcache_wr_req    (dcache_wr_req    ),
-    .dcache_wr_addr   (dcache_wr_addr   ),
-    .dcache_wr_data   (dcache_wr_data   ),
-    .dcache_wr_rdy    (dcache_wr_rdy    ),
-    .dcache_wr_valid  (dcache_wr_valid  ),
-    .udcache_rd_req   (udcache_rd_req   ),
-    .udcache_rd_addr  (udcache_rd_addr  ),
-    .udcache_rd_rdy   (udcache_rd_rdy   ),
-    .udcache_ret_valid(udcache_ret_valid),
-    .udcache_ret_data (udcache_ret_data ),
-    .udcache_wr_req   (udcache_wr_req   ),
-    .udcache_wr_addr  (udcache_wr_addr  ),
-    .udcache_wr_strb  (udcache_wr_strb  ),
-    .udcache_wr_data  (udcache_wr_data  ),
-    .udcache_wr_rdy   (udcache_wr_rdy   ),
-    .udcache_wr_valid (udcache_wr_valid )
+    .icache_rd_req     (icache_rd_req     ),
+    .icache_rd_addr    (icache_rd_addr    ),
+    .icache_rd_rdy     (icache_rd_rdy     ),
+    .icache_ret_valid  (icache_ret_valid  ),
+    .icache_ret_data   (icache_ret_data   ),
+  
+    .dcache_rd_req     (dcache_rd_req     ),
+    .dcache_rd_addr    (dcache_rd_addr    ),
+    .dcache_rd_rdy     (dcache_rd_rdy     ),
+    .dcache_ret_valid  (dcache_ret_valid  ),
+    .dcache_ret_data   (dcache_ret_data   ),
+    .dcache_wr_req     (dcache_wr_req     ),
+    .dcache_wr_addr    (dcache_wr_addr    ),
+    .dcache_wr_data    (dcache_wr_data    ),
+    .dcache_wr_rdy     (dcache_wr_rdy     ),
+    .dcache_wr_valid   (dcache_wr_valid   ),
+    .udcache_rd_req    (udcache_rd_req    ),
+    .udcache_rd_addr   (udcache_rd_addr   ),
+    .udcache_load_size (udcache_load_size ),
+    .udcache_rd_rdy    (udcache_rd_rdy    ),
+    .udcache_ret_valid (udcache_ret_valid ),
+    .udcache_ret_data  (udcache_ret_data  ),
+    .udcache_wr_req    (udcache_wr_req    ),
+    .udcache_wr_addr   (udcache_wr_addr   ),
+    .udcache_wr_strb   (udcache_wr_strb   ),
+    .udcache_wr_data   (udcache_wr_data   ),
+    .udcache_wr_rdy    (udcache_wr_rdy    ),
+    .udcache_wr_valid  (udcache_wr_valid  )
 );
 
 Icache U_Icache(
@@ -307,6 +309,7 @@ DCache U_DCache(
     .data_wdata          (data_wdata        ),
     .data_rdata          (data_rdata        ),
     .busy                (dcache_busy       ),
+    .load_size           (load_size         ),
     .store_record        (store_record      ),
  
     .dcache_rd_req       (dcache_rd_req     ),
@@ -322,6 +325,7 @@ DCache U_DCache(
 
     .udcache_rd_req      (udcache_rd_req    ),
     .udcache_rd_addr     (udcache_rd_addr   ),
+    .udcache_load_size   (udcache_load_size ),
     .udcache_rd_rdy      (udcache_rd_rdy    ),
     .udcache_ret_valid   (udcache_ret_valid ),
     .udcache_ret_data    (udcache_ret_data  ),
@@ -536,7 +540,6 @@ mem_stage mem_stage(
     //allowin   
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
-    .CP0_data        (CP0_data         ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
