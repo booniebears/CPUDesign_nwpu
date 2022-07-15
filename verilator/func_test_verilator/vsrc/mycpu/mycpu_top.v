@@ -149,6 +149,7 @@ wire  [31:0] data_rdata;
 wire  [ 2:0] load_size;
 wire         isUncache;
 wire         dcache_busy;
+wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
 
 /********************TLB-CP0交互信号如下********************/
 wire           tlb_to_cp0_found; //tlb查找是否成功
@@ -282,6 +283,7 @@ DCache U_DCache(
     .data_rdata          (data_rdata        ),
     .load_size           (load_size         ),
     .busy                (dcache_busy       ),
+    .store_record        (store_record      ),
  
     .dcache_rd_req       (dcache_rd_req     ),
     .dcache_rd_addr      (dcache_rd_addr    ),
@@ -478,6 +480,7 @@ m1_stage m1_stage(
     .data_wstrb         (data_wstrb         ),
     .data_wdata         (data_wdata         ),
     .dcache_busy        (dcache_busy        ),
+    .store_record       (store_record       ),
     .isUncache          (isUncache          )
 );
 // MEM stage

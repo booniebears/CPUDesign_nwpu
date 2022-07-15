@@ -19,14 +19,15 @@ module DCache #(
     input                        reset,
     input                        data_valid,
     input                        data_op,
-    input [INDEX_WIDTH-1:0]      data_index,
-    input [TAG_WIDTH-1:0]        data_tag,
-    input [OFFSET_WIDTH-1:0]     data_offset,
-    input [DATA_WIDTH-1:0]       data_wdata,
-    input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
+    input  [INDEX_WIDTH-1:0]     data_index,
+    input  [TAG_WIDTH-1:0]       data_tag,
+    input  [OFFSET_WIDTH-1:0]    data_offset,
+    input  [DATA_WIDTH-1:0]      data_wdata,
+    input  [WSTRB_WIDTH-1:0]     data_wstrb, //字节写使能wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
     input  [2:0]                 load_size,
     output                       busy,
+    output reg                   store_record, //store_record = 1'b1表示当前有未处理完的Cached store
 
     //与AXI总线接口的交互接口
     output                       dcache_rd_req,
@@ -34,7 +35,7 @@ module DCache #(
     input                        dcache_rd_rdy,
     input                        dcache_wr_valid,
     input                        dcache_ret_valid,
-    input [CACHELINE_WIDTH-1:0]  dcache_ret_data,
+    input  [CACHELINE_WIDTH-1:0] dcache_ret_data,
     output                       dcache_wr_req,
     input                        dcache_wr_rdy,
     output [DATA_WIDTH-1:0]      dcache_wr_addr,
@@ -46,7 +47,7 @@ module DCache #(
     input                        udcache_rd_rdy,
     input                        udcache_ret_valid,
     input                        udcache_wr_valid,
-    input [DATA_WIDTH-1:0]       udcache_ret_data,
+    input  [DATA_WIDTH-1:0]      udcache_ret_data,
     output [WSTRB_WIDTH-1:0]     udcache_wr_strb,
     output                       udcache_wr_req,
     input                        udcache_wr_rdy,
@@ -145,8 +146,7 @@ wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
 reg                          plru_en;
 
 wire                     uncache_busy;
-wire                     dcache_busy;
-wire                     write_busy;
+wire                     dcache_busy; 
 
 /****************define FIFO***************/
 wire [FIFO_WIDTH-1:0]  FIFO_din     ;
@@ -166,6 +166,15 @@ generate
         assign dcache_rdata_sel[n] = dcache_rdata[n][reqbuffer_data_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
+always @(posedge clk) begin
+    if(reset)
+        store_record <= 1'b0;
+    else if(data_valid & data_op & ~isUncache)
+        store_record <= 1'b1;
+    else if(write_state == WRITE_START)
+        store_record <= 1'b0;
+end
+
 //TODO:之后改成四路组相连
 assign sel_way      = delayed_hit[0] ? 1'b0 : 1'b1;
 assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[sel_way];
@@ -280,6 +289,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= 0;
         reqbuffer_data_wdata     <= 0;
         reqbuffer_data_wstrb     <= 0;
+        reqbuffer_load_size      <= 0;
         reqbuffer_data_isUncache <= 0;
     end
     else if(reqbuffer_en) begin
