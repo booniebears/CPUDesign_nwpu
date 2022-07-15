@@ -101,8 +101,8 @@ wire [31:0]   sram_wdata;//位数问题！
 wire          debug_sw;
 wire          debug_lw;
 
-assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
-assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
+assign debug_sw = m1s_mem_we & data_valid & isUncache;
+assign debug_lw = m1s_load_op & data_valid & isUncache;
 
 assign {
         sram_wdata      ,  //174:143

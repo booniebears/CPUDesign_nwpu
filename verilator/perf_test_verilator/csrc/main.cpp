@@ -123,7 +123,7 @@ void step(VSocLite *dut_ptr)
 int main(int argc, char **argv)
 {
   VSocLite *dut_ptr = new VSocLite;
-  init_ram("./ceo/quick_sort.coe");
+  init_ram("./ceo/dhrystone.coe");
   char tracefile[] = "./golden_trace.txt";
   FILE *fp = fopen(tracefile, "r");
   if (fp == NULL)
