@@ -26,6 +26,7 @@ module DCache #(
     input [DATA_WIDTH-1:0]       data_wdata,
     input [WSTRB_WIDTH-1:0]      data_wstrb, //字节写使能wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
+    input  [2:0]                 load_size,
     output                       busy,
 
     //与AXI总线接口的交互接口
@@ -42,6 +43,7 @@ module DCache #(
 
     output                       udcache_rd_req,
     output [31:0]                udcache_rd_addr,
+    output [ 2:0]                udcache_load_size,
     input                        udcache_rd_rdy,
     input                        udcache_ret_valid,
     input                        udcache_wr_valid,
@@ -62,23 +64,31 @@ parameter  LOOKUP         = 3'd0,
            REFILL         = 3'd4,
            REFILLDONE     = 3'd5;
 
-//define Uncache FSM 
+//define Uncache RD FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
            UNCACHE_LOAD   = 3'd1,
            UNCACHE_STORE  = 3'd2,
            UNCACHE_RETURN = 3'd3,
            UNCACHE_DONE   = 3'd4;
 
+//define FIFO FSM(FOR Uncache WR)
+parameter  FIFO_IDLE      = 2'd0,
+           FIFO_WAIT      = 2'd1,
+           FIFO_RETURN    = 2'd2,
+           FIFO_TEMP      = 2'd3;
+
 //define Cache Write FSM
 parameter  WRITE_IDLE     = 1'd0,
            WRITE_START    = 1'd1;
 
-reg [2:0] dcache_state;
-reg [2:0] dcache_nextstate;
-reg [2:0] uncache_state;
-reg [2:0] uncache_nextstate;
-reg       write_state;
-reg       write_nextstate;
+reg [2:0]  dcache_state;
+reg [2:0]  dcache_nextstate;
+reg [2:0]  uncache_state;
+reg [2:0]  uncache_nextstate;
+reg        write_state;
+reg        write_nextstate;
+reg [1:0]  FIFO_state;
+reg [1:0]  FIFO_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
@@ -90,6 +100,7 @@ reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
 reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
 reg [WSTRB_WIDTH-1:0]  reqbuffer_data_wstrb;
+reg [2:0]              reqbuffer_load_size;
 reg                    reqbuffer_data_isUncache;
 /****************define req_buffer***************/
 
@@ -197,23 +208,14 @@ generate //TODO:考虑多路组相连情况
     end
 endgenerate
 
-//uncache AXI
-//加上限制:FIFO empty 且udcache_wr_rdy时(表明已经缓冲区写完的时候) 可以发load请求
-reg FIFO_done;
-always @(posedge clk) begin
-    if(reset)
-        FIFO_done <= 1'b0;
-    else if(FIFO_empty & udcache_wr_rdy)
-        FIFO_done <= 1'b1;
-    else
-        FIFO_done <= 1'b0;
-end
-assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD & FIFO_done); 
+assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD) & (FIFO_state == FIFO_IDLE) & FIFO_empty; 
 assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
 assign udcache_wr_strb = FIFO_wr_strb;
-assign udcache_wr_req  = (FIFO_empty | FIFO_rd_rst_busy) ? 1'b0 : 1'b1; //TODO:存疑??
+// assign udcache_wr_req  = (FIFO_empty | FIFO_rd_rst_busy) ? 1'b0 : 1'b1; //TODO:存疑??
+assign udcache_wr_req  = (FIFO_state == FIFO_TEMP);
 assign udcache_wr_addr = FIFO_wr_addr;
 assign udcache_wr_data = FIFO_wr_data;
+assign udcache_load_size = reqbuffer_load_size;
 
 generate
     genvar t;
@@ -248,7 +250,6 @@ always @(posedge clk) begin
         delayed_hit       <= hit;
     end
 end
-
 
 always @(posedge clk) begin
     if(reset)
@@ -286,6 +287,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= 0;
         reqbuffer_data_wdata     <= 0;
         reqbuffer_data_wstrb     <= 0;
+        reqbuffer_load_size      <= 0;
         reqbuffer_data_isUncache <= 0;
     end
     else if(reqbuffer_en) begin
@@ -296,6 +298,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= data_offset;
         reqbuffer_data_wdata     <= data_wdata ;
         reqbuffer_data_wstrb     <= data_wstrb ; //字节写使能wstrb
+        reqbuffer_load_size      <= load_size  ; 
         reqbuffer_data_isUncache <= isUncache  ;
     end
 end
@@ -434,40 +437,7 @@ generate
     end
 endgenerate
 
-always @(posedge clk) begin
-    if(reset)
-        FIFO_en <= 1'b0;
-    else if(data_valid)
-        FIFO_en <= 1'b1;
-    else if(~data_valid & ~FIFO_full)
-        FIFO_en <= 1'b0;
-end
 
-assign FIFO_din   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset,
-                     reqbuffer_data_wdata,reqbuffer_data_wstrb}; //addr + wdata + wstrb
-assign FIFO_rd_en = ~FIFO_rd_rst_busy & ~FIFO_empty & udcache_wr_rdy;
-assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_full
-                    & (FIFO_en & reqbuffer_data_isUncache & reqbuffer_data_op);
-
-
-FIFO #(
-    .LATENCY    (0),
-    .FIFO_WIDTH (FIFO_WIDTH) //addr 32bit + data 32bit + wstrb 4bit
-)
-U_FIFO (
-    .clk              (clk              ),
-    .rst              (reset            ),
-    .rd_en            (FIFO_rd_en       ),
-    .wr_en            (FIFO_wr_en       ),
-    .rd_rst_busy      (FIFO_rd_rst_busy ),
-    .wr_rst_busy      (FIFO_wr_rst_busy ),
-    .din              (FIFO_din         ),
-    .empty            (FIFO_empty       ),
-    .full             (FIFO_full        ),
-    .data_valid       (FIFO_data_valid  ),
-    .wr_ack           (FIFO_wr_ack      ),
-    .dout             ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_strb})
-);
 
 always @(posedge clk) begin
     if(reset)
@@ -500,7 +470,7 @@ always @(*) begin //uncache
                 uncache_nextstate = UNCACHE_LOOKUP;
         
         UNCACHE_LOAD:
-            if(udcache_rd_rdy & FIFO_done) 
+            if(udcache_rd_rdy & (FIFO_state == FIFO_IDLE) & FIFO_empty) 
                 uncache_nextstate = UNCACHE_RETURN;
             else
                 uncache_nextstate = UNCACHE_LOAD;
@@ -577,4 +547,74 @@ always @(*) begin //Cache 不处理Uncache和store类指令
         default: dcache_nextstate = LOOKUP;
     endcase
 end
+
+always @(posedge clk) begin
+    if(reset)
+        FIFO_state <= FIFO_IDLE;
+    else
+        FIFO_state <= FIFO_nextstate;
+end
+
+always @(*) begin
+    case (FIFO_state)
+        FIFO_IDLE: 
+            if(~FIFO_empty)
+                FIFO_nextstate = FIFO_WAIT;
+            else
+                FIFO_nextstate = FIFO_IDLE;
+        
+        FIFO_WAIT:
+            if(udcache_wr_rdy)
+                FIFO_nextstate = FIFO_TEMP;
+            else
+                FIFO_nextstate = FIFO_WAIT;
+        
+        FIFO_TEMP:
+            FIFO_nextstate = FIFO_RETURN;
+
+        FIFO_RETURN:
+            if(udcache_wr_valid)
+                FIFO_nextstate = FIFO_IDLE;
+            else
+                FIFO_nextstate = FIFO_RETURN;
+
+        default: FIFO_nextstate = FIFO_IDLE;
+    endcase
+end
+
+
+always @(posedge clk) begin
+    if(reset)
+        FIFO_en <= 1'b0;
+    else if(data_valid)
+        FIFO_en <= 1'b1;
+    else if(~data_valid & ~FIFO_full)
+        FIFO_en <= 1'b0;
+end
+
+assign FIFO_din   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset,
+                     reqbuffer_data_wdata,reqbuffer_data_wstrb}; //addr + wdata + wstrb
+// assign FIFO_rd_en = ~FIFO_rd_rst_busy & ~FIFO_empty & udcache_wr_rdy;
+assign FIFO_rd_en = (FIFO_state == FIFO_TEMP) & udcache_wr_rdy;
+assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_full
+                    & (FIFO_en & reqbuffer_data_isUncache & reqbuffer_data_op);
+
+FIFO #(
+    .LATENCY    (0),
+    .FIFO_WIDTH (FIFO_WIDTH) //addr 32bit + data 32bit + wstrb 4bit
+)
+U_FIFO (
+    .clk              (clk              ),
+    .rst              (reset            ),
+    .rd_en            (FIFO_rd_en       ),
+    .wr_en            (FIFO_wr_en       ),
+    .rd_rst_busy      (FIFO_rd_rst_busy ),
+    .wr_rst_busy      (FIFO_wr_rst_busy ),
+    .din              (FIFO_din         ),
+    .empty            (FIFO_empty       ),
+    .full             (FIFO_full        ),
+    .data_valid       (FIFO_data_valid  ),
+    .wr_ack           (FIFO_wr_ack      ),
+    .dout             ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_strb})
+);
 endmodule //DCache
