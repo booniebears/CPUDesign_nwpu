@@ -16,6 +16,7 @@ module alu(
     input         m1s_ex
 );
 
+
 wire op_add;   //加法操作
 wire op_sub;   //减法操作
 wire op_slt;   //有符号比较，小于置位
