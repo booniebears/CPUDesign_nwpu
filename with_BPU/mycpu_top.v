@@ -46,7 +46,6 @@ module mycpu_top(
     output [ 4:0]   debug_wb_rf_wnum,
     output [31:0]   debug_wb_rf_wdata
 );
-wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
@@ -482,15 +481,12 @@ m1_stage m1_stage(
     .isUncache          (isUncache          )
 );
 // MEM stage
-wire ms_inst_mfc0;
 mem_stage mem_stage(
     .clk             (aclk             ),
     .reset           (reset            ),
     //allowin   
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
-    .CP0_data        (CP0_data         ),
-    .ms_inst_mfc0    (ms_inst_mfc0     ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),

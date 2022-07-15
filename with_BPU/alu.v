@@ -298,7 +298,7 @@ always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没�
         HI <= 32'b0;
         LO <= 32'b0;
     end
-    else if(!m1s_ex) begin
+    else if(!es_ex && !m1s_ex) begin
         if(op_div) begin
             HI <= div_result[31:0];//商写LO,余数写HI
             LO <= div_result[63:32];

@@ -14,7 +14,6 @@ module m1_stage(
     output          m1s_to_ms_valid,
     output [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //from data-sram
-    // input  [                 31:0] data_rdata,//TODO:data_rdata换成从DCache读回来的数据rdata
     output [ 4:0]   M1s_dest, // MEM阶段写RF地址 通过旁路送到ID阶段
     output          m1s_load_op,     // M1阶段是否是load指令，通过旁路送到ID阶段
     output [31:0]   M1s_result, //MEM阶段 ms_final_result  

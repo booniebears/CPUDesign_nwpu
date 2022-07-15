@@ -962,6 +962,7 @@ module AXI_Interface(
     reg   [  1:0] U_RD_state;
     reg   [  1:0] U_RD_nextstate;
     reg   [ 31:0] U_RD_Addr;
+    reg   [  3:0] U_RD_load_size;
     reg   [ 31:0] AXI_U_RData;
 
     reg   [  2:0] U_WR_state;
@@ -1009,11 +1010,13 @@ module AXI_Interface(
     //U$ RD
     always @(posedge clk) begin
         if (~resetn) begin
-            U_RD_Addr <= 0;
+            U_RD_Addr      <= 0;
+            U_RD_load_size <= 0;
         end 
         else begin  
             if (udcache_rd_req == 1'b1 && U_RD_state == `UD_RD_IDLE) begin
-                U_RD_Addr <= udcache_rd_addr;
+                U_RD_Addr      <= udcache_rd_addr;
+                U_RD_load_size <= udcache_load_size;
             end
         end 
     end
@@ -1084,7 +1087,7 @@ module AXI_Interface(
 /********************* ubus ******************/
     assign udata_arid     = 4'b0011;
     assign udata_arlen    = 4'b0000; 
-    assign udata_arsize   = udcache_load_size;  //Attention: 必须严格指定arsize
+    assign udata_arsize   = U_RD_load_size;  //Attention: 必须严格指定arsize
     assign udata_arburst  = 2'b01;
     assign udata_arlock   = 0;
     assign udata_arcache  = 0;

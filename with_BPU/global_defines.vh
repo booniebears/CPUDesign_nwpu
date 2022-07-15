@@ -1,6 +1,6 @@
 `ifndef MYCPU_H
     `define MYCPU_H
-    `define BR_BUS_WD       68
+    `define BR_BUS_WD       69
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 39
     `define BPU_TO_PS_BUS_WD 33
@@ -9,12 +9,12 @@
     //DS_TO_ES_BUS_WD原来是136,lab6修改为137(src2_is_imm变为2位宽),修改为145(加入mf_mt和mult_div)
     //lab7再次修改为157(添加mem_control区别不同的存取数指令),lab8修改为174(加入mfc0,mtc0,eret指令
     //和mfc0_rd,sel段;加入ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
-    `define DS_TO_ES_BUS_WD 270
+    `define DS_TO_ES_BUS_WD 274
     //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
-    `define BRESULT_WD 68
-    `define M1_TO_MS_BUS_WD 161
+    `define BRESULT_WD 69
+    `define M1_TO_MS_BUS_WD 149
     //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
     //lab9修改为120(加入data_sram_addr)
     `define MS_TO_WS_BUS_WD 83
@@ -38,21 +38,6 @@
     `define EBase_RegAddr    8'h79
     `define Config_RegAddr   8'h80
     `define Config1_RegAddr  8'h81
-    //ID阶段编码
-    `define BRANCH_TYPE_NONE    4'b0000
-    `define BRANCH_TYPE_BEQ     4'b0011
-    `define BRANCH_TYPE_BNE     4'b0010
-    `define BRANCH_TYPE_JAL     4'b0110
-    `define BRANCH_TYPE_JR      4'b0101
-    `define BRANCH_TYPE_J       4'b0100
-    `define BRANCH_TYPE_JALR    4'b0111
-    `define BRANCH_TYPE_BGEZ    4'b1001
-    `define BRANCH_TYPE_BGTZ    4'b1010
-    `define BRANCH_TYPE_BLEZ    4'b1011
-    `define BRANCH_TYPE_BLTZ    4'b1100
-    `define BRANCH_TYPE_BGEZAL  4'b1101
-    `define BRANCH_TYPE_BLTZAL  4'b1110
-    `define BRANCH_TYPE_ERROR   4'b1111
     //ExcCode编码及其对应例外类型 Attention:尚未映射，有误!
     `define Int                 5'b00000 //中断
     `define ITLB_EX_Refill      5'b00010 //TLB例外(取指或读数据)
