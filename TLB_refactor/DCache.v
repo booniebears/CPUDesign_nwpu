@@ -6,6 +6,7 @@ module DCache #(
     parameter  WORDS_PER_LINE  = 4, //一行4字
     parameter  WAY_SIZE        = 4*1024*8, //一路Cache 容量大小
     parameter  BLOCK_NUMS      = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //一路Cache块数=256
+    localparam VICTIM_BLOCKS   = 8,
     localparam BYTES_PER_WORD  = 4,
     localparam INDEX_WIDTH     = $clog2(BLOCK_NUMS), //8
     localparam OFFSET_WIDTH    = $clog2(WORDS_PER_LINE*BYTES_PER_WORD),//4
@@ -159,6 +160,26 @@ wire [DATA_WIDTH-1:0]  FIFO_wr_data ;
 wire [WSTRB_WIDTH-1:0] FIFO_wr_wstrb;
 /****************define FIFO***************/
 
+/****************define Victim Cache***************/
+reg  [$clog2(VICTIM_BLOCKS)-1:0] victim_ptr;
+wire                             update_ptr; //更新Victim Cache ptr
+reg  [VICTIM_BLOCKS-1:0]         lut_we;
+reg  [WORDS_PER_LINE-1:0]        ram_we[VICTIM_BLOCKS-1:0];
+wire [INDEX_WIDTH-1:0]           victim_windex;
+wire [TAG_WIDTH-1:0]             victim_wtag;
+wire [DATA_WIDTH-1:0]            victim_wdata[WORDS_PER_LINE-1:0];
+
+wire                             victim_read_en;
+wire [DATA_WIDTH-1:0]            victim_rdata[VICTIM_BLOCKS-1:0][WORDS_PER_LINE-1:0];
+wire [INDEX_WIDTH-1:0]           victim_rindex[VICTIM_BLOCKS-1:0];
+wire [TAG_WIDTH-1:0]             victim_rtag[VICTIM_BLOCKS-1:0];
+wire                             victim_rvalid[VICTIM_BLOCKS-1:0];
+
+wire [VICTIM_BLOCKS-1:0]         victim_hit;
+wire                             victim_cache_hit;
+wire                             index_miss; //表示Victim Cache中不存在对应的index
+/****************define Victim Cache***************/
+
 //与CPU流水线的交互接口
 generate
     genvar n;
@@ -166,7 +187,7 @@ generate
         assign dcache_rdata_sel[n] = dcache_rdata[n][reqbuffer_data_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
-always @(posedge clk) begin
+always @(posedge clk) begin //单个sw miss加速
     if(reset)
         store_record <= 1'b0;
     else if(data_valid & data_op & ~isUncache)
@@ -359,9 +380,17 @@ assign data_read_en = (dcache_state == REFILLDONE) ? 1'b1 : data_valid;
 assign read_index   = (dcache_state == REFILL || dcache_state == REFILLDONE) 
                     ?  reqbuffer_data_index : data_index;
 
+always @(posedge clk) begin
+    if(reset)
+        victim_ptr <= 0;
+    else if(update_ptr) //利用特性:7 + 1 = 0
+        victim_ptr <= victim_ptr + 1;
+end
+
 generate
     genvar i;
     genvar j;
+    //Cache
     for (i = 0;i < ASSOC_NUM ;i = i + 1) begin
         simple_port_lutram #(
             .SIZE(BLOCK_NUMS),
@@ -378,7 +407,7 @@ generate
             .douta(dirty_rbit[i])            
         );
 
-       simple_port_lutram  #(
+       simple_port_lutram #(
             .SIZE(BLOCK_NUMS),
             .DATA_WIDTH(TAG_WIDTH + 1)
        ) dcache_ram_tag(
@@ -411,8 +440,47 @@ generate
                 .addrb(read_index),
                 .doutb(dcache_rdata[i][j])
             );
+        end
     end
-end
+    //Victim Cache
+    for(i = 0; i < VICTIM_BLOCKS; i = i + 1) begin
+        simple_port_lutram #(
+            .SIZE(1'b1), //index总共1个
+            .DATA_WIDTH(TAG_WIDTH + INDEX_WIDTH + 1) //tag 20bit + index 8bit + valid 1bit
+        ) victim_ram_info(
+            .clka(clk),
+            .rsta(reset),
+
+            //端口信号
+            .ena(1'b1),
+            .wea(lut_we[i]),
+            .addra(1'b0), //index总共1个
+            .dina({victim_windex,victim_wtag,1'b1}),
+            .douta({victim_rindex[i],victim_rtag[i],victim_rvalid[i]})
+        );
+
+        for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
+            simple_port_ram #(
+                .SIZE(1), //index总共1个
+                .DATA_WIDTH(DATA_WIDTH)
+            ) victim_ram_data(
+                .clk(clk),
+                .rst(reset),
+
+                //写端口
+                .ena(1'b1),
+                .wea(ram_we[i][j]),
+                .addra(0), //index总共1个
+                .dina(victim_wdata[j]),
+
+                //读端口
+                .enb(victim_read_en),
+                .addrb(0), //index总共1个
+                .doutb(victim_rdata[i][j])
+            );  
+        end
+    end
+
 endgenerate
 
 always @(posedge clk) begin
