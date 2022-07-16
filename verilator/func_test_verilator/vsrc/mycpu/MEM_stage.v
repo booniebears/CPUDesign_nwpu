@@ -129,10 +129,29 @@ assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
                   (ms_mem_inst[6]) ? mem_result_lwl :
                   (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
 
-assign ms_final_result = ms_res_from_mem ? mem_data :
-                         ms_inst_mfc0    ? CP0_data :
-                                           ms_alu_result;
-                                         
+
+`ifdef OPEN_VA_PERF
+    reg [31:0] getsoccount; 
+    //lw v0, -8192(t9)
+    assign ms_final_result =((ms_mem_inst[0] == 1) && (ms_alu_result == 32'hbfafe000) && (ms_dest == 5'h02)) ?
+                            getsoccount :
+                            ms_res_from_mem ? mem_data :
+                            ms_inst_mfc0    ? CP0_data :
+                                              ms_alu_result;
+    always @(posedge clk) begin //set values for soc count
+        if(reset)
+            getsoccount <= 0;
+        //lw v0, -8192(t9)
+        else
+            getsoccount <= getsoccount + 1;
+    end
+
+`else
+    assign ms_final_result = ms_res_from_mem ? mem_data:
+                             ms_inst_mfc0    ? CP0_data :
+                                               ms_alu_result;
+`endif
+
 //lab4添加
 assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign MEM_result = ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段

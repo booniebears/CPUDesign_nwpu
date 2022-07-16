@@ -418,6 +418,7 @@ exe_stage exe_stage(
     .es_inst_mfc0    (es_inst_mfc0    ),
     .m1s_inst_eret   (m1s_inst_eret   )
 );
+
 // M1 stage
 m1_stage m1_stage(
     .ext_int            (ext_int            ),
@@ -481,6 +482,7 @@ m1_stage m1_stage(
     .data_wdata         (data_wdata         ),
     .dcache_busy        (dcache_busy        ),
     .store_record       (store_record       ),
+    .load_size          (load_size          ),
     .isUncache          (isUncache          )
 );
 // MEM stage
