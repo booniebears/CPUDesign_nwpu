@@ -63,7 +63,9 @@ parameter  LOOKUP         = 3'd0,
            WRITEBACK      = 3'd2,
            MISSCLEAN      = 3'd3,
            REFILL         = 3'd4,
-           REFILLDONE     = 3'd5;
+           REFILLDONE     = 3'd5,
+           HITVICTIM      = 3'd6,
+           EXCHANGEDONE   = 3'd7;
 
 //define Uncache FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
@@ -141,6 +143,7 @@ wire [DATA_WIDTH-1:0]    dcache_rdata_sel[ASSOC_NUM-1:0];
 wire [DATA_WIDTH-1:0]    dcache_write_data;
 reg  [DATA_WIDTH-1:0]    uncache_rdata;
 reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdata一拍延时
+reg                      delayed_dirty_rbit[ASSOC_NUM-1:0]; //dirty_rbit一拍延时
 
 wire [$clog2(ASSOC_NUM)-1:0] sel_way;   
 wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
@@ -162,24 +165,31 @@ wire [WSTRB_WIDTH-1:0] FIFO_wr_wstrb;
 
 /****************define Victim Cache***************/
 reg  [$clog2(VICTIM_BLOCKS)-1:0] victim_ptr;
-wire                             update_ptr; //更新Victim Cache ptr
 reg  [VICTIM_BLOCKS-1:0]         lut_we;
 reg  [WORDS_PER_LINE-1:0]        ram_we[VICTIM_BLOCKS-1:0];
 wire [INDEX_WIDTH-1:0]           victim_windex;
 wire [TAG_WIDTH-1:0]             victim_wtag;
+wire                             victim_wdirty;
 wire [DATA_WIDTH-1:0]            victim_wdata[WORDS_PER_LINE-1:0];
 
 wire                             victim_read_en;
 wire [DATA_WIDTH-1:0]            victim_rdata[VICTIM_BLOCKS-1:0][WORDS_PER_LINE-1:0];
 wire [INDEX_WIDTH-1:0]           victim_rindex[VICTIM_BLOCKS-1:0];
 wire [TAG_WIDTH-1:0]             victim_rtag[VICTIM_BLOCKS-1:0];
+wire                             victim_rdirty[VICTIM_BLOCKS-1:0];
 wire                             victim_rvalid[VICTIM_BLOCKS-1:0];
 
-wire [VICTIM_BLOCKS-1:0]         victim_hit;
-wire                             victim_cache_hit;
+wire [VICTIM_BLOCKS-1:0]         victim_hit_num; //命中了victim Cache的第几路(one-hot)
+wire                             victim_hit; //victim_hit和cache_hit逻辑类似
+reg  [VICTIM_BLOCKS-1:0]         delayed_victim_hit_num;
+reg                              delayed_victim_hit;
+wire                             victim_hit_wr;
 wire                             index_miss; //表示Victim Cache中不存在对应的index
+reg                              delayed_index_miss;
 /****************define Victim Cache***************/
 
+genvar i;
+genvar j;
 //与CPU流水线的交互接口
 generate
     genvar n;
@@ -243,10 +253,14 @@ generate
     genvar t;
     for (t = 0; t < ASSOC_NUM; t = t + 1) begin
         always @(posedge clk) begin //用于发送AXI write地址
-            if(reset)
-                delayed_tag_rdata[t] <= 0;
-            else if(delayed_hit_wr)
-                delayed_tag_rdata[t] <= tag_rdata[t];
+            if(reset) begin
+                delayed_tag_rdata[t]  <= 0;
+                delayed_dirty_rbit[t] <= 1'b0;
+            end
+            else if(delayed_hit_wr) begin
+                delayed_tag_rdata[t]  <= tag_rdata[t];
+                delayed_dirty_rbit[t] <= dirty_rbit[t];
+            end
         end
     end
 endgenerate
@@ -261,7 +275,7 @@ generate
     end
 endgenerate
 assign cache_hit  = |hit;
-assign delayed_hit_wr = (dcache_state == REFILLDONE) ? 1'b1 : data_valid;
+assign delayed_hit_wr = (dcache_state == REFILLDONE | dcache_state == EXCHANGEDONE) ? 1'b1 : data_valid;
 always @(posedge clk) begin
     if(reset) begin
         delayed_cache_hit <= 1'b0;
@@ -272,7 +286,6 @@ always @(posedge clk) begin
         delayed_hit       <= hit;
     end
 end
-
 
 always @(posedge clk) begin
     if(reset)
@@ -329,8 +342,10 @@ end
 //dirty lutram
 always @(*) begin
     dirty_we = 0;
-    if(dcache_state == REFILL & dcache_ret_valid) begin
-        dirty_we[plru[reqbuffer_data_index]]   = 1'b1;
+    if(dcache_state == HITVICTIM)
+        dirty_we[plru[reqbuffer_data_index]] = 1'b1;
+    else if(dcache_state == REFILL & dcache_ret_valid) begin
+        dirty_we[plru[reqbuffer_data_index]] = 1'b1;
     end
     else if(write_state == WRITE_START)
         dirty_we    = delayed_hit;
@@ -338,58 +353,135 @@ always @(*) begin
         dirty_we    = 0;
 end
 assign dirty_index = (write_state == WRITE_START) ? writebuffer_data_index : reqbuffer_data_index;
-assign dirty_wbit  = (dcache_state == REFILL) ? 1'b0 : 1'b1;
+assign dirty_wbit  = (dcache_state == HITVICTIM) ? victim_rdirty[delayed_victim_hit_num] :
+                     (dcache_state == REFILL) ? 1'b0 : 1'b1;
 
 //tagv lutram
 always @(*) begin
     tagv_we = 0;
-    if(dcache_state == REFILL & dcache_ret_valid)
+    if(dcache_state == HITVICTIM)
+        tagv_we[plru[reqbuffer_data_index]] = 1'b1;
+    else if(dcache_state == REFILL & dcache_ret_valid)
         tagv_we[plru[reqbuffer_data_index]] = 1'b1; 
     else
         tagv_we = 0;
 end
 
-assign tagv_index = (dcache_state == REFILL || dcache_state == REFILLDONE) 
-                    ? reqbuffer_data_index : data_index;
-assign tagv_wdata = {reqbuffer_data_tag,1'b1};
+assign tagv_index = (dcache_state == REFILL | dcache_state == REFILLDONE | dcache_state == HITVICTIM|
+                     dcache_state == EXCHANGEDONE) ? reqbuffer_data_index : data_index;
+assign tagv_wdata = (dcache_state == HITVICTIM) ? victim_rtag[delayed_victim_hit_num] : 
+                                                 {reqbuffer_data_tag,1'b1};
 
 //data ram
-always @(*) begin //TODO:之后修改为四路组相连
+always @(*) begin
     data_we[0] = 0; //触发该always块逻辑后,先清空为0
     data_we[1] = 0; //触发该always块逻辑后,先清空为0
-    if(dcache_state == REFILL & dcache_ret_valid)
+    if(dcache_state == HITVICTIM)
+        data_we[plru[reqbuffer_data_index]] = {WORDS_PER_LINE{1'b1}}; 
+    else if(dcache_state == REFILL & dcache_ret_valid)
         data_we[plru[reqbuffer_data_index]] = {WORDS_PER_LINE{1'b1}};
     else if(write_state == WRITE_START) begin
         data_we[sel_way][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
     end
     else begin
-        data_we[0] = {WORDS_PER_LINE{1'b0}};
-        data_we[1] = {WORDS_PER_LINE{1'b0}};
+        data_we[0] = 0;
+        data_we[1] = 0;
     end
 end
-assign write_index = (dcache_state == REFILL) ? reqbuffer_data_index : writebuffer_data_index;
+assign write_index = (dcache_state == REFILL | dcache_state == HITVICTIM) ? 
+                      reqbuffer_data_index : writebuffer_data_index;
 generate
     genvar m;
     for (m = 0; m < WORDS_PER_LINE; m = m + 1) begin
-        assign dcache_wdata[m] = (dcache_state == REFILL) ? dcache_ret_data[32*(m+1)-1:32*(m)] :
+        assign dcache_wdata[m] = (dcache_state == HITVICTIM) ? victim_rdata[delayed_victim_hit_num][m]:
+                                 (dcache_state == REFILL) ? dcache_ret_data[32*(m+1)-1:32*(m)]:
                                                             writebuffer_data_wdata;
     end
 endgenerate
 
-assign data_read_en = (dcache_state == REFILLDONE) ? 1'b1 : data_valid;
-assign read_index   = (dcache_state == REFILL || dcache_state == REFILLDONE) 
-                    ?  reqbuffer_data_index : data_index;
+assign data_read_en = (dcache_state == REFILLDONE | dcache_state == EXCHANGEDONE) ? 1'b1 : data_valid;
+assign read_index   = (dcache_state == REFILL | dcache_state == REFILLDONE | 
+                       dcache_state == HITVICTIM | dcache_state == EXCHANGEDONE) ? 
+                       reqbuffer_data_index : data_index; //TODO:也许逻辑可简化? REFILL,HITVICTIM可去?
+
+generate
+    for(k = 0; k < VICTIM_BLOCKS; k = k + 1) begin
+        assign victim_hit_num[k] = 
+            data_valid ? (victim_rvalid[k] & (victim_rindex[k] == data_index) & 
+                         (victim_rtag[k] == data_tag) & ~isUncache) :
+                         (victim_rvalid[k] & (victim_rindex[k] == reqbuffer_data_index) &
+                         (victim_rtag[k] == reqbuffer_data_tag) & ~reqbuffer_data_isUncache);
+    end
+endgenerate
+assign index_miss    = ((data_index != victim_rindex[0]) | ~victim_rvalid[0]) &
+                       ((data_index != victim_rindex[1]) | ~victim_rvalid[1]) &
+                       ((data_index != victim_rindex[2]) | ~victim_rvalid[2]) &
+                       ((data_index != victim_rindex[3]) | ~victim_rvalid[3]) &
+                       ((data_index != victim_rindex[4]) | ~victim_rvalid[4]) &
+                       ((data_index != victim_rindex[5]) | ~victim_rvalid[5]) &
+                       ((data_index != victim_rindex[6]) | ~victim_rvalid[6]) &
+                       ((data_index != victim_rindex[7]) | ~victim_rvalid[7]) & 
+                         valid_rdata[0] & valid_rdata[1]; //Cache valid bit全为1 且Victim Cache无对应index
+
+assign victim_hit    = |victim_hit_num;
+assign victim_hit_wr = data_valid;
+always @(posedge clk) begin
+    if(reset) begin
+        delayed_victim_hit     <= 1'b0;
+        delayed_victim_hit_num <= 0;
+        delayed_index_miss     <= 1'b0;
+    end
+    else if(victim_hit_wr) begin
+        delayed_victim_hit     <= victim_hit;
+        delayed_victim_hit_num <= victim_hit_num;
+        delayed_index_miss     <= index_miss;
+    end
+end
 
 always @(posedge clk) begin
     if(reset)
         victim_ptr <= 0;
-    else if(update_ptr) //利用特性:7 + 1 = 0
+    else if(delayed_index_miss & dcache_state == REFILL & dcache_ret_valid) //利用特性:7 + 1 = 0
         victim_ptr <= victim_ptr + 1;
 end
 
+always @(*) begin
+    lut_we = 0;
+    if(dcache_state == HITVICTIM) //HITVICTIM需要和Cache进行data/tag交换,写使能就是VICTIM命中的那一路
+        lut_we[delayed_victim_hit_num] = 1'b1;
+    else if(delayed_index_miss & dcache_state == REFILL & dcache_ret_valid)
+        lut_we[victim_ptr] = 1'b1;
+    else
+        lut_we = 0;
+end
+assign victim_windex  = reqbuffer_data_index;
+assign victim_wtag    = (dcache_state == HITVICTIM) ? delayed_tag_rdata[plru[reqbuffer_data_index]] :
+                                                      reqbuffer_data_tag;
+assign victim_wdirty  = delayed_dirty_rbit[plru[reqbuffer_data_index]];
+
+integer b;
+always @(*) begin
+    for(b = 0; b < VICTIM_BLOCKS; b = b + 1) begin
+        ram_we[b] = 0;
+    end
+    if(dcache_state == HITVICTIM)
+        ram_we[delayed_victim_hit_num] = {WORDS_PER_LINE{1'b1}};
+    else if(delayed_index_miss & dcache_state == REFILL & dcache_ret_valid)
+        ram_we[victim_ptr] = {WORDS_PER_LINE{1'b1}};
+    else begin
+        for(b = 0; b < VICTIM_BLOCKS; b = b + 1) begin
+            ram_we[b] = 0;
+        end
+    end
+end
+
 generate
-    genvar i;
-    genvar j;
+    for(i = 0; i < WORDS_PER_LINE; i = i + 1) begin
+        assign victim_wdata[i] = dcache_rdata[plru[reqbuffer_data_index]][i];
+    end
+endgenerate
+
+generate
     //Cache
     for (i = 0;i < ASSOC_NUM ;i = i + 1) begin
         simple_port_lutram #(
@@ -446,7 +538,8 @@ generate
     for(i = 0; i < VICTIM_BLOCKS; i = i + 1) begin
         simple_port_lutram #(
             .SIZE(1'b1), //index总共1个
-            .DATA_WIDTH(TAG_WIDTH + INDEX_WIDTH + 1) //tag 20bit + index 8bit + valid 1bit
+            //tag 20bit + index 8bit + dirty 1bit + valid 1bit
+            .DATA_WIDTH(TAG_WIDTH + INDEX_WIDTH + DIRTY_WIDTH + 1) 
         ) victim_ram_info(
             .clka(clk),
             .rsta(reset),
@@ -455,8 +548,8 @@ generate
             .ena(1'b1),
             .wea(lut_we[i]),
             .addra(1'b0), //index总共1个
-            .dina({victim_windex,victim_wtag,1'b1}),
-            .douta({victim_rindex[i],victim_rtag[i],victim_rvalid[i]})
+            .dina({victim_windex,victim_wtag,victim_wdirty,1'b1}),
+            .douta({victim_rindex[i],victim_rtag[i],victim_rdirty[i],victim_rvalid[i]})
         );
 
         for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
@@ -474,7 +567,7 @@ generate
                 .dina(victim_wdata[j]),
 
                 //读端口
-                .enb(victim_read_en),
+                .enb(1'b1), //TODO:读使能先置为1'b1?
                 .addrb(0), //index总共1个
                 .doutb(victim_rdata[i][j])
             );  
@@ -634,10 +727,14 @@ always @(*) begin //Cache 不处理Uncache和store类指令
             end
             else begin
                 if(reqbuffer_data_valid & ~delayed_cache_hit) begin
-                    if(dirty_rbit[plru[reqbuffer_data_index]]) //TODO:考虑多路情况
-                        dcache_nextstate = MISSDIRTY;
-                    else
-                        dcache_nextstate = MISSCLEAN;
+                    if(delayed_victim_hit) //如果遇到Victim Cache命中的情况,共需三拍进行Cache line交换
+                        dcache_nextstate = HITVICTIM;
+                    else begin
+                        if(dirty_rbit[plru[reqbuffer_data_index]])
+                            dcache_nextstate = MISSDIRTY;
+                        else
+                            dcache_nextstate = MISSCLEAN;
+                    end
                 end
                 else begin
                     dcache_nextstate = LOOKUP;
@@ -669,6 +766,12 @@ always @(*) begin //Cache 不处理Uncache和store类指令
                 dcache_nextstate = REFILL;
         
         REFILLDONE:
+            dcache_nextstate = LOOKUP;
+        
+        HITVICTIM:
+            dcache_nextstate = EXCHANGEDONE;
+        
+        EXCHANGEDONE:
             dcache_nextstate = LOOKUP;
 
         default: dcache_nextstate = LOOKUP;
