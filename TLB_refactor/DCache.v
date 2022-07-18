@@ -180,6 +180,7 @@ reg                              victim_rdirty[VICTIM_BLOCKS-1:0];
 reg                              victim_rvalid[VICTIM_BLOCKS-1:0];
 
 wire [VICTIM_BLOCKS-1:0]         victim_hit_num; //命中了victim Cache的第几路(one-hot)
+reg  [$clog2(VICTIM_BLOCKS)-1:0] victim_hit_num_enc; //对victim_hit_num 作8-3 encode
 wire                             victim_hit; //victim_hit和cache_hit逻辑类似
 reg  [VICTIM_BLOCKS-1:0]         delayed_victim_hit_num;
 reg                              delayed_victim_hit;
@@ -425,6 +426,20 @@ assign index_miss    = ((data_index != victim_rindex[0]) | ~victim_rvalid[0]) &
 
 assign victim_hit    = |victim_hit_num;
 assign victim_hit_wr = data_valid;
+always @(*) begin
+    case (victim_hit_num)
+        8'b0000_0001: victim_hit_num_enc = 3'd0;
+        8'b0000_0010: victim_hit_num_enc = 3'd1;
+        8'b0000_0100: victim_hit_num_enc = 3'd2;
+        8'b0000_1000: victim_hit_num_enc = 3'd3;
+        8'b0001_0000: victim_hit_num_enc = 3'd4;
+        8'b0010_0000: victim_hit_num_enc = 3'd5;
+        8'b0100_0000: victim_hit_num_enc = 3'd6;
+        8'b1000_0000: victim_hit_num_enc = 3'd7;
+        default: victim_hit_num_enc = 3'd0;
+    endcase
+end
+
 always @(posedge clk) begin
     if(reset) begin
         delayed_victim_hit     <= 1'b0;
@@ -433,7 +448,7 @@ always @(posedge clk) begin
     end
     else if(victim_hit_wr) begin
         delayed_victim_hit     <= victim_hit;
-        delayed_victim_hit_num <= victim_hit_num;
+        delayed_victim_hit_num <= victim_hit_num_enc;
         delayed_index_miss     <= index_miss;
     end
 end
