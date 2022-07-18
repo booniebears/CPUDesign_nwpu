@@ -173,11 +173,11 @@ wire                             victim_wdirty;
 wire [DATA_WIDTH-1:0]            victim_wdata[WORDS_PER_LINE-1:0];
 
 wire                             victim_read_en;
-wire [DATA_WIDTH-1:0]            victim_rdata[VICTIM_BLOCKS-1:0][WORDS_PER_LINE-1:0];
-wire [INDEX_WIDTH-1:0]           victim_rindex[VICTIM_BLOCKS-1:0];
-wire [TAG_WIDTH-1:0]             victim_rtag[VICTIM_BLOCKS-1:0];
-wire                             victim_rdirty[VICTIM_BLOCKS-1:0];
-wire                             victim_rvalid[VICTIM_BLOCKS-1:0];
+reg  [DATA_WIDTH-1:0]            victim_rdata[VICTIM_BLOCKS-1:0][WORDS_PER_LINE-1:0];
+reg  [INDEX_WIDTH-1:0]           victim_rindex[VICTIM_BLOCKS-1:0];
+reg  [TAG_WIDTH-1:0]             victim_rtag[VICTIM_BLOCKS-1:0];
+reg                              victim_rdirty[VICTIM_BLOCKS-1:0];
+reg                              victim_rvalid[VICTIM_BLOCKS-1:0];
 
 wire [VICTIM_BLOCKS-1:0]         victim_hit_num; //命中了victim Cache的第几路(one-hot)
 wire                             victim_hit; //victim_hit和cache_hit逻辑类似
@@ -534,46 +534,38 @@ generate
             );
         end
     end
-    //Victim Cache
+endgenerate
+
+generate //LUTRAM FOR Victim Cache
     for(i = 0; i < VICTIM_BLOCKS; i = i + 1) begin
-        simple_port_lutram #(
-            .SIZE(1'b1), //index总共1个
-            //tag 20bit + index 8bit + dirty 1bit + valid 1bit
-            .DATA_WIDTH(TAG_WIDTH + INDEX_WIDTH + DIRTY_WIDTH + 1) 
-        ) victim_ram_info(
-            .clka(clk),
-            .rsta(reset),
-
-            //端口信号
-            .ena(1'b1),
-            .wea(lut_we[i]),
-            .addra(1'b0), //index总共1个
-            .dina({victim_windex,victim_wtag,victim_wdirty,1'b1}),
-            .douta({victim_rindex[i],victim_rtag[i],victim_rdirty[i],victim_rvalid[i]})
-        );
-
-        for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
-            simple_port_ram #(
-                .SIZE(1), //index总共1个
-                .DATA_WIDTH(DATA_WIDTH)
-            ) victim_ram_data(
-                .clk(clk),
-                .rst(reset),
-
-                //写端口
-                .ena(1'b1),
-                .wea(ram_we[i][j]),
-                .addra(0), //index总共1个
-                .dina(victim_wdata[j]),
-
-                //读端口
-                .enb(1'b1), //TODO:读使能先置为1'b1?
-                .addrb(0), //index总共1个
-                .doutb(victim_rdata[i][j])
-            );  
+        always @(posedge clk) begin
+            if(reset) begin
+                victim_rindex[i] <= 0;
+                victim_rtag[i]   <= 0;
+                victim_rdirty[i] <= 0;
+                victim_rvalid[i] <= 0;
+            end
+            else if(lut_we[i]) begin
+                victim_rindex[i] <= victim_windex;
+                victim_rtag[i]   <= victim_wtag;
+                victim_rdirty[i] <= victim_wdirty;
+                victim_rvalid[i] <= 1'b1; 
+            end
         end
     end
+endgenerate
 
+generate //Block RAM for Victim Cache
+    for(i = 0; i < VICTIM_BLOCKS; i = i + 1) begin
+        for (j = 0; j < WORDS_PER_LINE; j = j + 1) begin
+            always @(posedge clk) begin
+                if(reset)
+                    victim_rdata[i][j] <= 0;
+                else if(ram_we[i][j])
+                    victim_rdata[i][j] <= victim_wdata[j];
+            end
+        end
+    end
 endgenerate
 
 always @(posedge clk) begin
