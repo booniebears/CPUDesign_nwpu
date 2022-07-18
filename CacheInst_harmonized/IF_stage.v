@@ -10,9 +10,14 @@ module if_stage(
     input                          ps_to_fs_valid,
     //brbus
     input                          fs_bd, 
+    input [`BRESULT_WD  -1:0]      BResult,
+    //to ps
+    output [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds
     output                         fs_to_ds_valid, 
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus,
+    output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus,
+    input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
     input                          icache_busy,
     input  [31:0]                  inst_rdata
@@ -30,15 +35,17 @@ wire [31:0]                   temp_fs_pc;
 wire [31:0]                   fs_pc;
 wire [31:0]                   fs_inst;
 wire                          fs_inst_valid;
-wire                          fs_bdd;
 
+/******************ps_to_fs_bus Total: 39bits******************/
 assign {
-    fs_inst_valid,
-    fs_bdd,
-    temp_fs_pc,
-    ps_ex,
-    ps_Exctype
+    fs_inst_valid, //38:38
+    temp_fs_pc,    //37:6
+    ps_ex,         //5:5
+    ps_Exctype     //4:0
 } = ps_to_fs_bus_r;
+
+wire [31:0] prefs_pc;
+assign prefs_pc = ps_to_fs_bus[37:6];
 
 assign fs_ready_go    = ~icache_busy;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
@@ -62,6 +69,12 @@ always @(posedge clk) begin
         ps_to_fs_bus_r <= ps_to_fs_bus;
 end
 
+wire [31:0] BPU_target;
+wire BPU_valid;
+wire predict_valid;
+assign predict_valid = BPU_valid & fs_valid & ~br_flush & fs_inst_valid;
+
+/******************fs_to_ds_bus Total: 71bits******************/
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
                        fs_Exctype, //69:65
@@ -70,11 +83,29 @@ assign fs_to_ds_bus = {
                        fs_pc       //31:0
                        };
 
+/******************fs_to_ds_bus Total: 33bits******************/
+assign BPU_to_ps_bus = {
+                        BPU_target  , //32:1
+                        predict_valid //0:0
+                        };
+
 assign fs_ex      = ps_ex;
 assign fs_Exctype = ps_Exctype;
 
-assign fs_inst    = (fs_bdd | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
+assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
 //在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
-assign fs_pc      = fs_bdd ? temp_fs_pc - 4'h8 : temp_fs_pc;
+assign fs_pc      = br_flush ? temp_fs_pc - 8 : temp_fs_pc;
+
+BPU u_BPU(
+    .clk                (clk),
+    .reset              (reset),
+    .fs_pc              (temp_fs_pc),
+    .ds_allowin         (ds_allowin),
+    .BResult            (BResult),
+    //***********output************//
+    .target             (BPU_target),
+    .BPU_valid          (BPU_valid),
+    .BPU_to_ds_bus      (BPU_to_ds_bus)
+);
 
 endmodule

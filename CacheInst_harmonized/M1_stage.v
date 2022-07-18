@@ -74,6 +74,8 @@ module m1_stage(
     output [ 3:0]   data_wstrb,
     output [31:0]   data_wdata,
     input           dcache_busy,
+    output [ 2:0]   load_size,
+    input           store_record,
     input           DTLB_found,
     input  [19:0]   DTLB_pfn0,
     input  [ 2:0]   DTLB_c0,
@@ -92,7 +94,7 @@ module m1_stage(
     output [ 2:0]   m1s_CacheInst_type //
 );
 
-wire [31:12] DTLB_PFN;//实地址
+wire [31:12] DTLB_PFN;
 reg          m1s_valid;
 wire         m1s_ready_go;
   
@@ -123,12 +125,17 @@ wire         m1s_inst_tlbr;
 wire         m1s_mem_we;
 wire [ 3:0]  sram_wen;
 wire [31:0]  sram_wdata;//位数问题！
+wire         m1s_store_flow; //m1s_store_flow = 1,表明当前store指令可以从MEM流动到WB,整个流水不会阻塞
 wire         debug_sw;
 wire         debug_lw;
 
-assign debug_sw = (data_index == 8'h9e) & m1s_mem_we & data_valid;
-assign debug_lw = (data_index == 8'h9e) & m1s_load_op & data_valid;
+assign debug_sw = m1s_mem_we & data_valid & isUncache;
+assign debug_lw = m1s_load_op & data_valid & isUncache;
+//当前指令为store指令,且store_record = 1'b0,则store_flow = 1'b1 
+//TODO:感觉Cached和Uncached store都可以考虑按以下逻辑放行?
+assign m1s_store_flow = m1s_mem_we & ~store_record; 
 
+/******************es_to_m1s_bus Total: 68bits******************/
 assign {
         m1s_is_ICacheInst, //179:179
         m1s_is_DCacheInst, //178:178
@@ -140,7 +147,7 @@ assign {
         m1s_inst_tlbr   ,  //136:136
         m1s_inst_tlbwi  ,  //135:135
         m1s_inst_tlbwr  ,  //134:134
-        m1s_load_op     ,  //133
+        m1s_load_op     ,  //133:133
         m1s_mtc0_rd     ,  //132:128
         temp_m1s_ex     ,  //127:127
         temp_m1s_Exctype,  //126:122 
@@ -158,7 +165,9 @@ assign {
         m1s_pc             //31:0
        } = es_to_m1s_bus_r;
 
+/******************m1s_to_ms_bus Total: 150bits******************/
 assign m1s_to_ms_bus = {
+                        m1s_store_flow  ,  //149:149
                         m1s_inst_mfc0   ,  //148:148
                         CP0_data        ,  //147:116
                         m1s_ex          ,  //115:115                                 
@@ -169,7 +178,7 @@ assign m1s_to_ms_bus = {
                         m1s_dest        ,  //68:64
                         m1s_alu_result  ,  //63:32
                         m1s_pc             //31:0
-                        } ;                
+                        } ;               
 
 assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we) | 
                         ((m1s_load_op | m1s_mem_we) & ~dcache_busy & ~DTLB_Buffer_Stall);
@@ -288,13 +297,17 @@ always @(*) begin
     else
         data_valid = 1'b0;
 end
+
 assign data_op     = m1s_mem_we ? 1'b1 : 1'b0;
 assign data_tag    = DTLB_PFN;
 assign data_index  = m1s_alu_result[11:4];
 assign data_offset = m1s_alu_result[3:0];
-assign data_wstrb  = m1s_ex | m1s_inst_eret ? 4'b0 :
+assign data_wstrb  = m1s_ex | m1s_inst_eret  ? 4'b0 :
                      m1s_mem_we ? sram_wen : 4'h0; //去掉了es_valid
 assign data_wdata  = sram_wdata;
+assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: arsize = 3'b000
+                     (m1s_mem_inst[4] | m1s_mem_inst[5]) ? 3'b001 : //lh,lhu: arsize = 3'b001
+                                                           3'b010 ; //其余: arsize = 3'b010
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/

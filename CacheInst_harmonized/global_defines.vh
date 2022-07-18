@@ -3,18 +3,24 @@
     /*********************模块使能定义*********************/
     `define FPU_EX_Valid
     `define CacheInst_EN
+    //`define OPEN_VA             //verilator仿真需要 注释
+    //`define OPEN_VA_PERF        //verilator仿真需要 注释
+    `define use_crossbar_ip   //vivado仿真需要 解注释
 
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
-    `define DS_TO_ES_NOALU_WD   170
-    `define BR_BUS_WD           34
+    `define DS_TO_ES_NOALU_WD   237
+    `define BR_BUS_WD           68
+    `define BRESULT_WD          68
+    `define BPU_TO_PS_BUS_WD    33
+    `define BPU_TO_DS_BUS_WD    36
 
-    `define PS_TO_FS_BUS_WD     40
+    `define PS_TO_FS_BUS_WD     39
     `define FS_TO_DS_BUS_WD     71
     `define DS_TO_ES_BUS_WD     (`ALUOP_WD + `DS_TO_ES_NOALU_WD)
     `define ES_TO_M1_BUS_WD     180
-    `define M1_TO_MS_BUS_WD     149
-    `define MS_TO_WS_BUS_WD     83
+    `define M1_TO_MS_BUS_WD     150
+    `define MS_TO_WS_BUS_WD     71
     `define WS_TO_RF_BUS_WD     38
 
     /*********************CP0寄存器地址定义*********************/
@@ -37,6 +43,22 @@
     `define Config_RegAddr   8'h80
     `define Config1_RegAddr  8'h81
     `define EntryHI_RegNum   5'd10
+
+/*********************BRANCH 指令编码*********************/
+    `define BRANCH_TYPE_NONE    4'b0000
+    `define BRANCH_TYPE_BEQ     4'b0011
+    `define BRANCH_TYPE_BNE     4'b0010
+    `define BRANCH_TYPE_JAL     4'b0110
+    `define BRANCH_TYPE_JR      4'b0101
+    `define BRANCH_TYPE_J       4'b0100
+    `define BRANCH_TYPE_JALR    4'b0111
+    `define BRANCH_TYPE_BGEZ    4'b1001
+    `define BRANCH_TYPE_BGTZ    4'b1010
+    `define BRANCH_TYPE_BLEZ    4'b1011
+    `define BRANCH_TYPE_BLTZ    4'b1100
+    `define BRANCH_TYPE_BGEZAL  4'b1101
+    `define BRANCH_TYPE_BLTZAL  4'b1110
+    `define BRANCH_TYPE_ERROR   4'b1111
 
     /*********************ExcCode编码及其对应例外类型*********************/
     `define Int                 5'b00000 //中断

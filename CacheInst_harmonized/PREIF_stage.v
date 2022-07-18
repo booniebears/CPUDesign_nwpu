@@ -7,10 +7,12 @@ module pre_if_stage(
     input                          fs_allowin, 
     //brbus
     input  [`BR_BUS_WD       -1:0] br_bus, 
+    input  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     output                         ps_to_fs_valid,
 
+    input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
     input                          flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
     input  [31:0]                  CP0_EPC_out, //CP0寄存器中,EPC的值
@@ -60,24 +62,87 @@ reg          refetch_delayed;
 reg   [11:4] cache_index_delayed;
 
 wire         br_taken;
-wire [ 31:0] br_target;
-wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
+wire  [31:0] br_target;
+wire         br_BPU_valid;
+wire         is_branch;
+wire         br_BPU_right;
+wire [ 31:0] br_es_pc;
+// wire         br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 wire         prefs_bdd; //跳转指令的下下条
 
-assign {br_stall,br_taken,br_target} = br_bus; 
+wire [31:0]  BPU_target;
+wire         BPU_valid;
+
+/******************BPU_to_ps_bus Total: 33bits******************/
+assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
+
+
+/******************Br Bus Total: 68bits******************/
+assign {
+        br_BPU_valid, //67:67
+        is_branch,    //66:66
+        br_taken,     //65:65
+        br_BPU_right, //64:64
+        br_target,    //63:32
+        br_es_pc      //31:0
+        } = br_bus; 
+
+`ifdef OPEN_VA_PERF
+    //计数使用，可以注掉//
+    reg [31:0] br_ds_pc_buffer;
+    reg [31:0] branch_count;
+    reg [31:0] right_count;
+    always_latch @(br_es_pc) begin
+        if(reset)begin
+            branch_count = 0;
+            right_count = 0;
+        end
+        if(is_branch)begin
+            branch_count = branch_count + 1;
+        end
+        if(is_branch & br_BPU_right)begin
+            right_count = right_count + 1;
+        end
+    end
+    always @(posedge clk) begin
+        br_ds_pc_buffer <= br_es_pc;
+    end
+`else
+
+    // always @(br_es_pc) begin
+    //     if(reset)begin
+    //         branch_count = 0;
+    //         right_count = 0;
+    //     end
+
+    //     if(is_branch)begin
+    //     branch_count = branch_count + 1;
+    //     end
+
+    //     if(is_branch & br_BPU_right)begin
+    //         right_count = right_count + 1;
+    //     end
+    // end
+    // always @(posedge clk) begin
+    //     br_ds_pc_buffer <= br_es_pc;
+    // end
+
+ `endif 
+
+////////////////////
 
 assign ps_ready_go    = ~icache_busy & ~ITLB_Buffer_Stall;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
+/******************ps_to_fs_bus Total: 39bits******************/
 assign ps_to_fs_bus   = {
-                          inst_valid, //39:39
-                          prefs_bdd, //38:38
-                          prefs_pc, //37:6
+                          inst_valid, //38:38
+                          prefs_pc,   //37:6
                           ps_ex,      //5:5
                           ps_Exctype  //4:0
                         };
 
-assign seq_pc = prefs_pc + 3'd4;
+assign seq_pc = prefs_pc + 4;
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
@@ -89,8 +154,41 @@ always @(*) begin //nextpc
         else 
             nextpc = `GENERAL_EX_PC;
     end
-    else if(br_taken)
-        nextpc = br_target;
+    else if(is_branch)begin
+        if(br_BPU_valid)begin
+            if(br_BPU_right)begin
+                if(BPU_valid)begin
+                    nextpc = BPU_target;
+                end
+                else begin
+                    nextpc = seq_pc;
+                end
+            end
+            else begin
+                if(br_taken)begin
+                    nextpc = br_target;
+                end
+                else begin
+                    nextpc = br_es_pc + 8;
+                end
+            end
+        end
+        else begin
+            if (br_taken) begin
+                nextpc = br_target;
+            end
+            else begin
+                if(BPU_valid)begin
+                    nextpc = BPU_target;
+                end 
+                else begin
+                    nextpc = seq_pc;
+                end
+            end
+        end
+    end
+    else if(BPU_valid)
+        nextpc = BPU_target;
     else
         nextpc = seq_pc;
 end
@@ -164,14 +262,12 @@ always @(posedge clk) begin
     else if(~icache_busy)
         cache_index_delayed <= 8'b0;
 end
-
-assign prefs_bdd = br_taken; //br_taken = 1,表明prefs_pc对应指令是跳转指令的下下条
 always @(*) begin
-    if(flush_delayed & ~icache_busy & ~refetch_delayed)
+    if(flush_delayed & ~icache_busy & ~br_flush & ~refetch_delayed)
         inst_valid = 1'b1;
     else if(ps_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
-    else if(~icache_busy & ps_allowin & ~refetch_delayed) 
+    else if(~icache_busy & ps_allowin & ~br_flush & ~refetch_delayed) 
         inst_valid = 1'b1;
     else
         inst_valid = 1'b0;

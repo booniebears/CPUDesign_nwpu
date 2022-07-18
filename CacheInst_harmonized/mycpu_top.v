@@ -46,7 +46,6 @@ module mycpu_top(
     output [ 4:0]   debug_wb_rf_wnum,
     output [31:0]   debug_wb_rf_wdata
 );
-wire [31:0] CP0_data;
 reg         reset;
 always @(posedge aclk) reset <= ~aresetn;
 
@@ -64,12 +63,16 @@ wire          m1s_to_ms_valid;
 wire          ms_to_ws_valid;
 wire  [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus;
 wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
+wire  [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
 wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
+wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
+wire  [`BRESULT_WD      -1:0] BResult;
+wire         br_flush;
 wire         is_branch;
 
 wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
@@ -144,6 +147,7 @@ wire         dcache_wr_valid;
 //AXI和Uncache(DCache)的交互信号
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
+wire  [ 2:0] udcache_load_size;
 wire         udcache_rd_rdy; 
 wire         udcache_ret_valid; //传输完成后ret_valid置1
 wire  [31:0] udcache_ret_data; //一次一个字
@@ -171,8 +175,10 @@ wire  [ 3:0] data_offset;
 wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
 wire  [31:0] data_rdata;
+wire  [ 2:0] load_size;
 wire         isUncache;
 wire         dcache_busy;
+wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
 
 /********************TLB-CP0交互信号如下********************/
 wire           m1s_inst_tlbwi   ; //写使能:对应inst_tlbwi
@@ -252,33 +258,34 @@ AXI_Interface U_AXI_Interface(
     .bready  (bready   ),
     //TODO:这里需要Cache的接线,注意信号引用
     //Attention:发请求在IF和EXE阶段处理
-    .icache_rd_req    (icache_rd_req    ),
-    .icache_rd_addr   (icache_rd_addr   ),
-    .icache_rd_rdy    (icache_rd_rdy    ),
-    .icache_ret_valid (icache_ret_valid ),
-    .icache_ret_data  (icache_ret_data  ),
-
-    .dcache_rd_req    (dcache_rd_req    ),
-    .dcache_rd_addr   (dcache_rd_addr   ),
-    .dcache_rd_rdy    (dcache_rd_rdy    ),
-    .dcache_ret_valid (dcache_ret_valid ),
-    .dcache_ret_data  (dcache_ret_data  ),
-    .dcache_wr_req    (dcache_wr_req    ),
-    .dcache_wr_addr   (dcache_wr_addr   ),
-    .dcache_wr_data   (dcache_wr_data   ),
-    .dcache_wr_rdy    (dcache_wr_rdy    ),
-    .dcache_wr_valid  (dcache_wr_valid  ),
-    .udcache_rd_req   (udcache_rd_req   ),
-    .udcache_rd_addr  (udcache_rd_addr  ),
-    .udcache_rd_rdy   (udcache_rd_rdy   ),
-    .udcache_ret_valid(udcache_ret_valid),
-    .udcache_ret_data (udcache_ret_data ),
-    .udcache_wr_req   (udcache_wr_req   ),
-    .udcache_wr_addr  (udcache_wr_addr  ),
-    .udcache_wr_strb  (udcache_wr_strb  ),
-    .udcache_wr_data  (udcache_wr_data  ),
-    .udcache_wr_rdy   (udcache_wr_rdy   ),
-    .udcache_wr_valid (udcache_wr_valid )
+    .icache_rd_req     (icache_rd_req     ),
+    .icache_rd_addr    (icache_rd_addr    ),
+    .icache_rd_rdy     (icache_rd_rdy     ),
+    .icache_ret_valid  (icache_ret_valid  ),
+    .icache_ret_data   (icache_ret_data   ),
+  
+    .dcache_rd_req     (dcache_rd_req     ),
+    .dcache_rd_addr    (dcache_rd_addr    ),
+    .dcache_rd_rdy     (dcache_rd_rdy     ),
+    .dcache_ret_valid  (dcache_ret_valid  ),
+    .dcache_ret_data   (dcache_ret_data   ),
+    .dcache_wr_req     (dcache_wr_req     ),
+    .dcache_wr_addr    (dcache_wr_addr    ),
+    .dcache_wr_data    (dcache_wr_data    ),
+    .dcache_wr_rdy     (dcache_wr_rdy     ),
+    .dcache_wr_valid   (dcache_wr_valid   ),
+    .udcache_rd_req    (udcache_rd_req    ),
+    .udcache_rd_addr   (udcache_rd_addr   ),
+    .udcache_load_size (udcache_load_size ),
+    .udcache_rd_rdy    (udcache_rd_rdy    ),
+    .udcache_ret_valid (udcache_ret_valid ),
+    .udcache_ret_data  (udcache_ret_data  ),
+    .udcache_wr_req    (udcache_wr_req    ),
+    .udcache_wr_addr   (udcache_wr_addr   ),
+    .udcache_wr_strb   (udcache_wr_strb   ),
+    .udcache_wr_data   (udcache_wr_data   ),
+    .udcache_wr_rdy    (udcache_wr_rdy    ),
+    .udcache_wr_valid  (udcache_wr_valid  )
 );
 
 Icache U_Icache(
@@ -310,7 +317,9 @@ DCache U_DCache(
     .data_wstrb          (data_wstrb         ),
     .data_wdata          (data_wdata         ),
     .data_rdata          (data_rdata         ),
+    .load_size           (load_size          ),
     .busy                (dcache_busy        ),
+    .store_record        (store_record       ),
     .is_DCacheInst       (m1s_is_DCacheInst  ),
     .CacheInst_type      (m1s_CacheInst_type ),
  
@@ -327,6 +336,7 @@ DCache U_DCache(
 
     .udcache_rd_req      (udcache_rd_req     ),
     .udcache_rd_addr     (udcache_rd_addr    ),
+    .udcache_load_size   (udcache_load_size  ),
     .udcache_rd_rdy      (udcache_rd_rdy     ),
     .udcache_ret_valid   (udcache_ret_valid  ),
     .udcache_ret_data    (udcache_ret_data   ),
@@ -344,8 +354,10 @@ pre_if_stage pre_if_stage(
     .reset               (reset                ),
     .fs_allowin          (fs_allowin           ),
     .br_bus              (br_bus               ),
+    .BPU_to_ps_bus       (BPU_to_ps_bus        ),
     .ps_to_fs_bus        (ps_to_fs_bus         ),
     .ps_to_fs_valid      (ps_to_fs_valid       ),
+    .br_flush            (br_flush             ),
     .flush               (flush                ),
     .flush_refill        (flush_refill         ),
     .CP0_EPC_out         (CP0_EPC_out          ),
@@ -384,9 +396,13 @@ if_stage if_stage(
     .ps_to_fs_valid (ps_to_fs_valid ),
     //brbus
     .fs_bd          (is_branch      ),
+    .BResult        (BResult        ),
+    .BPU_to_ps_bus  (BPU_to_ps_bus  ),
     //outputs
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
+    .BPU_to_ds_bus  (BPU_to_ds_bus  ),
+    .br_flush       (br_flush       ),
     .flush          (flush          ),
     .icache_busy    (icache_busy    ),
     .inst_rdata     (inst_rdata     )
@@ -402,11 +418,11 @@ id_stage id_stage(
     //from fs        
     .fs_to_ds_valid     (fs_to_ds_valid     ),
     .fs_to_ds_bus       (fs_to_ds_bus       ),
+    .BPU_to_ds_bus      (BPU_to_ds_bus      ),
     //to es        
     .ds_to_es_valid     (ds_to_es_valid     ),
     .ds_to_es_bus       (ds_to_es_bus       ),
     //to fs        
-    .br_bus             (br_bus             ),
     .is_branch          (is_branch          ),
     //to rf: for write back
     .ws_to_rf_bus       (ws_to_rf_bus       ),
@@ -441,6 +457,11 @@ exe_stage exe_stage(
     //from ds  
     .ds_to_es_valid  (ds_to_es_valid  ),
     .ds_to_es_bus    (ds_to_es_bus    ),
+    //to pre_if
+    .EXE_br_bus      (br_bus         ),
+    //to fs
+    .EXE_BResult     (BResult        ),
+    .es_br_flush     (br_flush       ),
     //to ms
     .es_to_m1s_valid (es_to_m1s_valid ),
     .es_to_m1s_bus   (es_to_m1s_bus   ),
@@ -453,6 +474,7 @@ exe_stage exe_stage(
     .es_inst_mfc0    (es_inst_mfc0    ),
     .m1s_inst_eret   (m1s_inst_eret   )
 );
+
 // M1 stage
 m1_stage m1_stage(
     .ext_int            (ext_int            ),
@@ -521,6 +543,8 @@ m1_stage m1_stage(
     .data_wstrb         (data_wstrb         ),
     .data_wdata         (data_wdata         ),
     .dcache_busy        (dcache_busy        ),
+    .store_record       (store_record       ),
+    .load_size          (load_size          ),
     .DTLB_found         (DTLB_found         ),
     .DTLB_pfn0          (DTLB_pfn0          ),
     .DTLB_c0            (DTLB_c0            ),
@@ -546,7 +570,6 @@ mem_stage mem_stage(
     //allowin   
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
-    .CP0_data        (CP0_data         ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
@@ -556,7 +579,7 @@ mem_stage mem_stage(
     .ms_to_ws_valid  (ms_to_ws_valid   ),
     .ms_to_ws_bus    (ms_to_ws_bus     ),
     .MEM_dest        (MEM_dest         ), 
-    .MEM_result      (MEM_result       ) 
+    .MEM_result      (MEM_result       )
 );
 // WB stage
 wb_stage wb_stage(

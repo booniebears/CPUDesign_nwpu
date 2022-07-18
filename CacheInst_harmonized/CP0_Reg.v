@@ -295,7 +295,7 @@ end
 reg [31:0] CP0_EPC;
 always @(posedge clk) begin
     if(m1s_ex && ~CP0_Status_EXL) begin //EXL为0的时候才能写EPC
-        CP0_EPC <= m1s_bd ? m1s_pc - 3'h4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
+        CP0_EPC <= m1s_bd ? m1s_pc - 4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
     end
     else if(mtc0_we && CP0_Addr == `EPC_RegAddr)
         CP0_EPC <= m1s_alu_result;

@@ -23,13 +23,15 @@ reg         ws_valid;
 wire        ws_ready_go;
 
 reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
+wire        ws_ex;
 wire        ws_gr_we;
 wire [ 4:0] ws_dest;
 wire [31:0] ws_final_result; //考虑了mfc0和mtc0的最终结果
 wire [31:0] ws_pc;
 
+/******************ms_to_ws_bus Total: 71bits******************/
 assign {
-        ws_ex          ,  //82:82
+        ws_ex          ,  //70:70
         ws_gr_we       ,  //69:69 --写RF使能
         ws_dest        ,  //68:64 --写RF的地址
         ws_final_result,  //63:32 --写RF的数据
@@ -39,6 +41,7 @@ assign {
 wire        rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
+/******************ws_to_rf_bus Total: 38bits******************/
 assign ws_to_rf_bus = {rf_we   ,  //37:37 --写RF使能
                        rf_waddr,  //36:32 --写RF地址
                        rf_wdata   //31:0 --写RF数据

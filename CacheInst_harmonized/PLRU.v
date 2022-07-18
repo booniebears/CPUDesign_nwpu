@@ -23,49 +23,53 @@ end
 endgenerate
 
 generate
-if(ASSOC_NUM == 2) begin
-    always @(*) begin
-        nextstate = state;
-
-        if(update && |delayed_hit) begin
-            if(delayed_hit[0]) begin
-                nextstate[0] = 1'b1;//如果这次命中的是第0路 那么下次不命中的时候替换的就是1路
-            end else begin
-                nextstate[0] = 1'b0;
+    if(ASSOC_NUM == 2) begin
+        always @(*) begin
+            nextstate = state;
+            if(update && |delayed_hit) begin
+                if(delayed_hit[0]) begin
+                    nextstate[0] = 1'b1;//如果这次命中的是第0路 那么下次不命中的时候替换的就是1路
+                end 
+                else begin
+                    nextstate[0] = 1'b0;
+                end
             end
         end
-    end
-end 
-else begin //感觉写的有问题
-    always @(*) begin
-        nextstate = state;    //好习惯啊
+    end 
 
-        casez(delayed_hit)
-            4'b1???: begin
-                nextstate[2] = 1'b0;
-                nextstate[0] = 1'b0;
-            end
-            4'b01??: begin
-                nextstate[2] = 1'b0;
-                nextstate[0] = 1'b1;
-            end
-            4'b001?: begin
-                nextstate[2] = 1'b1;
-                nextstate[1] = 1'b0;
-            end
-            4'b0001: begin
-                nextstate[2] = 1'b1;
-                nextstate[1] = 1'b1;
-            end
-        endcase
-    end
-end 
+    
+    else begin //ASSOC_NUM == 4
+        always @(*) begin
+            nextstate = state;
+            case(delayed_hit)
+                4'b1000: begin
+                    nextstate[2] = 1'b0;
+                    nextstate[0] = 1'b0;
+                end
+                4'b0100: begin
+                    nextstate[2] = 1'b0;
+                    nextstate[0] = 1'b1;
+                end
+                4'b0010: begin
+                    nextstate[2] = 1'b1;
+                    nextstate[1] = 1'b0;
+                end
+                4'b0001: begin
+                    nextstate[2] = 1'b1;
+                    nextstate[1] = 1'b1;
+                end
+                default:
+                    nextstate    = state;
+            endcase
+        end
+    end 
 endgenerate
 
 always @(posedge clk) begin
     if(reset) begin
         state <= 0;
-    end else if(update) begin
+    end 
+    else if(update) begin
         state <= nextstate;
     end
 end
