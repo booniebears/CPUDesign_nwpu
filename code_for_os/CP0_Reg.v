@@ -263,7 +263,7 @@ end
 assign Random_next = CP0_Random_Random + 1'b1; //由于只有四位,故上限为TLBNUM - 1'b1
 always @(posedge clk) begin //Random 3-0 R
     if(reset)
-        CP0_Random_Random <= TLBNUM - 1'b1;
+        CP0_Random_Random <= 4'b1111;
     else //Random的赋值 从CP0_Wired_Wired变化到TLBNUM - 1'b1
         CP0_Random_Random <= (CP0_Wired_Wired < Random_next) ? Random_next : CP0_Wired_Wired;
 end
@@ -309,7 +309,7 @@ always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写s
         if(Exctype == `AdES)
             CP0_BadVAddr <= m1s_alu_result;
         else if(Exctype == `AdEL)
-            CP0_BadVAddr <= m1s_pc[1:0] ? m1s_pc : m1s_alu_result;
+            CP0_BadVAddr <= (m1s_pc[1:0] != 0) ? m1s_pc : m1s_alu_result;
         else if(Exctype == `ITLB_EX_Refill || Exctype == `ITLB_EX_Invalid) 
             CP0_BadVAddr <= m1s_pc;
         else if(Exctype == `DTLB_EX_RD_Refill || Exctype == `DTLB_EX_RD_Invalid  || 
