@@ -149,23 +149,23 @@ module tlb
 
     always @(*) begin
         if(~s0_found) begin//未命中
-            s0_pfn <= 20'b0;
-            s0_c   <= 3'b0;
-            s0_d   <= 1'b0;
-            s0_v   <= 1'b0;
+            s0_pfn = 20'b0;
+            s0_c   = 3'b0;
+            s0_d   = 1'b0;
+            s0_v   = 1'b0;
         end
         else begin             //根据oddpage，即地址第12位判断取 前半段 还是取 后半段
             if(~s0_odd_page) begin
-                s0_pfn <= tlb_pfn0[s0_index];
-                s0_c   <= tlb_c0[s0_index];
-                s0_d   <= tlb_d0[s0_index];
-                s0_v   <= tlb_v0[s0_index];
+                s0_pfn = tlb_pfn0[s0_index];
+                s0_c   = tlb_c0[s0_index];
+                s0_d   = tlb_d0[s0_index];
+                s0_v   = tlb_v0[s0_index];
             end
             else begin
-                s0_pfn <= tlb_pfn1[s0_index];
-                s0_c   <= tlb_c1[s0_index];
-                s0_d   <= tlb_d1[s0_index];
-                s0_v   <= tlb_v1[s0_index];
+                s0_pfn = tlb_pfn1[s0_index];
+                s0_c   = tlb_c1[s0_index];
+                s0_d   = tlb_d1[s0_index];
+                s0_v   = tlb_v1[s0_index];
             end
         end
     end

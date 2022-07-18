@@ -37,6 +37,8 @@ wire [ 4:0]  ps_Exctype;
 //PC_reg
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
+wire  [31:0] right_flow_pc;
+wire  [31:0] wrong_flow_pc;
 reg   [31:0] prefs_pc;
 reg          flush_delayed;
 
@@ -67,40 +69,66 @@ assign {
         } = br_bus; 
 
 //计数使用，可以注掉//
-// reg [31:0] br_ds_pc_buffer;
-// reg [31:0] branch_count;
-// reg [31:0] right_count;
-// always @(br_es_pc) begin
-//     if(reset)begin
-//         branch_count = 0;
-//         right_count = 0;
-//     end
+reg [31:0] br_ds_pc_buffer;
+reg [31:0] branch_count;
+reg [31:0] right_count;
+`ifdef OPEN_VA_PERF
+    always_latch @(br_es_pc) begin
+        if(reset)begin
+            branch_count = 0;
+            right_count = 0;
+        end
 
-//     if(is_branch)begin
-//         branch_count = branch_count + 1;
-//     end
+        if(is_branch)begin
+        branch_count = branch_count + 1;
+        end
 
-//     if(is_branch & br_BPU_right)begin
-//         right_count = right_count + 1;
-//     end
-// end
-// always @(posedge clk) begin
-//     br_ds_pc_buffer <= br_es_pc;
-// end
+        if(is_branch & br_BPU_right)begin
+            right_count = right_count + 1;
+        end
+    end
+    always @(posedge clk) begin
+        br_ds_pc_buffer <= br_es_pc;
+    end
+`else
+
+    // always @(br_es_pc) begin
+    //     if(reset)begin
+    //         branch_count = 0;
+    //         right_count = 0;
+    //     end
+
+    //     if(is_branch)begin
+    //     branch_count = branch_count + 1;
+    //     end
+
+    //     if(is_branch & br_BPU_right)begin
+    //         right_count = right_count + 1;
+    //     end
+    // end
+    // always @(posedge clk) begin
+    //     br_ds_pc_buffer <= br_es_pc;
+    // end
+
+ `endif 
 
 ////////////////////
 
 assign ps_ready_go    = ~icache_busy;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
+assign inst_valid_end = inst_valid & ~br_flush;
 assign ps_to_fs_bus   = {
-                          inst_valid, //38:38
+                          inst_valid_end, //38:38
                           prefs_pc, //37:6
                           ps_ex,      //5:5
                           ps_Exctype  //4:0
                         };
 
-assign seq_pc = prefs_pc + 3'd4;
+assign seq_pc = prefs_pc + 4;
+assign right_flow_pc = BPU_valid ? BPU_target : seq_pc;
+assign wrong_flow_pc = br_taken ? br_target : br_es_pc + 8;
+
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
@@ -110,20 +138,10 @@ always @(*) begin //nextpc
     else if(is_branch)begin
         if(br_BPU_valid)begin
             if(br_BPU_right)begin
-                if(BPU_valid)begin
-                    nextpc = BPU_target;
-                end
-                else begin
-                    nextpc = seq_pc;
-                end
+                nextpc = right_flow_pc;
             end
             else begin
-                if(br_taken)begin
-                    nextpc = br_target;
-                end
-                else begin
-                    nextpc = br_es_pc + 8;
-                end
+                nextpc = wrong_flow_pc;
             end
         end
         else begin
@@ -131,19 +149,12 @@ always @(*) begin //nextpc
                 nextpc = br_target;
             end
             else begin
-                if(BPU_valid)begin
-                    nextpc = BPU_target;
-                end 
-                else begin
-                    nextpc = seq_pc;
-                end
+                nextpc = right_flow_pc;
             end
         end
     end
-    else if(BPU_valid)
-        nextpc = BPU_target;
-    else
-        nextpc = seq_pc;
+    else 
+        nextpc = right_flow_pc;
 end
 
 always @(posedge clk) begin //prefs_pc
@@ -174,13 +185,12 @@ always @(posedge clk) begin
         flush_delayed <= 1'b0;
 end
 
-// assign prefs_bdd = br_BPU_valid ? ( is_branch & ~br_BPU_right ) : br_taken; //br_taken = 1,����prefs_pc��Ӧָ������תָ���������??
 always @(*) begin
-    if(flush_delayed & ~icache_busy & ~br_flush)
+    if(flush_delayed & ~icache_busy)
         inst_valid = 1'b1;
     else if(prefs_pc[1:0] != 2'b00)
         inst_valid = 1'b0;
-    else if(~icache_busy & ps_allowin & ~br_flush) 
+    else if(~icache_busy & ps_allowin) 
         inst_valid = 1'b1;
     else
         inst_valid = 1'b0;
