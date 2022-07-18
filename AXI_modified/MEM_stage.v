@@ -59,7 +59,6 @@ wire [31:0] mem_data;
 wire [31:0] ms_final_result;
 
 assign ms_to_ws_bus = {
-                       //ms_data_sram_addr,//119:88                    
                        ms_ex          ,  //82:82
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址

@@ -16,9 +16,12 @@ module alu(
     input         m1s_ex
 );
 
+<<<<<<< HEAD
 wire isMul;
 // wire isDiv;
 
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
 
 wire op_add;   //加法操作
 wire op_sub;   //减法操作

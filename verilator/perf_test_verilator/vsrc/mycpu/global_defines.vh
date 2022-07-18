@@ -1,6 +1,8 @@
 `ifndef MYCPU_H
     `define MYCPU_H
-    `define OPEN_VA
+    `define OPEN_VA             //verilator仿真需要 注释
+    `define OPEN_VA_PERF        //verilator仿真需要 注释
+    // `define use_crossbar_ip   //vivado仿真需要 解注释
     `define BR_BUS_WD       68
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 39
@@ -15,7 +17,7 @@
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
     `define BRESULT_WD 68
-    `define M1_TO_MS_BUS_WD 149
+    `define M1_TO_MS_BUS_WD 150
     //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
     //lab9修改为120(加入data_sram_addr)
     `define MS_TO_WS_BUS_WD 71

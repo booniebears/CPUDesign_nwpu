@@ -70,23 +70,45 @@ assign {
 reg [31:0] br_ds_pc_buffer;
 reg [31:0] branch_count;
 reg [31:0] right_count;
- always_latch @(br_es_pc) begin
-    if(reset)begin
-         branch_count = 0;
-         right_count = 0;
-    end
+`ifdef OPEN_VA_PERF
+    always_latch @(br_es_pc) begin
+        if(reset)begin
+            branch_count = 0;
+            right_count = 0;
+        end
 
-    if(is_branch)begin
-      branch_count = branch_count + 1;
-     end
+        if(is_branch)begin
+        branch_count = branch_count + 1;
+        end
 
-     if(is_branch & br_BPU_right)begin
-        right_count = right_count + 1;
+        if(is_branch & br_BPU_right)begin
+            right_count = right_count + 1;
+        end
     end
- end
- always @(posedge clk) begin
-    br_ds_pc_buffer <= br_es_pc;
- end
+    always @(posedge clk) begin
+        br_ds_pc_buffer <= br_es_pc;
+    end
+`else
+
+    // always @(br_es_pc) begin
+    //     if(reset)begin
+    //         branch_count = 0;
+    //         right_count = 0;
+    //     end
+
+    //     if(is_branch)begin
+    //     branch_count = branch_count + 1;
+    //     end
+
+    //     if(is_branch & br_BPU_right)begin
+    //         right_count = right_count + 1;
+    //     end
+    // end
+    // always @(posedge clk) begin
+    //     br_ds_pc_buffer <= br_es_pc;
+    // end
+
+ `endif 
 
 ////////////////////
 

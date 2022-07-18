@@ -14,7 +14,7 @@
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
     `define BRESULT_WD 69
-    `define M1_TO_MS_BUS_WD 161
+    `define M1_TO_MS_BUS_WD 149
     //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
     //lab9修改为120(加入data_sram_addr)
     `define MS_TO_WS_BUS_WD 83

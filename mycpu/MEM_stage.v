@@ -6,8 +6,11 @@ module mem_stage(
     //allowin 
     input          ws_allowin,
     output         ms_allowin,
+<<<<<<< HEAD
     //to ds
     output         ms_load_op,
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
     //from m1s
     input          m1s_to_ms_valid,
     input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
@@ -30,6 +33,11 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_result;
 wire [31:0] ms_pc;
 wire        ms_ex;
+<<<<<<< HEAD
+=======
+wire        ms_inst_mfc0;
+wire [31:0] CP0_data;
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
 wire        ms_store_flow;
 
 wire [11:0] ms_mem_inst;
@@ -44,15 +52,25 @@ wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
 
 assign {
+<<<<<<< HEAD
         ms_load_op     ,
         ms_store_flow  ,
+=======
+        ms_store_flow  ,
+        ms_inst_mfc0   ,
+        CP0_data       ,
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
         ms_ex          ,                                
         ms_rt_value    ,
         ms_mem_inst    ,
         ms_res_from_mem,
         ms_gr_we       ,
         ms_dest        ,
+<<<<<<< HEAD
         ms_result  ,
+=======
+        ms_alu_result  ,
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
         ms_pc           
        } = m1s_to_ms_bus_r;
 
@@ -64,11 +82,14 @@ wire [1:0] rdata_type;
 assign rdata_type = ms_result[1:0];
 
 assign ms_to_ws_bus = {
+<<<<<<< HEAD
                        ms_res_from_mem,
                        ms_mem_inst    ,
                        ms_rt_value    ,
                        data_rdata     ,
                        rdata_type     ,
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
                        ms_ex          ,  //70:70
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
@@ -161,6 +182,32 @@ end
     assign ms_final_result =   ms_result;
 `endif
 
+<<<<<<< HEAD
+=======
+
+`ifdef OPEN_VA_PERF
+    reg [31:0] getsoccount; 
+    //lw v0, -8192(t9)
+    assign ms_final_result =((ms_mem_inst[0] == 1) && (ms_alu_result == 32'hbfafe000) && (ms_dest == 5'h02)) ?
+                            getsoccount :
+                            ms_res_from_mem ? mem_data :
+                            ms_inst_mfc0    ? CP0_data :
+                                              ms_alu_result;
+    always @(posedge clk) begin //set values for soc count
+        if(reset)
+            getsoccount <= 0;
+        //lw v0, -8192(t9)
+        else
+            getsoccount <= getsoccount + 1;
+    end
+
+`else
+    assign ms_final_result = ms_res_from_mem ? mem_data:
+                             ms_inst_mfc0    ? CP0_data :
+                                               ms_alu_result;
+`endif
+
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
 //lab4添加
 assign MEM_dest   = ms_dest & {5{ms_to_ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign MEM_result = ms_final_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段

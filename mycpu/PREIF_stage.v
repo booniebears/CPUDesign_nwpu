@@ -126,9 +126,12 @@ assign ps_to_fs_bus   = {
                         };
 
 assign seq_pc = prefs_pc + 4;
+<<<<<<< HEAD
 assign right_flow_pc = BPU_valid ? BPU_target : seq_pc;
 assign wrong_flow_pc = br_taken ? br_target : br_es_pc + 8;
 
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;

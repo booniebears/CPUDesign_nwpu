@@ -494,8 +494,11 @@ mem_stage mem_stage(
     //allowin   
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
+<<<<<<< HEAD
     //to ds
     .ms_load_op      (ms_load_op       ),
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),

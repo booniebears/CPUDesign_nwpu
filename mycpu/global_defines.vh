@@ -1,7 +1,12 @@
 `ifndef MYCPU_H
     `define MYCPU_H
+<<<<<<< HEAD
     // `define OPEN_VA             //verilator仿真需要 注释
     // `define OPEN_VA_PERF        //verilator仿真需要 注释
+=======
+    //`define OPEN_VA             //verilator仿真需要 注释
+    //`define OPEN_VA_PERF        //verilator仿真需要 注释
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
     `define use_crossbar_ip   //vivado仿真需要 解注释
     `define BR_BUS_WD       68
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
@@ -17,10 +22,17 @@
     //lab9修改为165(加入data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
     `define BRESULT_WD 68
+<<<<<<< HEAD
     `define M1_TO_MS_BUS_WD 118
     //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
     //lab9修改为120(加入data_sram_addr)
     `define MS_TO_WS_BUS_WD 150
+=======
+    `define M1_TO_MS_BUS_WD 150
+    //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
+    //lab9修改为120(加入data_sram_addr)
+    `define MS_TO_WS_BUS_WD 71
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
     `define WS_TO_RF_BUS_WD 38
     //CP0寄存器对应的地址(8位)
     `define Index_RegAddr    8'h00

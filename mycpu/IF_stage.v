@@ -92,9 +92,12 @@ assign fs_Exctype = ps_Exctype;
 assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
 //在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
 assign fs_pc      = br_flush ? temp_fs_pc - 8 : temp_fs_pc;
+<<<<<<< HEAD
 
 wire to_BPU_pc_valid;
 assign to_BPU_pc_valid = ps_to_fs_valid & fs_allowin;
+=======
+>>>>>>> c1ccb7a1a3b9fb332c7e46bb1f5b86fad890f5fa
 
 BPU u_BPU(
     .clk                (clk),
