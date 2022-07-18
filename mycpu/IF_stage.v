@@ -71,7 +71,7 @@ end
 wire [31:0] BPU_target;
 wire BPU_valid;
 wire predict_valid;
-assign predict_valid = BPU_valid & fs_valid & ~br_flush & fs_inst_valid;
+assign predict_valid = BPU_valid & fs_valid & fs_inst_valid;
 
 assign fs_to_ds_bus = {
                        fs_ex     , //70:70
@@ -93,10 +93,14 @@ assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata;
 //在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
 assign fs_pc      = br_flush ? temp_fs_pc - 8 : temp_fs_pc;
 
+wire to_BPU_pc_valid;
+assign to_BPU_pc_valid = ps_to_fs_valid & fs_allowin;
+
 BPU u_BPU(
     .clk                (clk),
     .reset              (reset),
-    .fs_pc              (temp_fs_pc),
+    .pre_pc             (prefs_pc),
+    .pc_valid           (to_BPU_pc_valid),
     .ds_allowin         (ds_allowin),
     .BResult            (BResult),
     //***********output************//

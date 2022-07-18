@@ -54,6 +54,7 @@ wire          ds_allowin;
 wire          es_allowin;
 wire          m1s_allowin;
 wire          ms_allowin;
+wire          ms_load_op;
 wire          ws_allowin;
 wire          ps_to_fs_valid;
 wire          fs_to_ds_valid;
@@ -380,6 +381,7 @@ id_stage id_stage(
     .WB_result          (WB_result          ),
     .es_load_op         (es_load_op         ),
     .m1s_load_op        (m1s_load_op        ),
+    .ms_load_op         (ms_load_op         ),
     .flush              (flush              ),
     .es_inst_mfc0       (es_inst_mfc0       ),
     .m1s_inst_mfc0      (m1s_inst_mfc0      ),
@@ -492,6 +494,8 @@ mem_stage mem_stage(
     //allowin   
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
+    //to ds
+    .ms_load_op      (ms_load_op       ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),

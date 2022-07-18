@@ -4,17 +4,20 @@ module alu(
     input  [40:0] alu_op,
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
-    output [31:0] alu_result,
+    output reg [31:0] alu_result,
     input  [ 2:0] Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
     output        m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
     output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
-    output        isMul, //指令要用到乘法器
-    output        isDiv, //该信号为1表明乘法运算完毕
+    // output        isMul, //指令要用到乘法器
+    // output        isDiv, //该信号为1表明乘法运算完毕
     output        mul_finished, //该信号为1表明乘法运算完毕
     output        Overflow_ex, //有整型溢出置为1
     input         es_ex,
     input         m1s_ex
 );
+
+wire isMul;
+// wire isDiv;
 
 
 wire op_add;   //加法操作
@@ -70,7 +73,8 @@ wire [31:0] xor_result    ;
 wire [31:0] lui_result    ;
 wire [31:0] sll_result    ; 
 wire [63:0] sr64_result   ; 
-wire [31:0] sr_result     ; 
+wire [31:0] srl_result    ; 
+wire [31:0] sra_result    ;
 wire [63:0] mult_result   ; 
 wire [63:0] multi_result  ; 
 wire [63:0] multu_result  ; 
@@ -123,9 +127,10 @@ assign lui_result = {alu_src2[15:0], 16'b0};
 assign sll_result = alu_src2 << alu_src1[4:0];
 
 // SRL, SRA result
-assign sr64_result = {{32{op_sra & alu_src2[31]}}, alu_src2[31:0]} >> alu_src1[4:0];
+assign srl_result = alu_src2[31:0] >> alu_src1[4:0];
+assign sra_result = $signed(alu_src2) >>> alu_src1[4:0];
 
-assign sr_result   = sr64_result[31:0];
+
 
 //lab添加 HI LO寄存器
 reg  [31:0] HI;
@@ -248,7 +253,7 @@ always @(posedge clk) begin
         div_state <= div_nextstate;
 end
 
-assign isDiv = op_div | op_divu;
+// assign isDiv = op_div | op_divu;
 always @(*) begin
     case(div_state)
         DIV_IDLE:
@@ -335,17 +340,51 @@ assign mfhi_result = HI;
 assign mflo_result = LO;
 
 // final result mux 这个组合非常巧妙 各个结果用或运算连接 为0的项对于最终结果没有任何影响
-assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
-                  | ({32{op_slt       }} & slt_result)
-                  | ({32{op_sltu      }} & sltu_result)
-                  | ({32{op_and       }} & and_result)
-                  | ({32{op_nor       }} & nor_result)
-                  | ({32{op_or        }} & or_result)
-                  | ({32{op_xor       }} & xor_result)
-                  | ({32{op_lui       }} & lui_result)
-                  | ({32{op_sll       }} & sll_result)
-                  | ({32{op_srl|op_sra}} & sr_result)
-                  | ({32{op_mfhi      }} & mfhi_result)
-                  | ({32{op_mflo      }} & mflo_result);
+// assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
+//                   | ({32{op_slt       }} & slt_result)
+//                   | ({32{op_sltu      }} & sltu_result)
+//                   | ({32{op_and       }} & and_result)
+//                   | ({32{op_nor       }} & nor_result)
+//                   | ({32{op_or        }} & or_result)
+//                   | ({32{op_xor       }} & xor_result)
+//                   | ({32{op_lui       }} & lui_result)
+//                   | ({32{op_sll       }} & sll_result)
+//                   | ({32{op_srl|op_sra}} & srl_result)
+//                   | ({32{op_mfhi      }} & mfhi_result)
+//                   | ({32{op_mflo      }} & mflo_result);
+
+always @(*) begin
+    if(op_add | op_sub)
+        alu_result = add_sub_result;
+    else if(op_slt)
+        alu_result = slt_result;
+    else if(op_sltu      )
+        alu_result = sltu_result;   
+    else if(op_and       )
+        alu_result = and_result;
+    else if(op_nor       )
+        alu_result = nor_result;
+    else if(op_or        )
+        alu_result = or_result;
+    else if(op_xor       )
+        alu_result = xor_result;
+    else if(op_lui       )
+        alu_result = lui_result;
+    else if(op_sll       )
+        alu_result = sll_result;
+    else if(op_srl)
+        alu_result = srl_result;
+    else if(op_sra)
+        alu_result = sra_result;
+    else if(op_mfhi      )
+        alu_result = mfhi_result;
+    else if(op_mflo      )
+        alu_result = mflo_result;
+    else
+        alu_result = 0;   
+end
+
+
+
 
 endmodule
