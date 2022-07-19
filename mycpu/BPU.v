@@ -71,7 +71,7 @@ wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
 
 assign PHT_rd_index = pre_pc[9:2];
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
-assign PHT_hit  = (PHT_rout_tag == pre_pc[31:10]) & ~PHT_we; // 写的时候返回数据不是想要读的
+assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]) & ~PHT_we; // 写的时候返回数据不是想要读的
 
 wire [21:0] debug_fs_pc_tag;
 assign debug_fs_pc_tag = fs_pc[31:10];
@@ -89,7 +89,7 @@ assign BPU_to_ds_bus = {
                             BPU_valid_reg,
                             BPU_ret_addr_reg
                             };
-assign BPU_ret_addr = PHT_rout_Count[1] ? pre_pc + 4 : PHT_rout_target;
+assign BPU_ret_addr = PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
 
 always @(posedge clk) begin
     if(reset)begin
