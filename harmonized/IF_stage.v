@@ -103,6 +103,7 @@ BPU u_BPU(
     .clk                (clk),
     .reset              (reset),
     .pre_pc             (prefs_pc),
+    .fs_pc              (temp_fs_pc),
     .pc_valid           (to_BPU_pc_valid),
     .ds_allowin         (ds_allowin),
     .BResult            (BResult),
