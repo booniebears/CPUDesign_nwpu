@@ -53,6 +53,7 @@ wire         ps_ex;
 wire [4:0]   ps_Exctype;
 wire [4:0]   ITLB_Exctype;
 wire         ITLB_Buffer_Stall;
+wire         inst_valid_end;
 
 //PC_reg
 reg   [31:0] nextpc;
