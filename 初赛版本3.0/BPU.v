@@ -11,7 +11,9 @@ module BPU#(
 (
     input clk,
     input reset,
-    input [31:0] fs_pc,//连temp_fs_pc
+    input [31:0] pre_pc,//连temp_fs_pc
+    input [31:0] fs_pc,
+    input pc_valid,
     input ds_allowin,
     input [`BRESULT_WD - 1 :0] BResult,
     output [31:0] target,
@@ -41,7 +43,6 @@ wire [21:0] PHT_wr_tag;
 reg [1:0] BPU_new_Count;
 wire [55:0] PHT_wr_data;//根据BResult得出
 
-//方向修正
 always @(*) begin
     case (BPU_old_Count)
         SN_Taken: BPU_new_Count = BPU_br_taken ? WN_Taken : SN_Taken;
@@ -68,13 +69,12 @@ wire [1:0] PHT_rout_Count;    //读出的饱和计数器
 wire PHT_hit;
 wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
 
-assign PHT_rd_index = fs_pc[9:2];
+assign PHT_rd_index = pre_pc[9:2];
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
 assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]) & ~PHT_we; // 写的时候返回数据不是想要读的
 
 wire [21:0] debug_fs_pc_tag;
 assign debug_fs_pc_tag = fs_pc[31:10];
-
 
 wire [31:0] BPU_ret_addr;
 
@@ -123,20 +123,33 @@ assign BPU_valid = PHT_hit;
 // assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;
+wire data_read_en;
 assign index_addr = PHT_we ? PHT_wr_index : PHT_rd_index;
+assign data_read_en = pc_valid;
 
-simple_port_lutram #(
+simple_port_ram #(
     .SIZE(PHT_NUMS),
     .DATA_WIDTH(DATA_WIDTH)
 ) PHT_ram_data(
-    .clka(clk),
-    .rsta(reset),
+    .clk(clk),
+    .rst(reset),
 
     //写端口
     .ena(1'b1),
     .wea(PHT_we),
-    .addra(index_addr),
+    .addra(PHT_wr_index),
     .dina(PHT_wr_data),
-    .douta(PHT_rd_data)
+
+    //读端口
+    .enb(data_read_en),
+    .addrb(PHT_rd_index),
+    .doutb(PHT_rd_data)
+
+
 );
+
+
+
+
+
 endmodule
