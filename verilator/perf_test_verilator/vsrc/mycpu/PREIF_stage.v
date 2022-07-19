@@ -14,6 +14,7 @@ module pre_if_stage(
 
     input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
+    input                          flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
     input  [31:0]                  CP0_EPC_out, //CP0寄存器中,EPC的值
     input                          m1s_inst_eret,
 
@@ -23,23 +24,45 @@ module pre_if_stage(
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
     //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
-    output reg                     inst_valid //
+    output reg [31:0]              prefs_pc,
+    input                          ITLB_found,
+    input      [19:0]              ITLB_pfn0,
+    input      [ 2:0]              ITLB_c0,
+    input                          ITLB_d0,
+    input                          ITLB_v0,
+    input      [19:0]              ITLB_pfn1,
+    input      [ 2:0]              ITLB_c1,
+    input                          ITLB_d1,
+    input                          ITLB_v1,
+    input                          TLB_Buffer_Flush,
+    output reg                     inst_valid, 
+    input                          m1s_refetch,
+    input      [31:0]              m1s_pc,
+    input                          m1s_is_ICacheInst,
+    input      [11:4]              cache_index, //M1阶段传回 Cache指令使用的index
+    output reg                     ICacheInst_delayed
 );
 
 wire         ps_ready_go;
 wire         ps_allowin;
 
 wire [31:12] ITLB_PFN; //实地址
-wire         ps_ex;
 wire         ADEL_ex;//处理取指令地址错例外ADEL
-wire [ 4:0]  ps_Exctype;
+wire         ITLB_ex;//处理取指令地址错例外ADEL
+wire         ps_ex;
+wire [4:0]   ps_Exctype;
+wire [4:0]   ITLB_Exctype;
+wire         ITLB_Buffer_Stall;
+wire         inst_valid_end;
 
 //PC_reg
 reg   [31:0] nextpc;
 wire  [31:0] seq_pc;
-reg   [31:0] prefs_pc;
+wire  [31:0] right_flow_pc;
+wire  [31:0] wrong_flow_pc;
 reg          flush_delayed;
-
+reg          refetch_delayed;
+reg   [11:4] cache_index_delayed;
 
 wire         br_taken;
 wire  [31:0] br_target;
@@ -53,34 +76,33 @@ wire         prefs_bdd; //跳转指令的下下条
 wire [31:0]  BPU_target;
 wire         BPU_valid;
 
+/******************BPU_to_ps_bus Total: 33bits******************/
 assign {BPU_target,BPU_valid} = BPU_to_ps_bus;
 
 
-
+/******************Br Bus Total: 68bits******************/
 assign {
-        br_BPU_valid,
-        is_branch,
-        br_taken,
-        br_BPU_right,
-        br_target,
-        br_es_pc
+        br_BPU_valid, //67:67
+        is_branch,    //66:66
+        br_taken,     //65:65
+        br_BPU_right, //64:64
+        br_target,    //63:32
+        br_es_pc      //31:0
         } = br_bus; 
 
-//计数使用，可以注掉//
-reg [31:0] br_ds_pc_buffer;
-reg [31:0] branch_count;
-reg [31:0] right_count;
 `ifdef OPEN_VA_PERF
+    //计数使用，可以注掉//
+    reg [31:0] br_ds_pc_buffer;
+    reg [31:0] branch_count;
+    reg [31:0] right_count;
     always_latch @(br_es_pc) begin
         if(reset)begin
             branch_count = 0;
             right_count = 0;
         end
-
         if(is_branch)begin
-        branch_count = branch_count + 1;
+            branch_count = branch_count + 1;
         end
-
         if(is_branch & br_BPU_right)begin
             right_count = right_count + 1;
         end
@@ -112,40 +134,40 @@ reg [31:0] right_count;
 
 ////////////////////
 
-assign ps_ready_go    = ~icache_busy;
+assign ps_ready_go    = ~icache_busy & ~ITLB_Buffer_Stall;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
+assign inst_valid_end = inst_valid & ~br_flush;
+/******************ps_to_fs_bus Total: 39bits******************/
 assign ps_to_fs_bus   = {
-                          inst_valid, //38:38
-                          prefs_pc, //37:6
-                          ps_ex,      //5:5
-                          ps_Exctype  //4:0
+                          inst_valid_end, //38:38
+                          prefs_pc,       //37:6
+                          ps_ex,          //5:5
+                          ps_Exctype      //4:0
                         };
 
 assign seq_pc = prefs_pc + 4;
+assign right_flow_pc = BPU_valid ? BPU_target : seq_pc;
+assign wrong_flow_pc = br_taken ? br_target : br_es_pc + 8;
+
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
     else if(flush) begin
+        if(flush_refill) 
+            nextpc = `REFILL_EX_PC;
+        else if(m1s_refetch)
+            nextpc = m1s_pc;
+        else 
             nextpc = `GENERAL_EX_PC;
     end
     else if(is_branch)begin
         if(br_BPU_valid)begin
             if(br_BPU_right)begin
-                if(BPU_valid)begin
-                    nextpc = BPU_target;
-                end
-                else begin
-                    nextpc = seq_pc;
-                end
+                nextpc = right_flow_pc;
             end
             else begin
-                if(br_taken)begin
-                    nextpc = br_target;
-                end
-                else begin
-                    nextpc = br_es_pc + 8;
-                end
+                nextpc = wrong_flow_pc;
             end
         end
         else begin
@@ -153,19 +175,12 @@ always @(*) begin //nextpc
                 nextpc = br_target;
             end
             else begin
-                if(BPU_valid)begin
-                    nextpc = BPU_target;
-                end 
-                else begin
-                    nextpc = seq_pc;
-                end
+                nextpc = right_flow_pc;
             end
         end
     end
-    else if(BPU_valid)
-        nextpc = BPU_target;
-    else
-        nextpc = seq_pc;
+    else 
+        nextpc = right_flow_pc;
 end
 
 always @(posedge clk) begin //prefs_pc
@@ -176,15 +191,30 @@ always @(posedge clk) begin //prefs_pc
 end
 
 ITLB_stage ITLB(
-    .clk                  (clk                 ),
-    .reset                (reset               ),
-    .ITLB_VPN             (prefs_pc[31:12]     ), 
-    .ITLB_PFN             (ITLB_PFN            )
+        .clk                  (clk                 ),
+        .reset                (reset               ),
+        .ITLB_found           (ITLB_found          ),
+        .ITLB_VPN             (prefs_pc[31:12]     ), 
+        .ITLB_PFN             (ITLB_PFN            ),
+        .ITLB_pfn0            (ITLB_pfn0           ),
+        .ITLB_c0              (ITLB_c0             ),
+        .ITLB_d0              (ITLB_d0             ),
+        .ITLB_v0              (ITLB_v0             ),
+        .ITLB_pfn1            (ITLB_pfn1           ),
+        .ITLB_c1              (ITLB_c1             ),
+        .ITLB_d1              (ITLB_d1             ),
+        .ITLB_v1              (ITLB_v1             ),
+        .ITLB_Exctype         (ITLB_Exctype        ),
+        .ITLB_ex              (ITLB_ex             ),
+        .ITLB_Buffer_Stall    (ITLB_Buffer_Stall   ),
+        .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
 );
 
 assign ADEL_ex    = prefs_pc[1:0] != 2'b00; 
-assign ps_ex      = ADEL_ex;
-assign ps_Exctype = ADEL_ex ? `AdEL : `NO_EX;
+assign ps_ex      = ADEL_ex | ITLB_ex;
+assign ps_Exctype = ADEL_ex ? `AdEL         :
+                    ITLB_ex ?  ITLB_Exctype : 
+                              `NO_EX;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 always @(posedge clk) begin
@@ -196,20 +226,45 @@ always @(posedge clk) begin
         flush_delayed <= 1'b0;
 end
 
-// assign prefs_bdd = br_BPU_valid ? ( is_branch & ~br_BPU_right ) : br_taken; //br_taken = 1,����prefs_pc��Ӧָ������תָ���������??
+always @(posedge clk) begin
+    if(reset)
+        refetch_delayed <= 1'b0;
+    else if(m1s_refetch)
+        refetch_delayed <= 1'b1;
+    else if(~icache_busy)
+        refetch_delayed <= 1'b0;
+end
+
+always @(posedge clk) begin
+    if(reset)
+        ICacheInst_delayed <= 1'b0;
+    else if(m1s_is_ICacheInst)
+        ICacheInst_delayed <= 1'b1;
+    else if(~icache_busy)
+        ICacheInst_delayed <= 1'b0;
+end
+
+always @(posedge clk) begin
+    if(reset)
+        cache_index_delayed <= 8'b0;
+    else if(m1s_is_ICacheInst)
+        cache_index_delayed <= cache_index;
+    else if(~icache_busy)
+        cache_index_delayed <= 8'b0;
+end
 always @(*) begin
-    if(flush_delayed & ~icache_busy & ~br_flush)
+    if(flush_delayed & ~icache_busy & ~refetch_delayed)
         inst_valid = 1'b1;
-    else if(prefs_pc[1:0] != 2'b00)
+    else if(ps_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
-    else if(~icache_busy & ps_allowin & ~br_flush) 
+    else if(~icache_busy & ps_allowin & ~refetch_delayed) 
         inst_valid = 1'b1;
     else
         inst_valid = 1'b0;
 end
 
-assign inst_tag    = ITLB_PFN;
-assign inst_index  = prefs_pc[11:4];
-assign inst_offset = prefs_pc[3:0];
+assign inst_tag       = ITLB_PFN;
+assign inst_index     = ICacheInst_delayed ? cache_index_delayed : prefs_pc[11:4];
+assign inst_offset    = prefs_pc[3:0];
 /*******************CPU与ICache的交互信号赋值如上******************/
 endmodule
