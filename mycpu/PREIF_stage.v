@@ -25,6 +25,7 @@ module pre_if_stage(
     //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
     output reg                     inst_valid //
 );
+wire         inst_valid_end;
 
 wire         ps_ready_go;
 wire         ps_allowin;
