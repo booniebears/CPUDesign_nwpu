@@ -89,6 +89,7 @@ wire          m1s_inst_mtc0;
 wire          m1s_bd;
 wire [ 4:0]   m1s_Exctype;
 wire [31:0]   m1s_alu_result;
+wire [31:0]   m1s_fianl_result;
 wire [31:12]  DTLB_PFN;
 wire          eret_flush;
  
@@ -137,16 +138,15 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
+                        m1s_load_op     ,  //150:150
                         m1s_store_flow  ,  //149:149
-                        m1s_inst_mfc0   ,  //148:148
-                        CP0_data        ,  //147:116
                         m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83
                         m1s_mem_inst    ,  //82:71
                         m1s_res_from_mem,  //70:70
                         m1s_gr_we       ,  //69:69
                         m1s_dest        ,  //68:64
-                        m1s_alu_result  ,  //63:32
+                        m1s_fianl_result,  //63:32
                         m1s_pc             //31:0
                         } ;               
 
@@ -175,7 +175,8 @@ end
 
 //lab4添加
 assign M1s_dest   = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
-assign M1s_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
+assign m1s_fianl_result = m1s_inst_mfc0 ? CP0_data : m1s_alu_result;
+assign M1s_result = m1s_fianl_result; //ms_final_result可以是DM中值,也可以是MEM阶段ALU运算值,forward到ID阶段
 
 /******************CP0推到MEM阶段******************/
 CP0_Reg u_CP0_Reg(
