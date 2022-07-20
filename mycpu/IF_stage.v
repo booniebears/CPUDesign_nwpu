@@ -11,7 +11,7 @@ module if_stage(
     //brbus
     input                          fs_bd, 
     input [`BRESULT_WD  -1:0]      BResult,
-    input [31:0]                   stack_addr,
+    // input [31:0]                   stack_addr,
     //to ps
     output [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds
@@ -41,7 +41,7 @@ assign       inst_is_ja = ( pre_inst_op[5:1] == 5'b00001); /*   J指令 和 JAL�
                                                                     提前译码，判断是否是 J指令 或者是 JAL指令*/
 assign       ja_target  = { prefs_pc[31:28] , inst_rdata[25:0] , 2'b0};
 
-assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
+// assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
 
 
 
@@ -126,9 +126,9 @@ BPU u_BPU(
     .ds_allowin         (ds_allowin),
     .BResult            (BResult),
     .ja_target          (ja_target ),
-    .stack_addr         (stack_addr),
+    // .stack_addr         (stack_addr),
     .inst_is_ja         (inst_is_ja),    
-    .inst_is_jr         (inst_is_jr),    
+    // .inst_is_jr         (inst_is_jr),    
     //***********output************//
     .target             (BPU_target),
     .BPU_valid          (BPU_valid),

@@ -93,23 +93,23 @@ reg [31:0] right_count;
     end
 `else
 
-    always @(br_es_pc) begin
-        if(reset)begin
-            branch_count = 0;
-            right_count = 0;
-        end
+    // always @(br_es_pc) begin
+    //     if(reset)begin
+    //         branch_count = 0;
+    //         right_count = 0;
+    //     end
 
-        if(is_branch)begin
-            branch_count = branch_count + 1;
-        end
+    //     if(is_branch)begin
+    //         branch_count = branch_count + 1;
+    //     end
 
-        if(is_branch & br_BPU_right)begin
-            right_count = right_count + 1;
-        end
-    end
-    always @(posedge clk) begin
-        br_ds_pc_buffer <= br_es_pc;
-    end
+    //     if(is_branch & br_BPU_right)begin
+    //         right_count = right_count + 1;
+    //     end
+    // end
+    // always @(posedge clk) begin
+    //     br_ds_pc_buffer <= br_es_pc;
+    // end
 
  `endif 
 

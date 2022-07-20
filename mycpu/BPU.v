@@ -19,7 +19,7 @@ module BPU#(
     input [31:0] ja_target ,
     input [31:0] stack_addr,
     input inst_is_ja,
-    input inst_is_jr,
+    // input inst_is_jr,
     output [31:0] target,
     output BPU_valid,
     output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus

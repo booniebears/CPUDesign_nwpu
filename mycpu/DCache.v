@@ -94,7 +94,7 @@ wire                   reqbuffer_en;
 wire                   reqbuffer_flush;
 reg                    reqbuffer_data_valid;
 reg                    reqbuffer_data_op;
-reg [INDEX_WIDTH-1:0]  reqbuffer_data_index;
+(*max_fanout = "50"*)reg [INDEX_WIDTH-1:0]  reqbuffer_data_index;
 reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
 reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
