@@ -138,7 +138,7 @@ assign {
        } = es_to_m1s_bus_r;
 
 assign m1s_to_ms_bus = {
-                        m1s_load_op     ,  //150:150
+                        // m1s_load_op     ,  //150:150
                         m1s_store_flow  ,  //149:149
                         m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83

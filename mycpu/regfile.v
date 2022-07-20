@@ -10,9 +10,12 @@ module regfile(
     // WRITE PORT
     input         we,       //write enable, HIGH valid
     input  [ 4:0] waddr,
-    input  [31:0] wdata
+    input  [31:0] wdata,
+    output [31:0] stack_addr
 );
 reg [31:0] rf[31:0];
+
+assign stack_addr = rf[31];
 
 integer i;
 //WRITE

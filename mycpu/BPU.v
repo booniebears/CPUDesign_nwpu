@@ -16,6 +16,10 @@ module BPU#(
     input pc_valid,
     input ds_allowin,
     input [`BRESULT_WD - 1 :0] BResult,
+    input [31:0] ja_target ,
+    input [31:0] stack_addr,
+    input inst_is_ja,
+    input inst_is_jr,
     output [31:0] target,
     output BPU_valid,
     output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus
@@ -71,7 +75,7 @@ wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
 
 assign PHT_rd_index = pre_pc[9:2];
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
-assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]) & ~PHT_we; // 写的时候返回数据不是想要读的
+assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]); // 写的时候返回数据不是想要读的
 
 wire [21:0] debug_fs_pc_tag;
 assign debug_fs_pc_tag = fs_pc[31:10];
@@ -82,6 +86,7 @@ reg BPU_valid_reg;
 reg [31:0] BPU_ret_addr_reg;
 reg [1:0] BPU_Count_reg;
 reg BPU_is_taken_reg;               //预测是否跳转
+wire BPU_is_taken;
 
 assign BPU_to_ds_bus = {
                             BPU_is_taken_reg,
@@ -89,7 +94,12 @@ assign BPU_to_ds_bus = {
                             BPU_valid_reg,
                             BPU_ret_addr_reg
                             };
-assign BPU_ret_addr = PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
+assign BPU_ret_addr =   inst_is_ja        ? ja_target :
+                        // inst_is_jr        ? stack_addr:
+                        PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
+
+// assign BPU_is_taken =   (inst_is_ja | inst_is_jr)  ?   1   :   ~PHT_rout_Count[1];
+assign BPU_is_taken =   inst_is_ja   ?   1   :   ~PHT_rout_Count[1];
 
 always @(posedge clk) begin
     if(reset)begin
@@ -100,11 +110,11 @@ always @(posedge clk) begin
     end
 
     if(ds_allowin)begin
-        if(PHT_hit)begin
+        if(BPU_valid)begin
             BPU_valid_reg <= 1;
             BPU_Count_reg <= PHT_rout_Count;
             BPU_ret_addr_reg <= BPU_ret_addr;
-            BPU_is_taken_reg <= ~PHT_rout_Count[1];
+            BPU_is_taken_reg <= BPU_is_taken;
         end
         else begin
             BPU_valid_reg <= 0;
@@ -119,7 +129,8 @@ end
 /*************************************************************************/
 
 assign target = BPU_ret_addr;
-assign BPU_valid = PHT_hit;
+// assign BPU_valid = PHT_hit | inst_is_ja | inst_is_jr;
+assign BPU_valid = PHT_hit | inst_is_ja ;
 // assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;

@@ -93,23 +93,23 @@ reg [31:0] right_count;
     end
 `else
 
-    // always @(br_es_pc) begin
-    //     if(reset)begin
-    //         branch_count = 0;
-    //         right_count = 0;
-    //     end
+    always @(br_es_pc) begin
+        if(reset)begin
+            branch_count = 0;
+            right_count = 0;
+        end
 
-    //     if(is_branch)begin
-    //     branch_count = branch_count + 1;
-    //     end
+        if(is_branch)begin
+            branch_count = branch_count + 1;
+        end
 
-    //     if(is_branch & br_BPU_right)begin
-    //         right_count = right_count + 1;
-    //     end
-    // end
-    // always @(posedge clk) begin
-    //     br_ds_pc_buffer <= br_es_pc;
-    // end
+        if(is_branch & br_BPU_right)begin
+            right_count = right_count + 1;
+        end
+    end
+    always @(posedge clk) begin
+        br_ds_pc_buffer <= br_es_pc;
+    end
 
  `endif 
 
@@ -172,7 +172,7 @@ ITLB_stage ITLB(
     .ITLB_PFN             (ITLB_PFN            )
 );
 
-assign ADEL_ex    = prefs_pc[1:0] != 2'b00; 
+assign ADEL_ex    = (prefs_pc[1:0] != 2'b00) & ~br_flush; 
 assign ps_ex      = ADEL_ex;
 assign ps_Exctype = ADEL_ex ? `AdEL : `NO_EX;
 
