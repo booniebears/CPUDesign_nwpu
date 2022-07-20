@@ -145,7 +145,14 @@ wire [127:0] dcache_wr_data; //一次写一个cache line的数据
 wire         dcache_wr_rdy;
 wire         dcache_wr_valid;
 
-//AXI和Uncache(DCache)的交互信号
+//AXI和Uncache的交互信号
+`ifdef use_new_axi_crossbar
+    wire         uicache_rd_req; 
+    wire  [31:0] uicache_rd_addr; 
+    wire         uicache_rd_rdy; 
+    wire         uicache_ret_valid; 
+    wire  [31:0] uicache_ret_data;
+`endif
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
 wire  [ 2:0] udcache_load_size;
@@ -275,6 +282,13 @@ AXI_Interface U_AXI_Interface(
     .dcache_wr_data    (dcache_wr_data    ),
     .dcache_wr_rdy     (dcache_wr_rdy     ),
     .dcache_wr_valid   (dcache_wr_valid   ),
+`ifdef use_new_axi_crossbar
+    .uicache_rd_req    (uicache_rd_req    ),
+    .uicache_rd_addr   (uicache_rd_addr   ),
+    .uicache_rd_rdy    (uicache_rd_rdy    ),
+    .uicache_ret_valid (uicache_ret_valid ),
+    .uicache_ret_data  (uicache_ret_data  ),   
+`endif
     .udcache_rd_req    (udcache_rd_req    ),
     .udcache_rd_addr   (udcache_rd_addr   ),
     .udcache_load_size (udcache_load_size ),
