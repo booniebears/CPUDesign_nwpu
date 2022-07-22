@@ -127,6 +127,7 @@ wire         m1s_is_ICacheInst;
 wire         m1s_is_DCacheInst;
 wire         ICacheInst_delayed;
 wire  [ 2:0] m1s_CacheInst_type;
+wire  [ 2:0] CP0_Config_K0_out;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -184,7 +185,8 @@ wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
 wire  [31:0] data_rdata;
 wire  [ 2:0] load_size;
-wire         isUncache;
+wire         DCache_isUncache;
+wire         ICache_isUncache;
 wire         dcache_busy;
 wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
 
@@ -310,10 +312,18 @@ Icache U_Icache(
     .inst_index          (inst_index        ),
     .inst_tag            (inst_tag          ),
     .inst_offset         (inst_offset       ),
-    .icache_busy         (icache_busy       ),
+    .busy                (icache_busy       ),
     .inst_rdata          (inst_rdata        ),
     .ICacheInst_delayed  (ICacheInst_delayed),
 
+`ifdef use_new_axi_crossbar
+    .uicache_rd_req      (uicache_rd_req    ),
+    .uicache_rd_addr     (uicache_rd_addr   ),
+    .uicache_rd_rdy      (uicache_rd_rdy    ),
+    .uicache_ret_valid   (uicache_ret_valid ),
+    .uicache_ret_data    (uicache_ret_data  ),  
+    .isUncache           (ICache_isUncache  ),  
+`endif
     .icache_rd_req       (icache_rd_req     ),
     .icache_rd_addr      (icache_rd_addr    ),
     .icache_rd_rdy       (icache_rd_rdy     ),
@@ -361,7 +371,7 @@ DCache U_DCache(
     .udcache_wr_data     (udcache_wr_data    ),
     .udcache_wr_rdy      (udcache_wr_rdy     ),
     .udcache_wr_valid    (udcache_wr_valid   ),
-    .isUncache           (isUncache          ) 
+    .isUncache           (DCache_isUncache   ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
@@ -397,7 +407,9 @@ pre_if_stage pre_if_stage(
     .m1s_pc              (m1s_pc               ),
     .cache_index         (m1s_alu_result[11:4] ),
     .m1s_is_ICacheInst   (m1s_is_ICacheInst    ),
-    .ICacheInst_delayed  (ICacheInst_delayed   )
+    .ICacheInst_delayed  (ICacheInst_delayed   ),
+    .CP0_Config_K0_out   (CP0_Config_K0_out    ),
+    .isUncache           (ICache_isUncache     )
 );
 
 // IF stage
@@ -570,13 +582,14 @@ m1_stage m1_stage(
     .DTLB_c1            (DTLB_c1            ),
     .DTLB_d1            (DTLB_d1            ),
     .DTLB_v1            (DTLB_v1            ),
-    .isUncache          (isUncache          ),
+    .isUncache          (DCache_isUncache   ),
     .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
     .m1s_pc             (m1s_pc             ),
     .m1s_refetch        (m1s_refetch        ),
     .m1s_is_ICacheInst  (m1s_is_ICacheInst  ),
     .m1s_is_DCacheInst  (m1s_is_DCacheInst  ),
-    .m1s_CacheInst_type (m1s_CacheInst_type )
+    .m1s_CacheInst_type (m1s_CacheInst_type ),
+    .CP0_Config_K0_out  (CP0_Config_K0_out  )
 );
 
 // MEM stage

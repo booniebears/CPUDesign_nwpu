@@ -56,7 +56,7 @@ always @(*) begin //虚实地址转换
     end
 end
 
-always @(*) begin //TODO:目前比较简化,没有考虑Config寄存器.kseg1固定为uncache,kseg0先认为是cache属性
+always @(*) begin
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache = 1'b1;
     else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) begin

@@ -40,7 +40,9 @@ module pre_if_stage(
     input      [31:0]              m1s_pc,
     input                          m1s_is_ICacheInst,
     input      [11:4]              cache_index, //M1阶段传回 Cache指令使用的index
-    output reg                     ICacheInst_delayed
+    output reg                     ICacheInst_delayed,
+    input      [ 2:0]              CP0_Config_K0_out,
+    output                         isUncache //
 );
 
 wire         ps_ready_go;
@@ -206,8 +208,10 @@ ITLB_stage ITLB(
         .ITLB_v1              (ITLB_v1             ),
         .ITLB_Exctype         (ITLB_Exctype        ),
         .ITLB_ex              (ITLB_ex             ),
+        .isUncache            (isUncache           ),
         .ITLB_Buffer_Stall    (ITLB_Buffer_Stall   ),
-        .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
+        .TLB_Buffer_Flush     (TLB_Buffer_Flush    ),
+        .CP0_Config_K0_out    (CP0_Config_K0_out   )
 );
 
 assign ADEL_ex    = prefs_pc[1:0] != 2'b00; 

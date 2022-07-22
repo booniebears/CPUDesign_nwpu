@@ -620,7 +620,7 @@ reg [1:0] Soft_state,Soft_nextstate;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP_out[1:0] != 0 && has_int && ds_valid) begin
+            if(has_int && ds_valid) begin
                 Soft_nextstate = Soft_Start;
                 Soft_int       = 1'b1;
             end
@@ -638,7 +638,7 @@ always @(*) begin //该状态机同时处理next_state和Soft_int
                 Soft_int       = 1'b1;
             end
         Soft_Rollback:
-            if(CP0_Cause_IP_out[1:0] == 0 && ~has_int) begin
+            if(~has_int) begin
                 Soft_nextstate = Soft_Idle;
                 Soft_int       = 1'b0;
             end

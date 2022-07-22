@@ -432,7 +432,7 @@ module AXI_Interface (
     assign dcache_wr_valid  = (D_WR_state == W_FINISH);
     //Flip-Flop
     always @(posedge clk) begin
-        if(~resetn)
+        if(~resetn | D_RD_state == R_IDLE)
             DCache_rd_cnt <= 0;
         else if(data_rvalid)
             DCache_rd_cnt <= DCache_rd_cnt + 1;
@@ -551,7 +551,7 @@ module AXI_Interface (
     always @(posedge clk) begin
         if(~resetn)
             UDCache_write_word <= 0;
-        else if(D_WR_state == W_IDLE)
+        else if(UD_WR_state == UW_IDLE)
             UDCache_write_word <= udcache_wr_data;
         else
             UDCache_write_word <= UDCache_write_word;
@@ -574,13 +574,13 @@ module AXI_Interface (
     //Flip-Flop
     always @(posedge clk) begin
         if(~resetn)
-            UICache_read_word <= 0;
+            UDCache_read_word <= 0;
         else if(UD_RD_state == UR_SHAKE)
-            UICache_read_word <= udata_rdata;
+            UDCache_read_word <= udata_rdata;
         else
-            UICache_read_word <= UICache_read_word;
+            UDCache_read_word <= UDCache_read_word;
     end
-    assign udcache_ret_data  = UICache_read_word;
+    assign udcache_ret_data  = UDCache_read_word;
     /********************UDCache RECV********************/
 //AXI Crossbar 4*1
 `ifdef use_crossbar_ip

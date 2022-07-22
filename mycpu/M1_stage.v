@@ -91,7 +91,8 @@ module m1_stage(
     output          m1s_refetch, //表明出现冒险,需要refetch
     output          m1s_is_ICacheInst,
     output          m1s_is_DCacheInst,
-    output [ 2:0]   m1s_CacheInst_type //
+    output [ 2:0]   m1s_CacheInst_type, 
+    output [ 2:0]   CP0_Config_K0_out
 );
 
 wire [31:12] DTLB_PFN;
@@ -119,7 +120,6 @@ wire         DTLB_Buffer_Stall;
 wire         eret_flush;
 wire         TLB_refetch; //表明出现冒险,需要refetch
 wire         ICache_refetch; //表明出现冒险,需要refetch
-wire [ 2:0]  CP0_Config_K0_out;
 
 wire [31:0]  CP0_data;
 wire         m1s_inst_tlbr; 

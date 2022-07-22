@@ -755,9 +755,7 @@
 
 // endmodule 
 
-
-
-
+`ifndef use_new_axi_crossbar
 `include "global_defines.vh"
 `include "AXICache_defines.vh"
 module AXI_Interface(
@@ -2137,3 +2135,4 @@ module AXI_Interface(
     );
 `endif 
 endmodule
+`endif
