@@ -216,7 +216,7 @@ wire  [3:0]    cp0_to_tlb_random; //tlbwr指令的索引值
 wire  [31:0]   m1s_alu_result   ;
 /********************TLB-CP0交互信号如上********************/
 wire           TLB_Buffer_Flush;
-
+wire           brlikely_Flush ;
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
     .resetn  (aresetn  ),
@@ -447,7 +447,8 @@ id_stage id_stage(
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .icache_busy        (icache_busy        ),
-    .dcache_busy        (dcache_busy        )
+    .dcache_busy        (dcache_busy        ),
+    .brlikely_Flush     (brlikely_Flush     )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -474,7 +475,8 @@ exe_stage exe_stage(
     .flush           (flush           ),
     .m1s_ex          (m1s_ex          ),
     .es_inst_mfc0    (es_inst_mfc0    ),
-    .m1s_inst_eret   (m1s_inst_eret   )
+    .m1s_inst_eret   (m1s_inst_eret   ),
+    .brlikely_Flush  (brlikely_Flush  )
 );
 
 // M1 stage

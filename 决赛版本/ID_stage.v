@@ -39,7 +39,8 @@ module id_stage(
     input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     input        icache_busy,
-    input        dcache_busy
+    input        dcache_busy,
+    input        brlikely_Flush
 );
 
 reg         ds_valid   ;
@@ -175,6 +176,9 @@ wire        inst_bgezal;
 wire        inst_bltzal;
 wire        inst_j;
 wire        inst_jalr;
+
+wire        inst_beql;
+wire        inst_bnel;
 //lab7修改 添加存数指令swl,swr,sb,sh,取数指令lb,lbu,lh,lhu,lwl,lwr
 wire        inst_swl;
 wire        inst_swr;
@@ -254,9 +258,10 @@ wire        src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt
 wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
 wire        mfc0_stall;
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
-
+reg         bra_likely;
 /******************ds_to_es_bus Total: 274 + 29 bits******************/
 assign ds_to_es_bus = {
+                       bra_likely          ,
                        alu_op              , //302:274 --alu指令控制
                        is_ICacheInst       , //273:273
                        is_DCacheInst       , //272:272
@@ -308,7 +313,7 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush | brlikely_Flush) //清除流水线
         fs_to_ds_bus_r <= 0;
     else if (fs_to_ds_valid & ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
@@ -383,6 +388,8 @@ assign inst_bgezal = op_d[6'h01] & rt_d[5'h11];
 assign inst_bltzal = op_d[6'h01] & rt_d[5'h10];
 assign inst_j      = op_d[6'h02];
 assign inst_jalr   = op_d[6'h00] & func_d[6'h09] & rt_d[5'h00] & sa_d[5'h00];
+assign inst_beql   = op_d[6'h14];
+assign inst_bnel   = op_d[6'h15];
 //lab7添加 添加存数指令swl,swr,sb,sh,取数指令lb,lbu,lh,lhu,lwl,lwr 
 assign inst_swl    = op_d[6'h2a];
 assign inst_swr    = op_d[6'h2e];
@@ -450,7 +457,7 @@ inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_m
 inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo | 
 inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | 
 inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | 
-inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache;
+inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_beql |inst_bnel;
 
 `ifdef FPU_EX_Valid
     always @(*) begin
@@ -760,7 +767,7 @@ assign dst_is_r31   = inst_jal | inst_bgezal | inst_bltzal;
 assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu |
                       inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu |
                       inst_lwl | inst_lwr | inst_mfc0;
-assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne & ~inst_jr & ~inst_bgez & ~inst_bgtz &
+assign gr_we        = ~inst_sw & ~inst_beq & ~inst_beql & ~inst_bne & ~inst_bnel & ~inst_jr & ~inst_bgez & ~inst_bgtz &
                       ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~inst_mtlo & ~inst_sb &
                       ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
                       ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
@@ -791,24 +798,26 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 
 // assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
-| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
+| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j | inst_beql | inst_bnel; //lab8添加
 
 
 always @(*) begin
-    case ({inst_beq, inst_bne, inst_jal, inst_jr, inst_j, inst_jalr, inst_bgez, inst_bgtz, inst_blez, inst_bltz, inst_bgezal, inst_bltzal})
-        12'b000000000000:branch_type = `BRANCH_TYPE_NONE;
-        12'b000000000001:branch_type = `BRANCH_TYPE_BLTZAL;
-        12'b000000000010:branch_type = `BRANCH_TYPE_BGEZAL;
-        12'b000000000100:branch_type = `BRANCH_TYPE_BLTZ;
-        12'b000000001000:branch_type = `BRANCH_TYPE_BLEZ;
-        12'b000000010000:branch_type = `BRANCH_TYPE_BGTZ;
-        12'b000000100000:branch_type = `BRANCH_TYPE_BGEZ;
-        12'b000001000000:branch_type = `BRANCH_TYPE_JALR;
-        12'b000010000000:branch_type = `BRANCH_TYPE_J;
-        12'b000100000000:branch_type = `BRANCH_TYPE_JR;
-        12'b001000000000:branch_type = `BRANCH_TYPE_JAL;
-        12'b010000000000:branch_type = `BRANCH_TYPE_BNE;
-        12'b100000000000:branch_type = `BRANCH_TYPE_BEQ;
+    case ({inst_beql,inst_bnel,inst_beq, inst_bne, inst_jal, inst_jr, inst_j, inst_jalr, inst_bgez, inst_bgtz, inst_blez, inst_bltz, inst_bgezal, inst_bltzal})
+        14'b00000000000000:branch_type = `BRANCH_TYPE_NONE;
+        14'b00000000000001:branch_type = `BRANCH_TYPE_BLTZAL;
+        14'b00000000000010:branch_type = `BRANCH_TYPE_BGEZAL;
+        14'b00000000000100:branch_type = `BRANCH_TYPE_BLTZ;
+        14'b00000000001000:branch_type = `BRANCH_TYPE_BLEZ;
+        14'b00000000010000:branch_type = `BRANCH_TYPE_BGTZ;
+        14'b00000000100000:branch_type = `BRANCH_TYPE_BGEZ;
+        14'b00000001000000:branch_type = `BRANCH_TYPE_JALR;
+        14'b00000010000000:branch_type = `BRANCH_TYPE_J;
+        14'b00000100000000:branch_type = `BRANCH_TYPE_JR;
+        14'b00001000000000:branch_type = `BRANCH_TYPE_JAL;
+        14'b00010000000000:branch_type = `BRANCH_TYPE_BNE;
+        14'b00100000000000:branch_type = `BRANCH_TYPE_BEQ;
+        14'b01000000000000:branch_type = `BRANCH_TYPE_BEQL;
+        14'b10000000000000:branch_type = `BRANCH_TYPE_BNEL;
         default: branch_type = `BRANCH_TYPE_ERROR;
     endcase
 end
@@ -824,7 +833,7 @@ assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
                  & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
 //TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
-assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
+assign inst_no_dest = inst_beq |inst_beql | inst_bne | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
 | inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache;
 
 assign dest         = dst_is_r31   ? 5'd31 :
@@ -843,5 +852,16 @@ assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 
+
+// Branch Likely的检测
+always@(*) begin
+  case (branch_type)
+    `BRANCH_TYPE_BEQL :
+        bra_likely = 1'b1; 
+    `BRANCH_TYPE_BNEL : 
+        bra_likely = 1'b1; 
+    default : bra_likely = 1'b0; 
+    endcase
+end
 
 endmodule

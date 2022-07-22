@@ -3,13 +3,13 @@
     /*********************模块使能定义*********************/
     // `define FPU_EX_Valid
     // `define CacheInst_EN
-    `define OPEN_VA             //verilator仿真需要 注释
+    //`define OPEN_VA             //verilator仿真需要 注释
     //`define OPEN_VA_PERF        //verilator仿真需要 注释
-    // `define use_crossbar_ip   //vivado仿真需要 解注释
+    `define use_crossbar_ip   //vivado仿真需要 解注释
 
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
-    `define DS_TO_ES_NOALU_WD   274
+    `define DS_TO_ES_NOALU_WD   275 //+1
     `define BR_BUS_WD           68
     `define BRESULT_WD          68
     `define BPU_TO_PS_BUS_WD    33
@@ -59,6 +59,8 @@
     `define BRANCH_TYPE_BGEZAL  4'b1101
     `define BRANCH_TYPE_BLTZAL  4'b1110
     `define BRANCH_TYPE_ERROR   4'b1111
+    `define BRANCH_TYPE_BEQL    4'b0001  
+    `define BRANCH_TYPE_BNEL    4'b1000   
 
     /*********************ExcCode编码及其对应例外类型*********************/
     `define Int                 5'b00000 //中断

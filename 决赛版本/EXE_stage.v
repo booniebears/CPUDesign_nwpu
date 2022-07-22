@@ -23,7 +23,8 @@ module exe_stage(
     input                          flush, //flush=1时表明需要处理异常
     input                          m1s_ex,
     output                         es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
-    input                          m1s_inst_eret
+    input                          m1s_inst_eret,
+    output                         brlikely_Flush//EXE阶段指令为brlikely 前递到ID阶段
 );
 
 wire [31:0] ds_pc;
@@ -92,9 +93,10 @@ wire        es_rsgez;
 wire        es_rsgtz;
 wire        es_rslez;
 wire        es_rsltz;
-
+wire        es_bra_likely;
 /******************ds_to_es_bus Total: 274 + 29 bits******************/
 assign {
+        es_bra_likely          ,
         es_alu_op              ,  //302:274
         es_is_ICacheInst       ,  //273:273
         es_is_DCacheInst       ,  //272:272
@@ -145,6 +147,7 @@ assign es_rsgtz = (es_rs_value[31] == 1'b0  &&  es_rs_value != 32'b0); //>0
 assign es_rslez = (es_rs_value[31] == 1'b1  ||  es_rs_value == 32'b0); //<=0
 assign es_rsltz = (es_rs_value[31] == 1'b1  &&  es_rs_value != 32'b0); //<0
 
+
 assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
                         || es_branch_type == `BRANCH_TYPE_BNE
                         || es_branch_type == `BRANCH_TYPE_BGEZ
@@ -152,8 +155,11 @@ assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
                         || es_branch_type == `BRANCH_TYPE_BLEZ
                         || es_branch_type == `BRANCH_TYPE_BLTZ
                         || es_branch_type == `BRANCH_TYPE_BGEZAL
-                        || es_branch_type == `BRANCH_TYPE_BLTZAL ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
-                      (    es_branch_type == `BRANCH_TYPE_JR
+                        || es_branch_type == `BRANCH_TYPE_BLTZAL 
+                        || es_branch_type == `BRANCH_TYPE_BEQL
+                        || es_branch_type == `BRANCH_TYPE_BNEL
+                        ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
+                        (    es_branch_type == `BRANCH_TYPE_JR
                         || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
 assign es_br_taken =  (    (es_branch_type == `BRANCH_TYPE_BEQ     &  es_rs_eq_rt)
@@ -166,8 +172,10 @@ assign es_br_taken =  (    (es_branch_type == `BRANCH_TYPE_BEQ     &  es_rs_eq_r
                         || (es_branch_type == `BRANCH_TYPE_BGTZ    & es_rsgtz    )
                         || (es_branch_type == `BRANCH_TYPE_BLEZ    & es_rslez    )
                         || (es_branch_type == `BRANCH_TYPE_BLTZ    & es_rsltz    )
-                        || (es_branch_type == `BRANCH_TYPE_BGEZAL  & es_rsgez   )
-                        || (es_branch_type == `BRANCH_TYPE_BLTZAL  & es_rsltz   )
+                        || (es_branch_type == `BRANCH_TYPE_BGEZAL  & es_rsgez    )
+                        || (es_branch_type == `BRANCH_TYPE_BLTZAL  & es_rsltz    )
+                        || (es_branch_type == `BRANCH_TYPE_BEQL    & es_rs_eq_rt )
+                        || (es_branch_type == `BRANCH_TYPE_BNEL    & !es_rs_eq_rt)
                       ) ;           
                     //   ) & es_valid;           
 
@@ -191,12 +199,14 @@ assign EXE_br_bus       = {
                             es_pc         //31:0
                           };
 
-assign es_br_flush = es_BPU_valid ? ( es_is_branch & ~es_BPU_right ) : es_br_taken;
+assign brlikely_Flush = es_bra_likely && (~es_br_taken);
+
+assign es_br_flush = (es_BPU_valid ? ( es_is_branch & ~es_BPU_right ) : es_br_taken) ;
 
 wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
 wire [31:0] temp_alu_result ; //临时接收alu计算得到的结果
-wire [31:0] es_alu_result ; //除了考虑alu运算结果,还考虑mtc0指令携带的rt数据;
+wire [31:0] es_alu_result   ; //除了考虑alu运算结果,还考虑mtc0指令携带的rt数据;
 wire        es_res_from_mem;
 
 //MUL DIV控制信号
@@ -274,7 +284,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush) //清除流水线
+    else if (flush ) //清除流水线
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;

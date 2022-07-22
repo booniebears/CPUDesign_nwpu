@@ -451,6 +451,18 @@ always @(posedge clk) begin
 end
 assign CP0_Config_K0_out = CP0_Config[2:0];
 
+//11.prid寄存器
+reg [7:0] CP0_PRid_R;
+reg [7:0] CP0_PRid_ComID;
+reg [9:0] CP0_PRid_ProID;
+reg [5:0] CP0_PRid_Rev;
+
+always @(posedge clk) begin
+    if(reset) begin
+        {CP0_PRid_R,CP0_PRid_ComID,CP0_PRid_ProID,CP0_PRid_Rev} <= 32'h00004220;
+    end
+end
+
 //mfc0指令实现:
 assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Count_RegAddr   )? CP0_Count:
@@ -467,6 +479,7 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Random_RegAddr  )? {28'b0,CP0_Random_Random}:
                   (CP0_Addr == `Wired_RegAddr   )? {28'b0,CP0_Wired_Wired}:
                   (CP0_Addr == `Context_RegAddr )? {CP0_Context_PTEBase,CP0_Context_BadVPN2,4'b0}:
+                  (CP0_Addr == `Prid_RegAddr    )? {CP0_PRid_R,CP0_PRid_ComID,CP0_PRid_ProID,CP0_PRid_Rev}:
                                                     32'b0; //TODO:目前CP0_data默认32'b0
 
 endmodule //CP0_Reg
