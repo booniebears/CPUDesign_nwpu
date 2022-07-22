@@ -36,6 +36,9 @@ reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire [19:0] es_alu_op     ;
 wire        es_src1_is_not_rs_value ;
 wire        es_src2_is_not_rt_value ;
+wire        es_br_is_imm;
+wire        es_br_is_reg;
+wire [31:0] es_imm_br_addr;
 wire [31:0] es_not_rs_value;
 wire [31:0] es_not_rt_value;
 wire        es_gr_we      ;
@@ -103,6 +106,9 @@ wire        es_rslez;
 wire        es_rsltz;
 
 assign {
+        es_br_is_reg                ,
+        es_br_is_imm                ,
+        es_imm_br_addr              ,
         es_not_rs_value             ,  //330:299
         es_not_rt_value             ,  //298:267
         es_BPU_ret_addr             ,  //266:235
@@ -158,15 +164,14 @@ assign es_mfc0_rd = es_part_inst[15:11];
 assign es_jidx = es_part_inst[25:0];
 
 //lab7添加
-assign es_rsgez = (es_rs_value[31] == 1'b0  ||  es_rs_value == 32'b0); //>=0
-assign es_rsgtz = (es_rs_value[31] == 1'b0  &&  es_rs_value != 32'b0); //>0
-assign es_rslez = (es_rs_value[31] == 1'b1  ||  es_rs_value == 32'b0); //<=0
-assign es_rsltz = (es_rs_value[31] == 1'b1  &&  es_rs_value != 32'b0); //<0
+assign es_rsgez =  (       ~es_rs_value[31] ); //>=0
+assign es_rsgtz =  ($signed(es_rs_value) > 0); // >0
+assign es_rslez = ~($signed(es_rs_value) > 0); //<=0
+assign es_rsltz =  (        es_rs_value[31] ); // <0
 
-assign es_br_target =   (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz 
-                        | inst_bgezal | inst_bltzal) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
-                        (inst_jr | inst_jalr)              ? es_rs_value :
-                        /*inst_jal,inst_j*/              {ds_pc[31:28], es_jidx[25:0], 2'b0};
+assign es_br_target =   es_br_is_imm                ?  es_imm_br_addr     :
+                        es_br_is_reg                ? es_rs_value         :
+                        /*inst_jal,inst_j*/         {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
 // assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
 //                         || es_branch_type == `BRANCH_TYPE_BNE
@@ -180,17 +185,17 @@ assign es_br_target =   (inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez
 //                         || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
 assign es_br_taken =  (  inst_beq  &  es_rs_eq_rt
-                      || inst_bne  & !es_rs_eq_rt
-                      || inst_jal
-                      || inst_jr
-                      || inst_j
-                      || inst_jalr
-                      || inst_bgez & es_rsgez
-                      || inst_bgtz & es_rsgtz
-                      || inst_blez & es_rslez
-                      || inst_bltz & es_rsltz
-                      || inst_bgezal & es_rsgez
-                      || inst_bltzal & es_rsltz
+                        | inst_bne  & !es_rs_eq_rt
+                        | inst_jal
+                        | inst_jr
+                        | inst_j
+                        | inst_jalr
+                        | inst_bgez & es_rsgez
+                        | inst_bgtz & es_rsgtz
+                        | inst_blez & es_rslez
+                        | inst_bltz & es_rsltz
+                        | inst_bgezal & es_rsgez
+                        | inst_bltzal & es_rsltz
                       ) ;
                     //   ) & es_valid;           
 

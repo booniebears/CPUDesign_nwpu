@@ -1,7 +1,7 @@
 module alu(
     input         clk,
     input         reset,
-    input  [19:0] alu_op,
+    input  [40:0] alu_op,
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
     output reg [31:0] alu_result,
@@ -89,11 +89,18 @@ wire [31:0] adder_b;
 wire [31:0] adder_cin;
 wire [31:0] adder_result;
 wire        adder_cout;
+wire [31:0] sub_result;
+wire [31:0] add_result;
+wire        sub_cout;
+wire        add_cout;
 
 assign adder_a   = alu_src1;
-assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
-assign adder_cin = (op_sub | op_slt | op_sltu) ? 32'b1      : 32'b0;
-assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
+assign adder_b   = op_sub  ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
+assign adder_cin = op_sub  ? 32'b1      : 32'b0;
+
+assign sub_result = alu_src1 - alu_src2;
+assign add_result = alu_src1 + alu_src2;
+assign adder_result = op_sub ? sub_result : add_result;
 
 //lab8添加
 assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //add或者addi
@@ -109,12 +116,11 @@ assign add_sub_result = adder_result;
 
 // SLT result
 assign slt_result[31:1] = 31'b0;
-assign slt_result[0]    = (alu_src1[31] & ~alu_src2[31])
-                        | (~(alu_src1[31] ^ alu_src2[31]) & adder_result[31]);
+assign slt_result[0]    = ($signed(alu_src1) < $signed(alu_src2));
 
 // SLTU result
 assign sltu_result[31:1] = 31'b0;
-assign sltu_result[0]    = ~adder_cout;
+assign sltu_result[0]    = (alu_src1 < alu_src2);
 
 // bitwise operation
 assign and_result = alu_src1 & alu_src2;

@@ -42,8 +42,8 @@ reg [1:0] icache_nextstate;
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
 reg                    reqbuffer_inst_valid;
-reg [INDEX_WIDTH-1:0]  reqbuffer_inst_index;
-reg [TAG_WIDTH-1:0]    reqbuffer_inst_tag;
+(*max_fanout = "8"*)reg [INDEX_WIDTH-1:0]  reqbuffer_inst_index;
+(*max_fanout = "8"*)reg [TAG_WIDTH-1:0]    reqbuffer_inst_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
 /****************define req_buffer***************/
 

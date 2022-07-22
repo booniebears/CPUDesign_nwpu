@@ -96,6 +96,10 @@ assign {rf_we   ,  //37:37
        } = ws_to_rf_bus;
 
 wire        br_taken;
+wire        br_is_reg;
+wire        br_is_imm;
+wire [31:0] imm_br_addr;
+
 // wire [31:0] br_target;
 
 // wire [40:0] alu_op; //12条ALU指令
@@ -277,6 +281,9 @@ wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EX
 //                         };
 
 assign ds_to_es_bus = {
+                       br_is_reg                ,
+                       br_is_imm                , 
+                       imm_br_addr              ,
                        not_rs_value             ,  //330:299
                        not_rt_value             ,  //298:267
                        BPU_ret_addr             ,  //266:235
@@ -540,7 +547,7 @@ reg [1:0] Soft_state,Soft_nextstate;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if(CP0_Cause_IP_out[1:0] != 0 && has_int && ds_valid) begin
+            if( has_int && ds_valid) begin
                 Soft_nextstate = Soft_Start;
                 Soft_int       = 1'b1;
             end
@@ -558,7 +565,7 @@ always @(*) begin //该状态机同时处理next_state和Soft_int
                 Soft_int       = 1'b1;
             end
         Soft_Rollback:
-            if(CP0_Cause_IP_out[1:0] == 0 && ~has_int) begin
+            if(~has_int) begin
                 Soft_nextstate = Soft_Idle;
                 Soft_int       = 1'b0;
             end
@@ -756,6 +763,9 @@ assign ds_br_inst = {
 //                    | inst_bgezal | inst_bltzal) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
 //                    (inst_jr | inst_jalr)              ? rs_value :
 //                    /*inst_jal,inst_j*/              {fs_pc[31:28], jidx[25:0], 2'b0};
+assign imm_br_addr = fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0};
+assign br_is_imm = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal | inst_bltzal;
+assign br_is_reg = inst_jr | inst_jalr;
 
 assign src1_no_rs = 1'b0;
 assign src2_no_rt = inst_addiu | load_op | inst_jal | inst_lui | inst_addi | inst_slti 

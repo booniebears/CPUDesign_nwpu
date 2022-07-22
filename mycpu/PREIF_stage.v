@@ -25,6 +25,7 @@ module pre_if_stage(
     //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
     output reg                     inst_valid //
 );
+
 wire         inst_valid_end;
 
 wire         ps_ready_go;
@@ -130,29 +131,21 @@ assign seq_pc = prefs_pc + 4;
 assign right_flow_pc = BPU_valid ? BPU_target : seq_pc;
 assign wrong_flow_pc = br_taken ? br_target : br_es_pc + 8;
 
+// wire believe_BPU;
+// assign believe_BPU = (is_branch & br_BPU_valid & br_BPU_right) | ~is_branch ;
+// assign need_corrtion = (is_branch & br_BPU_valid & ~br_BPU_right);
+
 always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
     else if(flush) begin
             nextpc = `GENERAL_EX_PC;
     end
-    else if(is_branch)begin
-        if(br_BPU_valid)begin
-            if(br_BPU_right)begin
-                nextpc = right_flow_pc;
-            end
-            else begin
-                nextpc = wrong_flow_pc;
-            end
-        end
-        else begin
-            if (br_taken) begin
-                nextpc = br_target;
-            end
-            else begin
-                nextpc = right_flow_pc;
-            end
-        end
+    else if(is_branch & br_BPU_valid & ~br_BPU_right)begin
+        nextpc = wrong_flow_pc;
+    end
+    else if(is_branch & ~br_BPU_valid & br_taken)begin
+        nextpc = br_target;
     end
     else 
         nextpc = right_flow_pc;
