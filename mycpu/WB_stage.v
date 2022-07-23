@@ -3,6 +3,10 @@
 module wb_stage(
     input                          clk,
     input                          reset,
+`ifdef ILA_debug
+    output [31:0]                  ws_pc,
+    output [31:0]                  ws_final_result,
+`endif
     //allowin                 
     output                         ws_allowin,
     //from ms                 
@@ -27,8 +31,10 @@ wire        ws_ex;
 wire        ws_gr_we;
 wire [ 4:0] ws_dest;
 wire [31:0] ws_result; 
+`ifndef ILA_debug
 wire [31:0] ws_final_result;
 wire [31:0] ws_pc;
+`endif
 
 wire [11:0] ws_mem_inst;
 wire [31:0] ws_rt_value;

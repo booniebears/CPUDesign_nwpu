@@ -3,6 +3,12 @@
 module id_stage(
     input        clk,
     input        reset,
+`ifdef ILA_debug
+    output [31:0] ds_inst,
+    output        ds_ex,
+    output [31:0] ra,
+    output [31:0] sp,
+`endif
     //allowin
     input        es_allowin,
     output       ds_allowin,
@@ -14,7 +20,6 @@ module id_stage(
     output       ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to fs
-    output [31:0]stack_addr,
     // output [`BR_BUS_WD       -1:0] br_bus,
     // output [`BRESULT_WD      -1:0] BResult,
     output                         is_branch,
@@ -54,7 +59,6 @@ wire [31                 :0] fs_pc;
 reg  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus_r;//流水正常运作的话就等于fs_to_ds_bus,内容参考IF模块
 assign fs_pc = fs_to_ds_bus[31:0];
 
-wire [31:0] ds_inst;
 wire [31:0] ds_pc  ;
 //lab8添加
 wire [4:0]  mfc0_rd  ; //mfc0中的rd域 指定CP0寄存器的读写地址
@@ -64,7 +68,10 @@ wire [4:0]  temp_Exctype; //临时用来承接来自IF的fs_ExcCode信号
 //处理例外 Sys,Bp和RI
 wire [ 4:0] ds_Exctype; //例外编码
 wire        inst_defined; //该指令已经被指令集定义过
+`ifndef ILA_debug
+wire [31:0] ds_inst;
 wire        ds_ex; //ID阶段 发现异常则置为1
+`endif
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 
 assign {
@@ -547,7 +554,7 @@ reg [1:0] Soft_state,Soft_nextstate;
 always @(*) begin //该状态机同时处理next_state和Soft_int
     case (Soft_state)
         Soft_Idle: 
-            if( has_int && ds_valid) begin
+            if(has_int && ds_valid) begin
                 Soft_nextstate = Soft_Start;
                 Soft_int       = 1'b1;
             end
@@ -683,6 +690,10 @@ assign rf_raddr1 = rs;
 assign rf_raddr2 = rt;
 regfile u_regfile(
     .clk            (clk        ),
+`ifdef ILA_debug
+    .ra             (ra         ),
+    .sp             (sp         ),
+`endif
     .raddr1         (rf_raddr1  ),
     .rdata1         (rf_rdata1  ),
     .raddr2         (rf_raddr2  ),
@@ -690,8 +701,7 @@ regfile u_regfile(
     .we             (rf_we      ),
     .waddr          (rf_waddr   ),
     .wdata          (rf_wdata   ),
-    .reset          (reset      ),
-    .stack_addr     (stack_addr )
+    .reset          (reset      )
     );
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :

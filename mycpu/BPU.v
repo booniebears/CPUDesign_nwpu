@@ -17,9 +17,7 @@ module BPU#(
     input ds_allowin,
     input [`BRESULT_WD - 1 :0] BResult,
     input [31:0] ja_target ,
-    input [31:0] stack_addr,
     input inst_is_ja,
-    // input inst_is_jr,
     output [31:0] target,
     output BPU_valid,
     output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus
@@ -95,7 +93,6 @@ assign BPU_to_ds_bus = {
                             BPU_ret_addr_reg
                             };
 assign BPU_ret_addr =   inst_is_ja        ? ja_target :
-                        // inst_is_jr        ? stack_addr:
                         PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
 
 // assign BPU_is_taken =   (inst_is_ja | inst_is_jr)  ?   1   :   ~PHT_rout_Count[1];
