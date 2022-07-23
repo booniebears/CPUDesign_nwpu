@@ -16,7 +16,7 @@ module wb_stage(
     output [ 4:0]                  debug_wb_rf_wnum,
     output [31:0]                  debug_wb_rf_wdata,
     output [ 4:0]                  WB_dest, // WB阶段写RF地址 通过旁路送到ID阶段
-    output [31:0]                  WB_result //WB阶段 ws_final_result
+    output [31:0]                  WB_result //WB阶段 ws_result
 );
 
 reg         ws_valid;
@@ -46,14 +46,13 @@ wire [31:0] wb_result_lwl;
 wire [31:0] wb_result_lwr;
 wire        ws_res_from_mem;
 
-/******************ms_to_ws_bus Total: 150bits******************/
 assign {
-        ws_res_from_mem,  //149:149
-        ws_mem_inst    ,  //148:137
-        ws_rt_value    ,  //136:105
-        ws_data_rdata  ,  //104:73
-        ws_rdata_type  ,  //72:71
-        ws_ex          ,  //70:70
+        ws_res_from_mem,
+        ws_mem_inst    ,
+        ws_rt_value    ,
+        ws_data_rdata  ,
+        ws_rdata_type  ,
+        ws_ex          ,  //
         ws_gr_we       ,  //69:69 --写RF使能
         ws_dest        ,  //68:64 --写RF的地址
         ws_result      ,  //63:32 --写RF的数据
@@ -63,7 +62,6 @@ assign {
 wire        rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
-/******************ws_to_rf_bus Total: 38bits******************/
 assign ws_to_rf_bus = {rf_we   ,  //37:37 --写RF使能
                        rf_waddr,  //36:32 --写RF地址
                        rf_wdata   //31:0 --写RF数据
@@ -130,20 +128,6 @@ assign ws_mem_data =    (ws_mem_inst[2]) ? wb_result_lb  :
                         (ws_mem_inst[6]) ? wb_result_lwl :
                         (ws_mem_inst[7]) ? wb_result_lwr : ws_data_rdata; //lw对应data_rdata
 
-
-
-
-//对于传到WB阶段的指令,如果被标记了异常,那么这条指令肯定是不能执行的,这里就体现在不能写RF上
-assign rf_we    = ws_ex ? 1'b0 : ws_gr_we & ws_valid; 
-assign rf_waddr = ws_dest;
-assign rf_wdata = ws_final_result;
-
-// debug info generate
-assign debug_wb_pc       = ws_pc;
-assign debug_wb_rf_wen   = {4{rf_we}};
-assign debug_wb_rf_wnum  = ws_dest;
-assign debug_wb_rf_wdata = ws_final_result;
-
 `ifdef OPEN_VA_PERF
     reg [31:0] getsoccount; 
     //lw v0, -8192(t9)
@@ -161,6 +145,18 @@ assign debug_wb_rf_wdata = ws_final_result;
 `else
     assign ws_final_result = ws_res_from_mem ? ws_mem_data : ws_result;
 `endif
+
+
+//对于传到WB阶段的指令,如果被标记了异常,那么这条指令肯定是不能执行的,这里就体现在不能写RF上
+assign rf_we    = ws_ex ? 1'b0 : ws_gr_we & ws_valid; 
+assign rf_waddr = ws_dest;
+assign rf_wdata = ws_final_result;
+
+// debug info generate
+assign debug_wb_pc       = ws_pc;
+assign debug_wb_rf_wen   = {4{rf_we}};
+assign debug_wb_rf_wnum  = ws_dest;
+assign debug_wb_rf_wdata = ws_final_result;
 
 assign WB_dest   = ws_dest & {5{ws_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性
 assign WB_result = ws_final_result; //mfc0读出的数据也会前递到ID阶段

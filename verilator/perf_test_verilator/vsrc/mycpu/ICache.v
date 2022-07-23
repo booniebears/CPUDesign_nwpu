@@ -21,15 +21,13 @@ module Icache #(
     input [OFFSET_WIDTH-1:0]  inst_offset,
     output                    icache_busy,
     output [DATA_WIDTH-1:0]   inst_rdata,
-    input                     ICacheInst_delayed, 
 
     //与AXI总线接口的交互接口
-    output                    icache_rd_req,
-    output [31:0]             icache_rd_addr,
-    input                     icache_rd_rdy,
-    input                     icache_ret_valid,
-    input [127:0]             icache_ret_data
-    
+    output        icache_rd_req,
+    output [31:0] icache_rd_addr,
+    input         icache_rd_rdy,
+    input         icache_ret_valid,
+    input [127:0] icache_ret_data
 );
 
 //define FSM 
@@ -128,14 +126,12 @@ always @(*) begin
         tagv_we = 0;
         tagv_we[plru[reqbuffer_inst_index]] = 1'b1;
     end
-    else if(ICacheInst_delayed & ~icache_busy)
-        tagv_we = {ASSOC_NUM{1'b1}};
     else
         tagv_we = 0;
 end
-assign index_addr = (icache_state == MISS | icache_state == REFILL | 
-                     icache_state == REFILLDONE) ? reqbuffer_inst_index : inst_index;
-assign tagv_wdata = (ICacheInst_delayed & ~icache_busy) ? 0 : {reqbuffer_inst_tag,1'b1};
+assign index_addr = (icache_state == MISS | icache_state == REFILL 
+                    | icache_state == REFILLDONE) ? reqbuffer_inst_index : inst_index;
+assign tagv_wdata = {reqbuffer_inst_tag,1'b1};
 
 always @(*) begin
     if(icache_state == REFILL & icache_ret_valid) begin

@@ -1,24 +1,24 @@
-`include "global_defines.vh"
-
 module alu(
-    input                      clk,
-    input                      reset,
-    input      [`ALUOP_WD-1:0] alu_op,
-    input      [ 2:0]          trap_op,
-    input      [31:0]          alu_src1,
-    input      [31:0]          alu_src2,
-    output reg [31:0]          alu_result,
-    input      [ 2:0]          Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
-    output                     m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
-    output                     m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
-    output                     isMul, //指令要用到乘法器
-    output                     isDiv, //该信号为1表明乘法运算完毕
-    output                     mul_finished, //该信号为1表明乘法运算完毕
-    output                     Overflow_ex,
-    output                     trap_ex, 
-    input                      es_ex,
-    input                      m1s_ex
+    input         clk,
+    input         reset,
+    input  [19:0] alu_op,
+    input  [31:0] alu_src1,
+    input  [31:0] alu_src2,
+    output reg [31:0] alu_result,
+    input  [ 2:0] Overflow_inst, //可能涉及整型溢出例外的三条指令:add,addi,sub
+    output        m_axis_dout_tvalid, //该信号为1表明有符号除法运算完毕
+    output        m_axis_dout_tvalidu, //该信号为1表明无符号除法运算完毕
+    // output        isMul, //指令要用到乘法器
+    // output        isDiv, //该信号为1表明乘法运算完毕
+    output        mul_finished, //该信号为1表明乘法运算完毕
+    output        Overflow_ex, //有整型溢出置为1
+    input         es_ex,
+    input         m1s_ex
 );
+
+wire isMul;
+// wire isDiv;
+
 
 wire op_add;   //加法操作
 wire op_sub;   //减法操作
@@ -40,16 +40,6 @@ wire op_mfhi;  //将HI寄存器的值写入寄存器rd中
 wire op_mflo;  //将LO寄存器的值写入寄存器rd中
 wire op_mthi;  //将寄存器rs的值写入HI寄存器中
 wire op_mtlo;  //将寄存器rs的值写入LO寄存器中
-wire op_clo;   //统计32位数第一个0的数之前1的个数
-wire op_clz;   //统计32位数第一个1的数之前0的个数
-wire cloclz_type; //0-clo,1-clz
-wire op_madd;
-wire op_maddu;
-wire op_msub;
-wire op_msubu;
-wire op_mul;
-wire op_movn;
-wire op_movz;
 
 // control code decomposition
 assign op_add   = alu_op[ 0];
@@ -72,15 +62,6 @@ assign op_mfhi  = alu_op[16];
 assign op_mflo  = alu_op[17];
 assign op_mthi  = alu_op[18];
 assign op_mtlo  = alu_op[19];
-assign op_clo   = alu_op[20];
-assign op_clz   = alu_op[21];
-assign op_madd  = alu_op[22];
-assign op_maddu = alu_op[23];
-assign op_msub  = alu_op[24];
-assign op_msubu = alu_op[25];
-assign op_mul   = alu_op[26];
-assign op_movn  = alu_op[27];
-assign op_movz  = alu_op[28];
 
 wire [31:0] add_sub_result; 
 wire [31:0] slt_result    ; 
@@ -91,6 +72,7 @@ wire [31:0] or_result     ;
 wire [31:0] xor_result    ;
 wire [31:0] lui_result    ;
 wire [31:0] sll_result    ; 
+wire [63:0] sr64_result   ; 
 wire [31:0] srl_result    ; 
 wire [31:0] sra_result    ;
 wire [63:0] mult_result   ; 
@@ -100,15 +82,6 @@ wire [63:0] div_result    ;
 wire [63:0] divu_result   ; 
 wire [31:0] mfhi_result   ;
 wire [31:0] mflo_result   ;
-wire [31:0] cloclz_result ;
-wire [63:0] madd_result   ;
-wire [63:0] maddu_result  ;
-wire [63:0] msub_result   ;
-wire [63:0] msubu_result  ;
-wire [63:0] mul_result    ;
-wire [31:0] movn_result   ;
-wire [31:0] movz_result   ;
-
 
 // 32-bit adder
 wire [31:0] adder_a;
@@ -158,20 +131,8 @@ assign srl_result = alu_src2[31:0] >> alu_src1[4:0];
 assign sra_result = $signed(alu_src2) >>> alu_src1[4:0];
 
 
-cloclz_cnt U_cloclz_cnt(
-    .cloclz_in   (alu_src1      ),
-    .cloclz_type (op_clz        ),
-    .cloclz_out  (cloclz_result )
-);
 
-trap U_trap(
-    .trap_op    (trap_op  ),
-    .trap_src1  (alu_src1 ),
-    .trap_src2  (alu_src2 ),
-    .trap_ex    (trap_ex  )
-);
-
-//HI LO寄存器
+//lab添加 HI LO寄存器
 reg  [31:0] HI;
 reg  [31:0] LO;
 wire        mul_isSigned; //乘法是有符号乘
@@ -186,7 +147,7 @@ multiplier U_multiplier( //Unsigned multiplier 3拍返回
     .P  (multi_result )
 );
 
-assign mul_isSigned  = op_mult | op_madd | op_msub | op_mul;
+assign mul_isSigned  = op_mult;
 assign multiplicantA = mul_isSigned & alu_src1[31] ? -alu_src1 : alu_src1;
 assign multiplicantB = mul_isSigned & alu_src2[31] ? -alu_src2 : alu_src2;
 assign isNegative    = mul_isSigned & (alu_src1[31] ^ alu_src2[31]);
@@ -209,7 +170,7 @@ always @(posedge clk) begin
         mul_state <= mul_nextstate;
 end
 
-assign isMul = op_mult | op_multu | op_madd | op_maddu | op_msub | op_msubu | op_mul;
+assign isMul = op_mult | op_multu;
 
 assign mul_finished = (mul_state == MUL_STAGE3);
 
@@ -233,12 +194,6 @@ always @(*) begin
         default: mul_nextstate = MUL_IDLE;
     endcase
 end
-
-//利用乘法结果
-assign madd_result   = {HI,LO} + mult_result;
-assign maddu_result  = {HI,LO} + multu_result;
-assign msub_result   = {HI,LO} - mult_result;
-assign msubu_result  = {HI,LO} - multu_result;
 
 //lab6添加 以下为mydiv模块用到的信号
 //valid信号与ready信号是一对握手信号,同时为1后除法器工作.ready信号周期性出现(变为1),valid信号则可以人为控制
@@ -284,7 +239,7 @@ mydiv_unsigned u_mydiv_unsigned(
     .m_axis_dout_tdata       (divu_result)
 );
 
-//状态机控制有符号和无符号除法的valid信号
+//lab6添加 状态机控制有符号和无符号除法的valid信号
 parameter DIV_IDLE  = 1'b0,
           DIV_START = 1'b1;
 
@@ -298,7 +253,7 @@ always @(posedge clk) begin
         div_state <= div_nextstate;
 end
 
-assign isDiv = op_div | op_divu;
+// assign isDiv = op_div | op_divu;
 always @(*) begin
     case(div_state)
         DIV_IDLE:
@@ -322,35 +277,35 @@ end
 
 always @(posedge clk) begin
     if(op_div) begin
-        if(div_nextstate == DIV_START) begin
-            s_axis_divisor_tvalid  <= 1'b0;
-            s_axis_dividend_tvalid <= 1'b0;
+        if(div_nextstate==DIV_START) begin
+            s_axis_divisor_tvalid<=1'b0;
+            s_axis_dividend_tvalid<=1'b0;
         end
         else begin
-            s_axis_divisor_tvalid  <= 1'b1;
-            s_axis_dividend_tvalid <= 1'b1;
+            s_axis_divisor_tvalid<=1'b1;
+            s_axis_dividend_tvalid<=1'b1;
         end
     end
     else if(op_divu) begin
-        if(div_nextstate == DIV_START) begin
-            s_axis_divisor_tvalidu  <= 1'b0;
-            s_axis_dividend_tvalidu <= 1'b0;
+        if(div_nextstate==DIV_START) begin
+            s_axis_divisor_tvalidu<=1'b0;
+            s_axis_dividend_tvalidu<=1'b0;
         end
         else begin
-            s_axis_divisor_tvalidu  <= 1'b1;
-            s_axis_dividend_tvalidu <= 1'b1;
+            s_axis_divisor_tvalidu<=1'b1;
+            s_axis_dividend_tvalidu<=1'b1;
         end
     end
     else begin
-        s_axis_divisor_tvalid   <= 1'b0;
-        s_axis_dividend_tvalid  <= 1'b0;
-        s_axis_divisor_tvalidu  <= 1'b0;
-        s_axis_dividend_tvalidu <= 1'b0;
+        s_axis_divisor_tvalid<=1'b0;
+        s_axis_dividend_tvalid<=1'b0;
+        s_axis_divisor_tvalidu<=1'b0;
+        s_axis_dividend_tvalidu<=1'b0;
     end
 end
 
 //lab6添加乘除法指令:将结果存入HI,LO寄存器中 除法高位存商,低位存余数
-always @(posedge clk) begin //HI LO更新的前提是EXE和M1阶段的指令没有报出异常
+always @(posedge clk) begin //HI LO更新的前提是MEM和WB阶段的指令没有报出异常
     if(reset) begin
         HI <= 32'b0;
         LO <= 32'b0;
@@ -378,67 +333,58 @@ always @(posedge clk) begin //HI LO更新的前提是EXE和M1阶段的指令没�
         else if(op_mtlo) begin
             LO <= alu_src1;
         end
-        else if(op_madd) begin
-            HI <= madd_result[63:32];
-            LO <= madd_result[31:0];
-        end
-        else if(op_maddu) begin
-            HI <= maddu_result[63:32];
-            LO <= maddu_result[31:0];
-        end
-        else if(op_msub) begin
-            HI <= msub_result[63:32];
-            LO <= msub_result[31:0];
-        end
-        else if(op_msubu) begin
-            HI <= msubu_result[63:32];
-            LO <= msubu_result[31:0];
-        end
     end
 end
 
 assign mfhi_result = HI;
 assign mflo_result = LO;
 
-assign movn_result =(~(alu_src1==0))?alu_src2:32'b0;
-assign movz_result = (alu_src1==0)?alu_src2:32'b0;
+// final result mux 这个组合非常巧妙 各个结果用或运算连接 为0的项对于最终结果没有任何影响
+// assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
+//                   | ({32{op_slt       }} & slt_result)
+//                   | ({32{op_sltu      }} & sltu_result)
+//                   | ({32{op_and       }} & and_result)
+//                   | ({32{op_nor       }} & nor_result)
+//                   | ({32{op_or        }} & or_result)
+//                   | ({32{op_xor       }} & xor_result)
+//                   | ({32{op_lui       }} & lui_result)
+//                   | ({32{op_sll       }} & sll_result)
+//                   | ({32{op_srl|op_sra}} & srl_result)
+//                   | ({32{op_mfhi      }} & mfhi_result)
+//                   | ({32{op_mflo      }} & mflo_result);
 
 always @(*) begin
     if(op_add | op_sub)
         alu_result = add_sub_result;
     else if(op_slt)
         alu_result = slt_result;
-    else if(op_sltu)
+    else if(op_sltu      )
         alu_result = sltu_result;   
-    else if(op_and)
+    else if(op_and       )
         alu_result = and_result;
-    else if(op_nor)
+    else if(op_nor       )
         alu_result = nor_result;
-    else if(op_or)
+    else if(op_or        )
         alu_result = or_result;
-    else if(op_xor)
+    else if(op_xor       )
         alu_result = xor_result;
-    else if(op_lui)
+    else if(op_lui       )
         alu_result = lui_result;
-    else if(op_sll)
+    else if(op_sll       )
         alu_result = sll_result;
     else if(op_srl)
         alu_result = srl_result;
     else if(op_sra)
         alu_result = sra_result;
-    else if(op_mfhi)
+    else if(op_mfhi      )
         alu_result = mfhi_result;
-    else if(op_mflo)
+    else if(op_mflo      )
         alu_result = mflo_result;
-    else if(op_clo | op_clz)
-        alu_result = cloclz_result;
-    else if(op_movn)
-        alu_result = movn_result;
-    else if(op_movz)
-        alu_result = movz_result;    
     else
         alu_result = 0;   
 end
+
+
 
 
 endmodule

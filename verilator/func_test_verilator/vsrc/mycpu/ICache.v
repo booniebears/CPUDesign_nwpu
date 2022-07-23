@@ -19,27 +19,41 @@ module Icache #(
     input [INDEX_WIDTH-1:0]   inst_index,
     input [TAG_WIDTH-1:0]     inst_tag,
     input [OFFSET_WIDTH-1:0]  inst_offset,
-    output                    icache_busy,
+    output                    busy,
     output [DATA_WIDTH-1:0]   inst_rdata,
     input                     ICacheInst_delayed, 
-
+`ifdef use_new_axi_crossbar
+    output                    uicache_rd_req,
+    output [31:0]             uicache_rd_addr,
+    input                     uicache_rd_rdy,
+    input                     uicache_ret_valid,
+    input  [31:0]             uicache_ret_data,
+    input                     isUncache,
+`endif   
     //与AXI总线接口的交互接口
     output                    icache_rd_req,
     output [31:0]             icache_rd_addr,
     input                     icache_rd_rdy,
     input                     icache_ret_valid,
     input [127:0]             icache_ret_data
-    
 );
 
-//define FSM 
-parameter  LOOKUP     = 2'd0,
-           MISS       = 2'd1,
-           REFILL     = 2'd2,
-           REFILLDONE = 2'd3;
+//define Cache FSM
+parameter  LOOKUP       = 2'd0,
+           MISS         = 2'd1,
+           REFILL       = 2'd2,
+           REFILLDONE   = 2'd3;
+
+//define UICache FSM
+parameter  U_LOOKUP     = 2'd0,
+           U_LOAD       = 2'd1,
+           U_RETURN     = 2'd2,
+           U_DONE       = 2'd3; 
 
 reg [1:0] icache_state;
 reg [1:0] icache_nextstate;
+reg [1:0] uicache_state;
+reg [1:0] uicache_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
@@ -47,7 +61,10 @@ reg                    reqbuffer_inst_valid;
 reg [INDEX_WIDTH-1:0]  reqbuffer_inst_index;
 reg [TAG_WIDTH-1:0]    reqbuffer_inst_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_inst_offset;
+reg                    reqbuffer_inst_isUncache;
 /****************define req_buffer***************/
+wire                   icache_busy;
+wire                   uncache_busy;
 
 wire [ASSOC_NUM-1:0]   hit;
 wire                   cache_hit;
@@ -65,6 +82,7 @@ wire                   valid_rdata[ASSOC_NUM-1:0]; //位宽1,共ASSOC_NUM路
 wire [DATA_WIDTH-1:0]  icache_wdata[WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]  icache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //写ICache的指令数据
 wire [DATA_WIDTH-1:0]  icache_rdata_sel[ASSOC_NUM-1:0];
+reg  [DATA_WIDTH-1:0]  uncache_rdata;
 
 wire [$clog2(ASSOC_NUM)-1:0] sel_way;  //TODO:之后改成四路组相连             
 wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
@@ -76,20 +94,31 @@ generate
         assign icache_rdata_sel[n] = icache_rdata[n][reqbuffer_inst_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
-assign icache_busy = reqbuffer_inst_valid & ~delayed_cache_hit;
+
+//TODO:busy的逻辑是否可以简化?感觉icache_busy和uncache_busy有交叠之处.另外reqbuffer_inst_valid或许可去
+assign icache_busy  = reqbuffer_inst_valid & ~delayed_cache_hit & ~reqbuffer_inst_isUncache;
+assign uncache_busy = (uicache_state == U_LOOKUP | uicache_state == U_DONE) ? 1'b0 : 1'b1;
+assign busy         = icache_busy | uncache_busy;
+assign inst_rdata   = (uicache_state == U_DONE) ? uncache_rdata : icache_rdata_sel[sel_way];
+
+// assign busy        = reqbuffer_inst_valid & ~delayed_cache_hit;
+// assign inst_rdata  = reqbuffer_inst_valid ? icache_rdata_sel[sel_way] : 32'b0; 
+
 assign sel_way     = delayed_hit[0] ? 1'b0 : 1'b1; //TODO:之后改成四路组相连
-assign inst_rdata  = reqbuffer_inst_valid ? icache_rdata_sel[sel_way] : 32'b0; 
 
 //与AXI总线接口的交互接口
-assign icache_rd_req  = (icache_state == MISS);
-assign icache_rd_addr = {reqbuffer_inst_tag,reqbuffer_inst_index,{OFFSET_WIDTH{1'b0}}};
+assign icache_rd_req   = (icache_state == MISS);
+assign icache_rd_addr  = {reqbuffer_inst_tag,reqbuffer_inst_index,{OFFSET_WIDTH{1'b0}}};
+assign uicache_rd_req  = (uicache_state == U_LOAD);
+assign uicache_rd_addr = {reqbuffer_inst_tag,reqbuffer_inst_index,reqbuffer_inst_offset};
 
 //hit判定逻辑
 generate
     genvar k;
     for (k = 0; k < ASSOC_NUM; k = k + 1) begin
-        assign hit[k] = inst_valid ? (valid_rdata[k] & (tag_rdata[k] == inst_tag)) :
-                                     (valid_rdata[k] & (tag_rdata[k] == reqbuffer_inst_tag));
+        assign hit[k] = inst_valid ? (valid_rdata[k] & (tag_rdata[k] == inst_tag) & ~isUncache) :
+                                     (valid_rdata[k] & (tag_rdata[k] == reqbuffer_inst_tag) & 
+                                                                        ~reqbuffer_inst_isUncache);
     end
 endgenerate
 assign cache_hit  = |hit;
@@ -105,20 +134,29 @@ always @(posedge clk) begin //delayed_hit用于PLRU片选Cache的一路
     end
 end
 
+always @(posedge clk) begin
+    if(reset)
+        uncache_rdata <= 0;
+    else if(uicache_ret_valid)
+        uncache_rdata <= uicache_ret_data;
+end
+
 //reqbuffer 存储逻辑
 assign reqbuffer_en = inst_valid;
 always @(posedge clk) begin
     if(reset) begin
-        reqbuffer_inst_valid  <= 0;
-        reqbuffer_inst_index  <= 0;
-        reqbuffer_inst_tag    <= 0;
-        reqbuffer_inst_offset <= 0;
+        reqbuffer_inst_valid     <= 0;
+        reqbuffer_inst_index     <= 0;
+        reqbuffer_inst_tag       <= 0;
+        reqbuffer_inst_offset    <= 0;
+        reqbuffer_inst_isUncache <= 0;
     end
     else if(reqbuffer_en) begin
-        reqbuffer_inst_valid  <= inst_valid ;
-        reqbuffer_inst_index  <= inst_index ;
-        reqbuffer_inst_tag    <= inst_tag   ;
-        reqbuffer_inst_offset <= inst_offset;
+        reqbuffer_inst_valid     <= inst_valid ;
+        reqbuffer_inst_index     <= inst_index ;
+        reqbuffer_inst_tag       <= inst_tag   ;
+        reqbuffer_inst_offset    <= inst_offset;
+        reqbuffer_inst_isUncache <= isUncache;
     end
 end
 
@@ -212,6 +250,48 @@ endgenerate
 
 always @(posedge clk) begin
     if(reset)
+        uicache_state <= U_LOOKUP;
+    else
+        uicache_state <= uicache_nextstate;
+end
+
+always @(*) begin
+    case (uicache_state)
+        U_LOOKUP: 
+            if(inst_valid & isUncache)
+                uicache_nextstate = U_LOAD;
+            else
+                uicache_nextstate = U_LOOKUP;
+        
+        U_LOAD:
+            if(uicache_rd_rdy)
+                uicache_nextstate = U_RETURN;
+            else
+                uicache_nextstate = U_LOAD;
+        
+        U_RETURN:
+            if(uicache_ret_valid)
+                uicache_nextstate = U_DONE;
+            else
+                uicache_nextstate = U_RETURN;
+        
+        U_DONE:
+            if(inst_valid) begin
+                if(isUncache)
+                    uicache_nextstate = U_LOAD;
+                else
+                    uicache_nextstate = U_LOOKUP;
+            end
+            else
+                uicache_nextstate = U_DONE;
+
+        default: 
+            uicache_nextstate = U_LOOKUP;
+    endcase    
+end
+
+always @(posedge clk) begin
+    if(reset)
         icache_state <= LOOKUP;
     else
         icache_state <= icache_nextstate;
@@ -220,7 +300,9 @@ end
 always @(*) begin
     case (icache_state)
         LOOKUP: 
-            if(reqbuffer_inst_valid && ~delayed_cache_hit)
+            if(reqbuffer_inst_isUncache)
+                icache_nextstate = LOOKUP;
+            else if(reqbuffer_inst_valid && ~delayed_cache_hit)
                 icache_nextstate = MISS;
             else
                 icache_nextstate = LOOKUP;

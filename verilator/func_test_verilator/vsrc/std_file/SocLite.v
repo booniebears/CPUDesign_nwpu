@@ -419,7 +419,11 @@ module SimAXIRAM(
   reg [31:0] r_3; // @[Reg.scala 27:20]
   wire [31:0] _GEN_12 = _T_50 ? auto_in_aw_bits_addr : r_3; // @[Reg.scala 28:19 Reg.scala 28:23 Reg.scala 27:20]
   wire  in_w_ready = auto_in_aw_valid | w_busy; // @[SocLite.scala 288:30]
-  wire  _T_52 = in_w_ready & auto_in_w_valid; // @[Decoupled.scala 40:37]
+  wire _T_52;
+  wire _T_71;
+  wire [29:0] _GEN_25; 
+
+  assign _T_52 = in_w_ready & auto_in_w_valid; // @[Decoupled.scala 40:37]
   wire [7:0] _value_T_7 = value_2 + 8'h1; // @[Counter.scala 76:24]
   reg  REG_2; // @[SocLite.scala 219:20]
   wire  _T_54 = auto_in_b_ready & REG_2; // @[Decoupled.scala 40:37]
@@ -431,13 +435,14 @@ module SimAXIRAM(
   reg [3:0] r_4; // @[Reg.scala 15:16]
   reg [3:0] r_6; // @[Reg.scala 15:16]
   wire [31:0] _T_64 = _GEN_12 & 32'hfffff; // @[SocLite.scala 317:36]
-  wire [29:0] _GEN_25 = {{22'd0}, value_2}; // @[SocLite.scala 320:29]
+  assign _GEN_25 = {{22'd0}, value_2}; // @[SocLite.scala 320:29]
   wire [29:0] wIdx = _T_64[31:2] + _GEN_25; // @[SocLite.scala 320:29]
   wire [38:0] _T_67 = _GEN_2 & 39'hfffff; // @[SocLite.scala 317:36]
   wire [36:0] _GEN_26 = {{29'd0}, value_1}; // @[SocLite.scala 321:29]
   wire [36:0] rIdx = _T_67[38:2] + _GEN_26; // @[SocLite.scala 321:29]
-  wire  _T_71 = wIdx < 30'h20000; // @[SocLite.scala 318:34]
+  assign _T_71 = wIdx < 30'h20000; // @[SocLite.scala 318:34]
   reg [31:0] r_8; // @[Reg.scala 15:16]
+
   RAMHelper mem ( // @[SocLite.scala 324:21]
     .clk(mem_clk),
     .en(mem_en),

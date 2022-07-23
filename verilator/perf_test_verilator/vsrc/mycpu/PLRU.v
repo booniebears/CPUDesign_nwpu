@@ -36,8 +36,6 @@ generate
             end
         end
     end 
-
-    
     else begin //ASSOC_NUM == 4
         always @(*) begin
             nextstate = state;
