@@ -289,6 +289,8 @@ module AXI_Interface (
     reg   [ 31:0] UICache_read_word;
     reg   [ 31:0] UDCache_read_word;
     reg   [ 31:0] UDCache_write_word;
+    reg   [  3:0] UDCache_write_wstrb;
+    reg   [  2:0] UDCache_ar_size;
 
     /********************ICache REQ********************/
     assign inst_arid     = 4'b0000;
@@ -513,7 +515,7 @@ module AXI_Interface (
     /********************UDCache REQ********************/
     assign udata_arid     = 4'h6;
     assign udata_arlen    = 4'b0000;
-    assign udata_arsize   = udcache_load_size; //Attention: 必须严格指定arsize 
+    assign udata_arsize   = UDCache_ar_size; //Attention: 必须严格指定arsize 
     assign udata_arburst  = 2'b01;
     assign udata_arlock   = 0;
     assign udata_arcache  = 0;
@@ -528,7 +530,7 @@ module AXI_Interface (
     assign udata_awprot   = 0;
 
     assign udata_wid      = 4'b0001;
-    assign udata_wstrb    = udcache_wr_strb;
+    assign udata_wstrb    = UDCache_write_wstrb;
     assign udata_bready   = 1'b1;
 
     //Flip-Flops
@@ -542,11 +544,27 @@ module AXI_Interface (
     end
     always @(posedge clk) begin
         if(~resetn)
+            UDCache_ar_size <= 0;
+        else if(UD_RD_state == UR_IDLE)
+            UDCache_ar_size <= udcache_load_size;
+        else
+            UDCache_ar_size <= UDCache_ar_size;
+    end
+    always @(posedge clk) begin
+        if(~resetn)
             AXI_UD_WAddr <= 0;
         else if(UD_WR_state == UW_IDLE)
             AXI_UD_WAddr <= udcache_wr_addr;
         else
             AXI_UD_WAddr <= AXI_UD_WAddr;
+    end
+    always @(posedge clk) begin
+        if(~resetn)
+            UDCache_write_wstrb <= 0;
+        else if(UD_WR_state == UW_IDLE)
+            UDCache_write_wstrb <= udcache_wr_strb;
+        else
+            UDCache_write_wstrb <= UDCache_write_wstrb;
     end
     always @(posedge clk) begin
         if(~resetn)
