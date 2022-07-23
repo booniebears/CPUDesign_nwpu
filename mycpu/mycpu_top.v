@@ -73,6 +73,7 @@ wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
 wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
 wire  [`BRESULT_WD      -1:0] BResult;
+// wire  [                 31:0] stack_addr;
 wire         br_flush;
 wire         is_branch;
 
@@ -343,6 +344,7 @@ if_stage if_stage(
     //brbus
     .fs_bd          (is_branch      ),
     .BResult        (BResult        ),
+    // .stack_addr     (stack_addr     ),
     .BPU_to_ps_bus  (BPU_to_ps_bus  ),
     //outputs
     .fs_to_ds_valid (fs_to_ds_valid ),
@@ -367,6 +369,7 @@ id_stage id_stage(
     //to es        
     .ds_to_es_valid     (ds_to_es_valid     ),
     .ds_to_es_bus       (ds_to_es_bus       ),
+    // .stack_addr         (stack_addr         ),
     //to fs        
     .is_branch          (is_branch          ),
     //to rf: for write back
@@ -381,7 +384,7 @@ id_stage id_stage(
     .WB_result          (WB_result          ),
     .es_load_op         (es_load_op         ),
     .m1s_load_op        (m1s_load_op        ),
-    .ms_load_op         (ms_load_op         ),
+    // .ms_load_op         (ms_load_op         ),
     .flush              (flush              ),
     .es_inst_mfc0       (es_inst_mfc0       ),
     .m1s_inst_mfc0      (m1s_inst_mfc0      ),
@@ -495,7 +498,7 @@ mem_stage mem_stage(
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
     //to ds
-    .ms_load_op      (ms_load_op       ),
+    // .ms_load_op      (ms_load_op       ),
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),

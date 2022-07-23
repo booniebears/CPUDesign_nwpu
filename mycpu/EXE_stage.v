@@ -36,6 +36,9 @@ reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire [19:0] es_alu_op     ;
 wire        es_src1_is_not_rs_value ;
 wire        es_src2_is_not_rt_value ;
+wire        es_br_is_imm;
+wire        es_br_is_reg;
+wire [31:0] es_imm_br_addr;
 wire [31:0] es_not_rs_value;
 wire [31:0] es_not_rt_value;
 wire        es_gr_we      ;
@@ -70,11 +73,25 @@ wire        ADEL_ex; //地址错例外(读数据)
 
 wire es_BPU_right;
 
+wire inst_beq   ;
+wire inst_bne   ;
+wire inst_jal   ;
+wire inst_jr    ;
+wire inst_j     ;
+wire inst_jalr  ;
+wire inst_bgez  ;
+wire inst_bgtz  ;
+wire inst_blez  ;
+wire inst_bltz  ;
+wire inst_bgezal;
+wire inst_bltzal;
+
 wire [31:0] es_BPU_ret_addr;
 wire es_BPU_is_taken;
 wire es_BPU_valid;
 wire [1:0] es_Count;
 wire [3:0] es_branch_type;
+wire [11:0] es_br_inst;
 wire [25:0] es_jidx;
 wire es_is_branch;
 // wire es_br_stall;
@@ -89,6 +106,9 @@ wire        es_rslez;
 wire        es_rsltz;
 
 assign {
+        es_br_is_reg                ,
+        es_br_is_imm                ,
+        es_imm_br_addr              ,
         es_not_rs_value             ,  //330:299
         es_not_rt_value             ,  //298:267
         es_BPU_ret_addr             ,  //266:235
@@ -96,7 +116,8 @@ assign {
         es_BPU_valid                ,  //233:233
         es_Count                    ,  //232:231
         es_is_branch                ,  //230:230 
-        es_branch_type              ,  //229:226 
+        // es_branch_type              ,  //229:226 
+        es_br_inst                  ,
         es_part_inst                ,  //225:200
         es_inst_tlbp                ,  //199:199
         es_inst_tlbr                ,  //198:198
@@ -122,6 +143,19 @@ assign {
         es_pc                          //31 :0    
        } = ds_to_es_bus_r;
 
+assign {    inst_beq   ,
+            inst_bne   ,
+            inst_jal   ,
+            inst_jr    ,
+            inst_j     ,
+            inst_jalr  ,
+            inst_bgez  ,
+            inst_bgtz  ,
+            inst_blez  ,
+            inst_bltz  ,
+            inst_bgezal,
+            inst_bltzal     } = es_br_inst;
+
 assign es_rs_eq_rt = (es_rs_value == es_rt_value);
 
 assign es_imm = es_part_inst[15:0];
@@ -130,35 +164,39 @@ assign es_mfc0_rd = es_part_inst[15:11];
 assign es_jidx = es_part_inst[25:0];
 
 //lab7添加
-assign es_rsgez = (es_rs_value[31] == 1'b0  ||  es_rs_value == 32'b0); //>=0
-assign es_rsgtz = (es_rs_value[31] == 1'b0  &&  es_rs_value != 32'b0); //>0
-assign es_rslez = (es_rs_value[31] == 1'b1  ||  es_rs_value == 32'b0); //<=0
-assign es_rsltz = (es_rs_value[31] == 1'b1  &&  es_rs_value != 32'b0); //<0
+assign es_rsgez =  (       ~es_rs_value[31] ); //>=0
+assign es_rsgtz =  ($signed(es_rs_value) > 0); // >0
+assign es_rslez = ~($signed(es_rs_value) > 0); //<=0
+assign es_rsltz =  (        es_rs_value[31] ); // <0
 
-assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
-                        || es_branch_type == `BRANCH_TYPE_BNE
-                        || es_branch_type == `BRANCH_TYPE_BGEZ
-                        || es_branch_type == `BRANCH_TYPE_BGTZ
-                        || es_branch_type == `BRANCH_TYPE_BLEZ
-                        || es_branch_type == `BRANCH_TYPE_BLTZ
-                        || es_branch_type == `BRANCH_TYPE_BGEZAL
-                        || es_branch_type == `BRANCH_TYPE_BLTZAL ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
-                      (    es_branch_type == `BRANCH_TYPE_JR
-                        || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
+assign es_br_target =   es_br_is_imm                ?  es_imm_br_addr     :
+                        es_br_is_reg                ? es_rs_value         :
+                        /*inst_jal,inst_j*/         {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
-assign es_br_taken =  (    (es_branch_type == `BRANCH_TYPE_BEQ     &  es_rs_eq_rt)
-                        || (es_branch_type == `BRANCH_TYPE_BNE     & !es_rs_eq_rt)
-                        || (es_branch_type == `BRANCH_TYPE_JAL                   )
-                        || (es_branch_type == `BRANCH_TYPE_JR                    )
-                        || (es_branch_type == `BRANCH_TYPE_J                     )
-                        || (es_branch_type == `BRANCH_TYPE_JALR                  )
-                        || (es_branch_type == `BRANCH_TYPE_BGEZ    & es_rsgez    )
-                        || (es_branch_type == `BRANCH_TYPE_BGTZ    & es_rsgtz    )
-                        || (es_branch_type == `BRANCH_TYPE_BLEZ    & es_rslez    )
-                        || (es_branch_type == `BRANCH_TYPE_BLTZ    & es_rsltz    )
-                        || (es_branch_type == `BRANCH_TYPE_BGEZAL  & es_rsgez   )
-                        || (es_branch_type == `BRANCH_TYPE_BLTZAL  & es_rsltz   )
-                      ) ;           
+// assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
+//                         || es_branch_type == `BRANCH_TYPE_BNE
+//                         || es_branch_type == `BRANCH_TYPE_BGEZ
+//                         || es_branch_type == `BRANCH_TYPE_BGTZ
+//                         || es_branch_type == `BRANCH_TYPE_BLEZ
+//                         || es_branch_type == `BRANCH_TYPE_BLTZ
+//                         || es_branch_type == `BRANCH_TYPE_BGEZAL
+//                         || es_branch_type == `BRANCH_TYPE_BLTZAL ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
+//                       (    es_branch_type == `BRANCH_TYPE_JR
+//                         || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
+
+assign es_br_taken =  (  inst_beq  &  es_rs_eq_rt
+                        | inst_bne  & !es_rs_eq_rt
+                        | inst_jal
+                        | inst_jr
+                        | inst_j
+                        | inst_jalr
+                        | inst_bgez & es_rsgez
+                        | inst_bgtz & es_rsgtz
+                        | inst_blez & es_rslez
+                        | inst_bltz & es_rsltz
+                        | inst_bgezal & es_rsgez
+                        | inst_bltzal & es_rsltz
+                      ) ;
                     //   ) & es_valid;           
 
 

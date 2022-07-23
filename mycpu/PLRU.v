@@ -11,7 +11,7 @@ module PLRU #(
     output [$clog2(ASSOC_NUM)-1:0] plru  //表示替换哪一路
 );
 
-reg [ASSOC_NUM-2:0] state; 
+(*max_fanout = "10"*)reg [ASSOC_NUM-2:0] state; 
 reg [ASSOC_NUM-2:0] nextstate;
 
 generate
