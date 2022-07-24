@@ -92,12 +92,12 @@ reg [1:0] fifo_nextstate;
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
 wire                   reqbuffer_flush;
-(*max_fanout = "9"*)   reg                    reqbuffer_data_valid;
+(*max_fanout = "6"*)   reg                    reqbuffer_data_valid;
 reg                    reqbuffer_data_op;
-(*max_fanout = "9"*)   reg [INDEX_WIDTH-1:0]  reqbuffer_data_index;
-(*max_fanout = "9"*)   reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
-(*max_fanout = "9"*)   reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
-(*max_fanout = "9"*)   reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
+(*max_fanout = "6"*)   reg [INDEX_WIDTH-1:0]  reqbuffer_data_index;
+(*max_fanout = "6"*)   reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
+(*max_fanout = "6"*)   reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
+(*max_fanout = "6"*)   reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
 reg [WSTRB_WIDTH-1:0]  reqbuffer_data_wstrb;
 reg [2:0]              reqbuffer_load_size;
 reg                    reqbuffer_data_isUncache;

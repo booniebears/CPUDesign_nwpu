@@ -1,9 +1,9 @@
 `ifndef MYCPU_H
     `define MYCPU_H
-    `define OPEN_VA             //verilator仿真需要 解注释
+    // `define OPEN_VA             //verilator仿真需要 解注释
     // `define OPEN_VA_PERF        //verilator仿真需要 解注释
     // `define ILA_debug
-    // `define use_crossbar_ip   //vivado仿真需要 解注释
+    `define use_crossbar_ip   //vivado仿真需要 解注释
     `define BR_BUS_WD       68
     //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 39
