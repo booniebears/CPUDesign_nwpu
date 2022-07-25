@@ -1,0 +1,31 @@
+# 测例使用说明
+
+## 现有侧例：
+
+- mem_unaligned非对齐访存
+
+  对应指令：
+
+  lwl、lwr、swl、swr
+
+- trap 各类异常处理
+
+  对应指令
+
+  teq、tne、tnei、teqi、tge
+
+  tgeu、tgei、tgeiu、tlt、tltu
+
+  tltiu、tlti
+
+  共十二种
+
+- fpu_ex
+
+  浮点异常的判断，没用浮点则可以执行正确的trace
+
+## 自动测试方法
+
+使用了run_test.tcl脚本进行自动测试
+注意修改tcl脚本内相关文件路径！
+
