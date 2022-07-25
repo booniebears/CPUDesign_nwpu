@@ -43,6 +43,8 @@ module pre_if_stage(
     output reg                     ICacheInst_delayed
 );
 
+wire         inst_valid_end;
+
 wire         ps_ready_go;
 wire         ps_allowin;
 
@@ -53,7 +55,6 @@ wire         ps_ex;
 wire [4:0]   ps_Exctype;
 wire [4:0]   ITLB_Exctype;
 wire         ITLB_Buffer_Stall;
-wire         inst_valid_end;
 
 //PC_reg
 reg   [31:0] nextpc;
@@ -161,23 +162,11 @@ always @(*) begin //nextpc
         else 
             nextpc = `GENERAL_EX_PC;
     end
-    else if(is_branch)begin
-        if(br_BPU_valid)begin
-            if(br_BPU_right)begin
-                nextpc = right_flow_pc;
-            end
-            else begin
-                nextpc = wrong_flow_pc;
-            end
-        end
-        else begin
-            if (br_taken) begin
-                nextpc = br_target;
-            end
-            else begin
-                nextpc = right_flow_pc;
-            end
-        end
+    else if(is_branch & br_BPU_valid & ~br_BPU_right)begin
+        nextpc = wrong_flow_pc;
+    end
+    else if(is_branch & ~br_BPU_valid & br_taken)begin
+        nextpc = br_target;
     end
     else 
         nextpc = right_flow_pc;
@@ -210,7 +199,7 @@ ITLB_stage ITLB(
         .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
 );
 
-assign ADEL_ex    = prefs_pc[1:0] != 2'b00; 
+assign ADEL_ex    = (prefs_pc[1:0] != 2'b00) & ~br_flush; 
 assign ps_ex      = ADEL_ex | ITLB_ex;
 assign ps_Exctype = ADEL_ex ? `AdEL         :
                     ITLB_ex ?  ITLB_Exctype : 

@@ -4,6 +4,9 @@ module m1_stage(
     input  [ 5:0]   ext_int, //6个外部硬件中断输入
     input           clk,
     input           reset,
+`ifdef ILA_debug
+    output [ 4:0]   m1s_Exctype,
+`endif
     //allowin  
     input           ms_allowin,
     output          m1s_allowin,
@@ -11,10 +14,10 @@ module m1_stage(
     input           es_to_m1s_valid,
     input  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
     //to ws
-    `ifdef PMON_debug
+`ifdef PMON_debug
     input      [31:0] es_inst,
     output reg [31:0] m1s_inst,
-    `endif
+`endif
     output          m1s_to_ms_valid,
     output [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //from data-sram
@@ -117,7 +120,9 @@ wire         m1s_bd;
 wire         temp_m1s_ex;
 wire         DTLB_ex;
 wire [ 4:0]  temp_m1s_Exctype;
+`ifndef ILA_debug
 wire [ 4:0]  m1s_Exctype;
+`endif
 wire [ 4:0]  DTLB_Exctype;
 wire         DTLB_Buffer_Stall;
 wire         eret_flush;
@@ -170,9 +175,8 @@ assign {
         m1s_pc             //31:0
        } = es_to_m1s_bus_r;
 
-/******************m1s_to_ms_bus Total: 118bits******************/
+/******************m1s_to_ms_bus Total: 117bits******************/
 assign m1s_to_ms_bus = {
-                        m1s_load_op     ,  //117:117
                         m1s_store_flow  ,  //116:116
                         m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83
@@ -207,6 +211,7 @@ always @(posedge clk ) begin
     end
 end
 
+`ifdef PMON_debug
 always @(posedge clk ) begin
     if (reset)
         m1s_inst <= 0;
@@ -216,6 +221,7 @@ always @(posedge clk ) begin
         m1s_inst <= es_inst;
     end
 end
+`endif
 
 //lab4添加
 assign M1s_dest         = m1s_dest & {5{m1s_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑ms_valid有效性

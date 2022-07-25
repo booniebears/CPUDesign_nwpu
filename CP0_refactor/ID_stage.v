@@ -3,6 +3,12 @@
 module id_stage(
     input        clk,
     input        reset,
+    output [31:0] ds_inst,
+`ifdef ILA_debug
+    output        ds_ex,
+    output [31:0] ra,
+    output [31:0] sp,
+`endif
     //allowin
     input        es_allowin,
     output       ds_allowin,
@@ -17,7 +23,6 @@ module id_stage(
     // output [`BR_BUS_WD       -1:0] br_bus,
     // output [`BRESULT_WD      -1:0] BResult,
     output                         is_branch,
-    output [31:0] ds_inst,
     //to rf: for write back
     input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus,
     input [ 4:0] EXE_dest, // EXE阶段写RF地址 通过旁路送到ID阶段
@@ -30,7 +35,7 @@ module id_stage(
     input [31:0] WB_result, //WB阶段 ws_final_result mfc0读出的数据也会前递到ID阶段
     input        es_load_op, //EXE阶段 判定是否为load指令
     input        m1s_load_op,
-    input        ms_load_op,
+    // input        ms_load_op,
     input        flush, //flush=1时表明需要处理异常
     input        es_inst_mfc0,
     input        m1s_inst_mfc0,
@@ -46,6 +51,8 @@ module id_stage(
 reg         ds_valid   ;
 wire        ds_ready_go; //数据流从ID流向EXE阶段的控制信号
 
+wire [11:0] ds_br_inst;
+
 wire [31                 :0] fs_pc;
 reg  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus_r;//流水正常运作的话就等于fs_to_ds_bus,内容参考IF模块
 assign fs_pc = fs_to_ds_bus[31:0];
@@ -59,7 +66,9 @@ wire [4:0]  temp_Exctype; //临时用来承接来自IF的fs_ExcCode信号
 //处理例外 Sys,Bp和RI
 wire [ 4:0] ds_Exctype; //例外编码
 wire        inst_defined; //该指令已经被指令集定义过
+`ifndef ILA_debug
 wire        ds_ex; //ID阶段 发现异常则置为1
+`endif
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 
 assign {
@@ -93,6 +102,10 @@ assign {rf_we   ,  //37:37
        } = ws_to_rf_bus;
 
 wire        br_taken;
+wire        br_is_reg;
+wire        br_is_imm;
+wire [31:0] imm_br_addr;
+
 // wire [31:0] br_target;
 
 wire [`ALUOP_WD-1:0] alu_op; //ALUOP_WD = 29
@@ -101,7 +114,6 @@ wire        src1_is_not_rs_value;
 wire        src1_is_sa;
 wire        src1_is_pc;
 wire        src2_is_not_rt_value;
-wire [ 1:0] src2_is_imm; //要处理零扩展和有符号扩展
 wire        src2_is_8;
 wire        gr_we;
 wire        mem_we;
@@ -175,9 +187,6 @@ wire        inst_bgezal;
 wire        inst_bltzal;
 wire        inst_j;
 wire        inst_jalr;
-
-wire        inst_beql;
-wire        inst_bnel;
 //lab7修改 添加存数指令swl,swr,sb,sh,取数指令lb,lbu,lh,lhu,lwl,lwr
 wire        inst_swl;
 wire        inst_swr;
@@ -257,23 +266,25 @@ wire        src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt
 wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
 wire        mfc0_stall;
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
-reg         bra_likely;
-/******************ds_to_es_bus Total: 274 + 29 bits******************/
+
+/******************ds_to_es_bus Total: 316 + 29 bits******************/
 assign ds_to_es_bus = {
-                       bra_likely          ,
-                       alu_op              , //302:274 --alu指令控制
-                       is_ICacheInst       , //273:273
-                       is_DCacheInst       , //272:272
-                       CacheInst_type      , //271:269
-                       trap_op             , //268:266
-                       not_rs_value        , //265:234
-                       not_rt_value        , //233:202
-                       BPU_ret_addr        , //201:170
-                       BPU_is_taken        , //169:169
-                       BPU_valid           , //168:168
-                       Count               , //167:166
-                       is_branch           , //165:165
-                       branch_type         , //164:161
+                       alu_op              , //344:316 --alu指令控制
+                       is_ICacheInst       , //315:315
+                       is_DCacheInst       , //314:314
+                       CacheInst_type      , //313:311
+                       trap_op             , //310:308
+                       br_is_reg           , //307:307
+                       br_is_imm           , //306:306
+                       imm_br_addr         , //305:274
+                       not_rs_value        , //273:242
+                       not_rt_value        , //241:210
+                       BPU_ret_addr        , //209:178
+                       BPU_is_taken        , //177:177
+                       BPU_valid           , //176:176
+                       Count               , //175:174
+                       is_branch           , //173:173
+                       ds_br_inst          , //172:161
                        part_inst           , //160:135
                        inst_tlbp           , //134:134
                        inst_tlbr           , //133:133
@@ -357,7 +368,9 @@ assign inst_sw     = op_d[6'h2b];
 assign inst_beq    = op_d[6'h04];
 assign inst_bne    = op_d[6'h05];
 assign inst_jal    = op_d[6'h03];
+assign inst_j      = op_d[6'h02];
 assign inst_jr     = op_d[6'h00] & func_d[6'h08] & rt_d[5'h00] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_jalr   = op_d[6'h00] & func_d[6'h09] & rt_d[5'h00] & sa_d[5'h00];
 //lab6添加 添加指令add,addi,sub,slti,sltiu,andi,ori,xori,sllv,srav,srlv
 assign inst_add    = op_d[6'h00] & func_d[6'h20] & sa_d[5'h00];
 assign inst_addi   = op_d[6'h08];
@@ -385,10 +398,6 @@ assign inst_blez   = op_d[6'h06] & rt_d[5'h00];
 assign inst_bltz   = op_d[6'h01] & rt_d[5'h00];
 assign inst_bgezal = op_d[6'h01] & rt_d[5'h11];
 assign inst_bltzal = op_d[6'h01] & rt_d[5'h10];
-assign inst_j      = op_d[6'h02];
-assign inst_jalr   = op_d[6'h00] & func_d[6'h09] & rt_d[5'h00] & sa_d[5'h00];
-assign inst_beql   = op_d[6'h14];
-assign inst_bnel   = op_d[6'h15];
 //lab7添加 添加存数指令swl,swr,sb,sh,取数指令lb,lbu,lh,lhu,lwl,lwr 
 assign inst_swl    = op_d[6'h2a];
 assign inst_swr    = op_d[6'h2e];
@@ -456,7 +465,7 @@ inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_m
 inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo | 
 inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | 
 inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | 
-inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_beql |inst_bnel;
+inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache;
 
 `ifdef FPU_EX_Valid
     always @(*) begin
@@ -767,7 +776,7 @@ assign dst_is_r31   = inst_jal | inst_bgezal | inst_bltzal;
 assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu |
                       inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu |
                       inst_lwl | inst_lwr | inst_mfc0;
-assign gr_we        = ~inst_sw & ~inst_beq & ~inst_beql & ~inst_bne & ~inst_bnel & ~inst_jr & ~inst_bgez & ~inst_bgtz &
+assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne &  ~inst_jr & ~inst_bgez & ~inst_bgtz &
                       ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~inst_mtlo & ~inst_sb &
                       ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
                       ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
@@ -776,16 +785,20 @@ assign gr_we        = ~inst_sw & ~inst_beq & ~inst_beql & ~inst_bne & ~inst_bnel
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
 regfile u_regfile(
-    .clk    (clk      ),
-    .raddr1 (rs       ),
-    .rdata1 (rf_rdata1),
-    .raddr2 (rt       ),
-    .rdata2 (rf_rdata2),
-    .we     (rf_we    ),
-    .waddr  (rf_waddr ),
-    .wdata  (rf_wdata ),
-    .reset  (reset    )
-);
+    .clk            (clk        ),
+`ifdef ILA_debug
+    .ra             (ra         ),
+    .sp             (sp         ),
+`endif
+    .raddr1         (rs         ),
+    .rdata1         (rf_rdata1  ),
+    .raddr2         (rt         ),
+    .rdata2         (rf_rdata2  ),
+    .we             (rf_we      ),
+    .waddr          (rf_waddr   ),
+    .wdata          (rf_wdata   ),
+    .reset          (reset      )
+    );
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
                              rs == M1s_dest  ?  M1s_result  :
@@ -798,29 +811,26 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 
 // assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
-| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j | inst_beql | inst_bnel; //lab8添加
+| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
+
+assign ds_br_inst = {
+                        inst_beq    , 
+                        inst_bne    , 
+                        inst_jal    , 
+                        inst_jr     , 
+                        inst_j      , 
+                        inst_jalr   , 
+                        inst_bgez   , 
+                        inst_bgtz   , 
+                        inst_blez   , 
+                        inst_bltz   , 
+                        inst_bgezal , 
+                        inst_bltzal };
 
 
-always @(*) begin
-    case ({inst_beql,inst_bnel,inst_beq, inst_bne, inst_jal, inst_jr, inst_j, inst_jalr, inst_bgez, inst_bgtz, inst_blez, inst_bltz, inst_bgezal, inst_bltzal})
-        14'b00000000000000:branch_type = `BRANCH_TYPE_NONE;
-        14'b00000000000001:branch_type = `BRANCH_TYPE_BLTZAL;
-        14'b00000000000010:branch_type = `BRANCH_TYPE_BGEZAL;
-        14'b00000000000100:branch_type = `BRANCH_TYPE_BLTZ;
-        14'b00000000001000:branch_type = `BRANCH_TYPE_BLEZ;
-        14'b00000000010000:branch_type = `BRANCH_TYPE_BGTZ;
-        14'b00000000100000:branch_type = `BRANCH_TYPE_BGEZ;
-        14'b00000001000000:branch_type = `BRANCH_TYPE_JALR;
-        14'b00000010000000:branch_type = `BRANCH_TYPE_J;
-        14'b00000100000000:branch_type = `BRANCH_TYPE_JR;
-        14'b00001000000000:branch_type = `BRANCH_TYPE_JAL;
-        14'b00010000000000:branch_type = `BRANCH_TYPE_BNE;
-        14'b00100000000000:branch_type = `BRANCH_TYPE_BEQ;
-        14'b01000000000000:branch_type = `BRANCH_TYPE_BEQL;
-        14'b10000000000000:branch_type = `BRANCH_TYPE_BNEL;
-        default: branch_type = `BRANCH_TYPE_ERROR;
-    endcase
-end
+assign imm_br_addr = fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0};
+assign br_is_imm = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal | inst_bltzal;
+assign br_is_reg = inst_jr | inst_jalr;
 
 assign src1_no_rs = 1'b0;
 assign src2_no_rt = inst_addiu | load_op | inst_jal | inst_lui | inst_addi | inst_slti 
@@ -833,7 +843,7 @@ assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
                  & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
 //TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
-assign inst_no_dest = inst_beq |inst_beql | inst_bne | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
+assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
 | inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache;
 
 assign dest         = dst_is_r31   ? 5'd31 :
@@ -842,26 +852,16 @@ assign dest         = dst_is_r31   ? 5'd31 :
 
 assign load_stall = (rs_wait & (rs == EXE_dest ) & es_load_op  ) ||
                     (rs_wait & (rs == M1s_dest ) & m1s_load_op ) ||
-                    (rs_wait & (rs == MEM_dest ) & ms_load_op  ) ||
-                    (rt_wait & (rt == MEM_dest ) & ms_load_op  ) ||
+                    // (rs_wait & (rs == MEM_dest ) & ms_load_op  ) ||
+                    // (rt_wait & (rt == MEM_dest ) & ms_load_op  ) ||
                     (rt_wait & (rt == M1s_dest ) & m1s_load_op ) ||                   
-                    (rt_wait & (rt == EXE_dest ) & es_load_op  );
+                    (rt_wait & (rt == EXE_dest ) & es_load_op  );  
+// assign br_stall   = (load_stall | mfc0_stall) & br_taken; //Attention:删掉ds_valid
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 
-
-// Branch Likely的检测
-always@(*) begin
-  case (branch_type)
-    `BRANCH_TYPE_BEQL :
-        bra_likely = 1'b1; 
-    `BRANCH_TYPE_BNEL : 
-        bra_likely = 1'b1; 
-    default : bra_likely = 1'b0; 
-    endcase
-end
 
 endmodule
