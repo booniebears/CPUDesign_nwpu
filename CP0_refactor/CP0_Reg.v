@@ -149,8 +149,8 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin //Compare
-    if(reset) 
-        CP0_Compare <= 32'h0;
+    if(reset)
+        CP0_Compare <= 32'hffff_ffff; //赋值为最大
     else if(mtc0_we && CP0_Addr == `Compare_RegAddr)
         CP0_Compare <= m1s_alu_result;
 end

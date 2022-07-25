@@ -390,8 +390,9 @@ assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
 assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && (es_alu_result[1:0] != 0) ? 1'b1 : 1'b0;
 
-assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
+assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex | trap_ex; 
 assign es_Exctype = temp_ex     ? temp_ExcCode:
+                    trap_ex     ?       `Trap :
                     Overflow_ex ?       `Ov   : 
                     ADES_ex     ?       `AdES : 
                     ADEL_ex     ?       `AdEL : `NO_EX;
