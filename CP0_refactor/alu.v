@@ -437,6 +437,8 @@ always @(*) begin
         alu_result = mflo_result;
     else if(op_clo | op_clz)
         alu_result = cloclz_result;
+    else if(op_mul)
+        alu_result = mult_result[31:0];
     else if(op_movn)
         alu_result = movn_result;
     else if(op_movz)

@@ -252,6 +252,11 @@ reg  [2:0]  CacheInst_type; //Cache指令类型
 wire        is_ICacheInst; //指令针对ICache
 wire        is_DCacheInst; //指令针对DCache
 
+//pref,sync指令
+wire        inst_pref; 
+wire        inst_sync; 
+wire        inst_wait; 
+
 wire        dst_is_r31;  
 wire        dst_is_rt;   
 
@@ -358,7 +363,7 @@ assign inst_and    = op_d[6'h00] & func_d[6'h24] & sa_d[5'h00];
 assign inst_or     = op_d[6'h00] & func_d[6'h25] & sa_d[5'h00];
 assign inst_xor    = op_d[6'h00] & func_d[6'h26] & sa_d[5'h00];
 assign inst_nor    = op_d[6'h00] & func_d[6'h27] & sa_d[5'h00];
-assign inst_sll    = op_d[6'h00] & func_d[6'h00] & rs_d[5'h00];
+assign inst_sll    = op_d[6'h00] & func_d[6'h00] & rs_d[5'h00]; //nop指令当做这个算了吧 其实不太严谨 但不影响结果
 assign inst_srl    = op_d[6'h00] & func_d[6'h02] & rs_d[5'h00];
 assign inst_sra    = op_d[6'h00] & func_d[6'h03] & rs_d[5'h00];
 assign inst_addiu  = op_d[6'h09];
@@ -453,6 +458,10 @@ assign inst_tne    = op_d[6'h00] & func_d[6'h36];
 assign inst_tnei   = op_d[6'h01] & rt_d[5'h0e];
 //cache 
 assign inst_cache  = op_d[6'h2f];
+//pref,sync,wait 只译码 当做nop处理掉了
+assign inst_pref   = op_d[6'h33];
+assign inst_sync   = op_d[6'h00] & func_d[6'h0f];
+assign inst_wait   = op_d[6'h10] & func_d[6'h20];
 
 //已经在该mips指令集中定义过的指令
 assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor | 
@@ -465,7 +474,7 @@ inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_m
 inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo | 
 inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | 
 inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | 
-inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache;
+inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_pref | inst_sync | inst_wait;
 
 `ifdef FPU_EX_Valid
     always @(*) begin
@@ -701,7 +710,7 @@ assign Overflow_inst = {inst_add,inst_addi,inst_sub};
 assign alu_op[ 0] = inst_addu | inst_addiu | inst_lw | inst_sw | inst_jal | inst_add 
                     | inst_addi | inst_bgezal | inst_bltzal | inst_jalr | inst_sb | inst_sh
                     | inst_swl | inst_swr | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl
-                    | inst_lwr; //加法操作
+                    | inst_lwr | inst_cache; //加法操作
 assign alu_op[ 1] = inst_subu | inst_sub; //减法操作
 assign alu_op[ 2] = inst_slt | inst_slti; //有符号比较，小于置位
 assign alu_op[ 3] = inst_sltu | inst_sltiu; //无符号比较，小于置位
@@ -781,7 +790,7 @@ assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne &  ~inst_jr & ~inst_bgez 
                       ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
                       ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
                       ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei &
-                      ~inst_cache;
+                      ~inst_cache & ~inst_pref & ~inst_sync & ~inst_wait;
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
 regfile u_regfile(
@@ -811,7 +820,7 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 
 // assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
-| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j; //lab8添加
+| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j;
 
 assign ds_br_inst = {
                         inst_beq    , 
@@ -844,7 +853,8 @@ assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
 
 //TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
 assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
-| inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache;
+| inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache
+| inst_pref | inst_sync | inst_wait;
 
 assign dest         = dst_is_r31   ? 5'd31 :
                       dst_is_rt    ? rt    : 
@@ -852,14 +862,12 @@ assign dest         = dst_is_r31   ? 5'd31 :
 
 assign load_stall = (rs_wait & (rs == EXE_dest ) & es_load_op  ) ||
                     (rs_wait & (rs == M1s_dest ) & m1s_load_op ) ||
-                    // (rs_wait & (rs == MEM_dest ) & ms_load_op  ) ||
-                    // (rt_wait & (rt == MEM_dest ) & ms_load_op  ) ||
                     (rt_wait & (rt == M1s_dest ) & m1s_load_op ) ||                   
-                    (rt_wait & (rt == EXE_dest ) & es_load_op  );  
-// assign br_stall   = (load_stall | mfc0_stall) & br_taken; //Attention:删掉ds_valid
+                    (rt_wait & (rt == EXE_dest ) & es_load_op  );
+                      
 //lab8添加 处理mfc0引起的冒险问题 mfc0指令如果在WB阶段可以forward,否则只能stall
 assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
-                    (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
+                     (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
 assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 

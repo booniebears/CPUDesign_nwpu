@@ -188,8 +188,9 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                        } ;               
 
-assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we) | 
-                        ((m1s_load_op | m1s_mem_we) & ~dcache_busy & ~DTLB_Buffer_Stall);
+assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we & ~m1s_is_DCacheInst) | 
+                        ((m1s_load_op | m1s_mem_we | m1s_is_DCacheInst) & ~dcache_busy &
+                         ~DTLB_Buffer_Stall);
 assign m1s_allowin     = ~m1s_valid || m1s_ready_go && ms_allowin;
 assign m1s_to_ms_valid = m1s_valid && m1s_ready_go;
 always @(posedge clk) begin
