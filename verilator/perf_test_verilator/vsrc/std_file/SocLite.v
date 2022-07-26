@@ -436,7 +436,7 @@ module SimAXIRAM(
   wire [38:0] _T_67 = _GEN_2 & 39'hfffff; // @[SocLite.scala 317:36]
   wire [36:0] _GEN_26 = {{29'd0}, value_1}; // @[SocLite.scala 321:29]
   wire [36:0] rIdx = _T_67[38:2] + _GEN_26; // @[SocLite.scala 321:29]
-  wire  _T_71 = wIdx < 30'h20000; // @[SocLite.scala 318:34]
+  wire  _T_71 = wIdx < 30'h40000; // @[SocLite.scala 318:34]
   reg [31:0] r_8; // @[Reg.scala 15:16]
   RAMHelper mem ( // @[SocLite.scala 324:21]
     .clk(mem_clk),

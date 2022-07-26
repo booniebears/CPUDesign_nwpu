@@ -116,11 +116,18 @@ wire [31:0] adder_b;
 wire [31:0] adder_cin;
 wire [31:0] adder_result;
 wire        adder_cout;
+wire [31:0] sub_result;
+wire [31:0] add_result;
+wire        sub_cout;
+wire        add_cout;
 
 assign adder_a   = alu_src1;
-assign adder_b   = (op_sub | op_slt | op_sltu) ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
-assign adder_cin = (op_sub | op_slt | op_sltu) ? 32'b1      : 32'b0;
-assign {adder_cout, adder_result} = adder_a + adder_b + adder_cin;
+assign adder_b   = op_sub  ? ~alu_src2 : alu_src2; //sub,slt,sltu作减法
+assign adder_cin = op_sub  ? 32'b1      : 32'b0;
+
+assign sub_result = alu_src1 - alu_src2;
+assign add_result = alu_src1 + alu_src2;
+assign adder_result = op_sub ? sub_result : add_result;
 
 //lab8添加
 assign Overflow_ex = Overflow_inst[2] | Overflow_inst[1] ? //add或者addi
@@ -136,12 +143,11 @@ assign add_sub_result = adder_result;
 
 // SLT result
 assign slt_result[31:1] = 31'b0;
-assign slt_result[0]    = (alu_src1[31] & ~alu_src2[31])
-                        | (~(alu_src1[31] ^ alu_src2[31]) & adder_result[31]);
+assign slt_result[0]    = ($signed(alu_src1) < $signed(alu_src2));
 
 // SLTU result
 assign sltu_result[31:1] = 31'b0;
-assign sltu_result[0]    = ~adder_cout;
+assign sltu_result[0]    = (alu_src1 < alu_src2);
 
 // bitwise operation
 assign and_result = alu_src1 & alu_src2;
@@ -156,7 +162,6 @@ assign sll_result = alu_src2 << alu_src1[4:0];
 // SRL, SRA result
 assign srl_result = alu_src2[31:0] >> alu_src1[4:0];
 assign sra_result = $signed(alu_src2) >>> alu_src1[4:0];
-
 
 cloclz_cnt U_cloclz_cnt(
     .cloclz_in   (alu_src1      ),
@@ -186,7 +191,7 @@ multiplier U_multiplier( //Unsigned multiplier 3拍返回
     .P  (multi_result )
 );
 
-assign mul_isSigned  = op_mult | op_madd | op_msub | op_mul;
+assign mul_isSigned  = op_mult;
 assign multiplicantA = mul_isSigned & alu_src1[31] ? -alu_src1 : alu_src1;
 assign multiplicantB = mul_isSigned & alu_src2[31] ? -alu_src2 : alu_src2;
 assign isNegative    = mul_isSigned & (alu_src1[31] ^ alu_src2[31]);
@@ -432,6 +437,8 @@ always @(*) begin
         alu_result = mflo_result;
     else if(op_clo | op_clz)
         alu_result = cloclz_result;
+    else if(op_mul)
+        alu_result = mult_result[31:0];
     else if(op_movn)
         alu_result = movn_result;
     else if(op_movz)

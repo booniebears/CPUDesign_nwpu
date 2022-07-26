@@ -1,28 +1,30 @@
 `ifndef MYCPU_H
     `define MYCPU_H
+    /*********************模块使能定义*********************/
+    `define FPU_EX_Valid
+    `define CacheInst_EN
     `define OPEN_VA             //verilator仿真需要 注释
     `define OPEN_VA_PERF        //verilator仿真需要 注释
     // `define use_crossbar_ip   //vivado仿真需要 解注释
-    `define BR_BUS_WD       68
-    //FS_TO_DS_BUS_WD原来是64,lab8修改为71(加入fs_bd,fs_ex,fs_ExcCode)
-    `define PS_TO_FS_BUS_WD 39
-    `define BPU_TO_PS_BUS_WD 33
-    `define BPU_TO_DS_BUS_WD 36
-    `define FS_TO_DS_BUS_WD 71
-    //DS_TO_ES_BUS_WD原来是136,lab6修改为137(src2_is_imm变为2位宽),修改为145(加入mf_mt和mult_div)
-    //lab7再次修改为157(添加mem_control区别不同的存取数指令),lab8修改为174(加入mfc0,mtc0,eret指令
-    //和mfc0_rd,sel段;加入ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
-    `define DS_TO_ES_BUS_WD 286
-    //原为70,lab7修改为115,lab8修改为133(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入es_bd,es_ex,es_ExcCode;)
-    //lab9修改为165(加入data_sram_addr)
-    `define ES_TO_M1_BUS_WD 175
-    `define BRESULT_WD 68
-    `define M1_TO_MS_BUS_WD 118
-    //原为70,lab8修改为88(加入mfc0,mtc0,eret指令和mfc0_rd,sel段;加入ms_bd,ms_ex,ms_ExcCode)
-    //lab9修改为120(加入data_sram_addr)
-    `define MS_TO_WS_BUS_WD 150
-    `define WS_TO_RF_BUS_WD 38
-    //CP0寄存器对应的地址(8位)
+    `define PMON_debug   
+    `define ILA_debug
+    /*********************通道宽度*********************/
+    `define ALUOP_WD            29
+    `define DS_TO_ES_NOALU_WD   316
+    `define BR_BUS_WD           68
+    `define BRESULT_WD          68
+    `define BPU_TO_PS_BUS_WD    33
+    `define BPU_TO_DS_BUS_WD    36
+
+    `define PS_TO_FS_BUS_WD     39
+    `define FS_TO_DS_BUS_WD     71
+    `define DS_TO_ES_BUS_WD     (`ALUOP_WD + `DS_TO_ES_NOALU_WD)
+    `define ES_TO_M1_BUS_WD     180
+    `define M1_TO_MS_BUS_WD     117
+    `define MS_TO_WS_BUS_WD     71
+    `define WS_TO_RF_BUS_WD     38
+
+    /*********************CP0寄存器地址定义*********************/
     `define Index_RegAddr    8'h00
     `define Random_RegAddr   8'h08
     `define Entrylo0_RegAddr 8'h10
@@ -41,7 +43,9 @@
     `define EBase_RegAddr    8'h79
     `define Config_RegAddr   8'h80
     `define Config1_RegAddr  8'h81
-    //ID阶段编码
+    `define EntryHI_RegNum   5'd10
+
+/*********************BRANCH 指令编码*********************/
     `define BRANCH_TYPE_NONE    4'b0000
     `define BRANCH_TYPE_BEQ     4'b0011
     `define BRANCH_TYPE_BNE     4'b0010
@@ -58,11 +62,11 @@
     `define BRANCH_TYPE_ERROR   4'b1111
     //ExcCode编码及其对应例外类型 Attention:尚未映射，有误!
     `define Int                 5'b00000 //中断
-    `define ITLB_EX_Refill      5'b00010 //TLB例外(取指或读数据)
-    `define ITLB_EX_Invalid     5'b00011 //TLB例外(取指或读数据)
-    `define DTLB_EX_RD_Refill   5'b00100 //TLB例外(取指或读数据)
-    `define DTLB_EX_RD_Invalid  5'b00101 //TLB例外(取指或读数据)
-    `define DTLB_EX_WR_Refill   5'b00110 //TLB例外(写数据)
+    `define ITLB_EX_Refill      5'b00010 
+    `define ITLB_EX_Invalid     5'b00011 
+    `define DTLB_EX_RD_Refill   5'b00100 
+    `define DTLB_EX_RD_Invalid  5'b00101 
+    `define DTLB_EX_WR_Refill   5'b00110 
     `define DTLB_EX_WR_Invalid  5'b00111
     `define DTLB_EX_Modified    5'b01000
     `define AdEL                5'b01001 //地址错例外(读数据/取指令)
@@ -71,9 +75,37 @@
     `define Bp                  5'b01100 //break断点例外
     `define RI                  5'b01101 //保留指令(未定义指令)例外
     `define Ov                  5'b01110 //算术溢出例外
-    `define NO_EX               5'b11111 //时钟中断例外
-    //定义复位与例外入口
+    `define CpU                 5'b01111 //Coprocessor Unusable exception
+    `define Trap                5'b10000 //自陷例外
+    `define NO_EX               5'b11111 
+
+    /*********************定义复位与例外入口*********************/
     `define RESET_PC            32'hbfc0_0000
     `define REFILL_EX_PC        32'hbfc0_0200
     `define GENERAL_EX_PC       32'hbfc0_0380
+
+    /*********************FPU指令类型*********************/
+    `define NOT_FPU             2'b00
+    `define FPU_RESERVED        2'b01
+    `define FPU_INST            2'b10
+
+    /*********************Trap指令类型*********************/
+    `define NOT_TRAP            3'b000
+    `define TGE_TYPE            3'b001
+    `define TGEU_TYPE           3'b010
+    `define TLT_TYPE            3'b011
+    `define TNE_TYPE            3'b100
+    `define TLTU_TYPE           3'b101
+    `define TEQ_TYPE            3'b110
+
+    /*********************Cache指令类型*********************/
+    `define NOT_CACHEINST         3'b000
+    `define ICache_IDX_INVALID    3'b001
+    `define ICache_IDX_STORETAG   3'b010
+    `define ICache_HIT_INVALID    3'b011
+    `define DCache_IDX_WB_INVALID 3'b100
+    `define DCache_IDX_STORETAG   3'b101
+    `define DCache_HIT_INVALID    3'b110
+    `define DCache_HIT_WB_INVALID 3'b111
+
 `endif

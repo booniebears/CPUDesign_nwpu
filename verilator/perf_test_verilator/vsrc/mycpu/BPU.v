@@ -18,7 +18,6 @@ module BPU#(
     input [`BRESULT_WD - 1 :0] BResult,
     input [31:0] ja_target ,
     input inst_is_ja,
-    input inst_is_jr,
     output [31:0] target,
     output BPU_valid,
     output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus
@@ -96,7 +95,8 @@ assign BPU_to_ds_bus = {
 assign BPU_ret_addr =   inst_is_ja        ? ja_target :
                         PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
 
-assign BPU_is_taken =   inst_is_ja  ?   1   :   ~PHT_rout_Count[1];
+// assign BPU_is_taken =   (inst_is_ja | inst_is_jr)  ?   1   :   ~PHT_rout_Count[1];
+assign BPU_is_taken =   inst_is_ja   ?   1   :   ~PHT_rout_Count[1];
 
 always @(posedge clk) begin
     if(reset)begin
@@ -126,7 +126,8 @@ end
 /*************************************************************************/
 
 assign target = BPU_ret_addr;
-assign BPU_valid = PHT_hit | inst_is_ja;
+// assign BPU_valid = PHT_hit | inst_is_ja | inst_is_jr;
+assign BPU_valid = PHT_hit | inst_is_ja ;
 // assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;

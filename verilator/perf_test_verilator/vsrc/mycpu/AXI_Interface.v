@@ -969,6 +969,7 @@ module AXI_Interface(
     reg   [  2:0] U_WR_nextstate;
     reg   [ 31:0] U_WR_Addr;
     reg   [ 31:0] AXI_U_WData;
+    reg   [  3:0] AXI_U_WStrb;
 
     always @(posedge clk) begin
         if (~resetn) begin
@@ -1026,11 +1027,13 @@ module AXI_Interface(
         if (~resetn) begin
             U_WR_Addr   <= 0;
             AXI_U_WData <= 0;
+            AXI_U_WStrb <= 0;
         end 
         else begin  
             if (udcache_wr_req == 1'b1 && U_WR_state == `UD_WR_IDLE) begin
                 U_WR_Addr   <= udcache_wr_addr;
                 AXI_U_WData <= udcache_wr_data;
+                AXI_U_WStrb <= udcache_wr_strb;
             end 
         end 
     end
@@ -1104,7 +1107,7 @@ module AXI_Interface(
 
 
     assign udata_wid     = 4'b0001;
-    assign udata_wstrb   = udcache_wr_strb;  
+    assign udata_wstrb   = AXI_U_WStrb;  
     assign udata_bready  = 1'b1;
 
     assign icache_rd_rdy  = (I_RD_state == `I_RD_IDLE ) ? 1'b1 : 1'b0;

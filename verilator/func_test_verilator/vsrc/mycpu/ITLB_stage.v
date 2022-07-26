@@ -16,14 +16,12 @@ module ITLB_stage(
     input              ITLB_v1          ,
     output reg [ 4:0]  ITLB_Exctype     ,
     output reg         ITLB_ex          ,
-    output reg         isUncache        , 
     output             ITLB_Buffer_Stall,
-    input              TLB_Buffer_Flush , 
-    input      [ 2:0]  CP0_Config_K0_out
+    input              TLB_Buffer_Flush //
 );
 
-parameter    IDLE   = 1'b0,
-             SEARCH = 1'b1;
+parameter    ITLB_IDLE   = 1'b0,
+             ITLB_START = 1'b1;
 
 reg          ITLB_state;
 reg          ITLB_nextstate;  
@@ -52,31 +50,6 @@ always @(*) begin //虚实地址转换
             ITLB_PFN = ITLB_Buffer_pfn1;
         else
             ITLB_PFN = ITLB_Buffer_pfn0;
-    end
-end
-
-always @(*) begin
-    if(ITLB_VPN[31:28] == 4'hA || ITLB_VPN[31:28] == 4'hB)
-        isUncache = 1'b1;
-    else if(ITLB_VPN[31:28] == 4'h8 || ITLB_VPN[31:28] == 4'h9) begin
-        if(CP0_Config_K0_out == 3'b011)
-            isUncache = 1'b0;
-        else
-            isUncache = 1'b1;
-    end
-    else begin //考虑TLB控制Cache属性
-        if(ITLB_VPN[12]) begin
-            if(ITLB_Buffer_c1 == 3'b011)
-                isUncache = 1'b0;
-            else
-                isUncache = 1'b1;
-        end
-        else begin
-            if(ITLB_Buffer_c0 == 3'b011)
-                isUncache = 1'b0;
-            else
-                isUncache = 1'b1;
-        end
     end
 end
 
@@ -120,7 +93,7 @@ assign ITLB_Buffer_Stall = ~ITLB_Buffer_Hit;
 
 always @(posedge clk) begin
     if(reset) begin
-        ITLB_state <= IDLE;
+        ITLB_state <= ITLB_IDLE;
     end else begin
         ITLB_state <= ITLB_nextstate;
     end    
@@ -128,19 +101,19 @@ end
 
 always @(*) begin
     case(ITLB_state)
-        IDLE :
+        ITLB_IDLE :
             if(ITLB_Buffer_Hit == 1'b0) 
-                ITLB_nextstate = SEARCH;
+                ITLB_nextstate = ITLB_START;
             else 
-                ITLB_nextstate = IDLE;
-        SEARCH :
+                ITLB_nextstate = ITLB_IDLE;
+        ITLB_START :
             if(ITLB_Buffer_Hit == 1'b1) 
-                ITLB_nextstate = IDLE;
+                ITLB_nextstate = ITLB_IDLE;
             else 
-                ITLB_nextstate = SEARCH; 
+                ITLB_nextstate = ITLB_START; 
      endcase
 end
-assign ITLB_Buffer_Wr  = (ITLB_state == SEARCH);
+assign ITLB_Buffer_Wr  = (ITLB_state == ITLB_START);
 /********************TLB装填TLB Buffer逻辑********************/
 
 always @(posedge clk) begin

@@ -6,8 +6,16 @@ module mem_stage(
     //allowin 
     input          ws_allowin,
     output         ms_allowin,
-    output         ms_load_op,
+    //to ds
     //from m1s
+`ifdef PMON_debug
+    input      [31:0] m1s_inst,
+    input      [ 3:0] m1s_data_wstrb,
+    input      [31:0] m1s_data_wdata,
+    output reg [31:0] ms_inst,
+    output reg [ 3:0] ms_data_wstrb,
+    output reg [31:0] ms_data_wdata,
+`endif
     input          m1s_to_ms_valid,
     input  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus,
     //to ws
@@ -42,9 +50,8 @@ wire [31:0] mem_result_lhu;
 wire [31:0] mem_result_lwl;
 wire [31:0] mem_result_lwr;
 
-/******************m1s_to_ms_bus Total: 118bits******************/
+/******************m1s_to_ms_bus Total: 117bits******************/
 assign {
-        ms_load_op     , //117:117
         ms_store_flow  , //116:116
         ms_ex          , //115:115                                 
         ms_rt_value    , //114:83
@@ -53,27 +60,54 @@ assign {
         ms_gr_we       , //69:69
         ms_dest        , //68:64
         ms_result      , //63:32
-        ms_pc            //31:0
+        ms_pc            //31:0          
        } = m1s_to_ms_bus_r;
 
 wire [31:0] mem_data;
 wire [31:0] ms_final_result;
-wire [ 1:0] rdata_type;
-assign rdata_type = ms_result[1:0];
 
-/******************ms_to_ws_bus Total: 150bits******************/
+/******************ms_to_ws_bus Total: 71bits******************/
 assign ms_to_ws_bus = {
-                       ms_res_from_mem,  //149:149
-                       ms_mem_inst    ,  //148:137
-                       ms_rt_value    ,  //136:105
-                       data_rdata     ,  //104:73
-                       rdata_type     ,  //72:71
                        ms_ex          ,  //70:70
                        ms_gr_we       ,  //69:69 --写RF使能
                        ms_dest        ,  //68:64 --写RF的地址
                        ms_final_result,  //63:32 --写RF的数据
                        ms_pc             //31:0 --MEM阶段 PC值
                       };
+
+//lab7添加
+//TODO:data_rdata换成从DCache读回来的数据rdata
+assign load_sign_lb         = (ms_result[1:0] == 2'd0) ? data_rdata[ 7] :
+                              (ms_result[1:0] == 2'd1) ? data_rdata[15] :
+                              (ms_result[1:0] == 2'd2) ? data_rdata[23] :
+                                                             data_rdata[31];                                                  
+assign mem_result_lb[ 7:0]  = (ms_result[1:0] == 2'd0) ? data_rdata[ 7:0 ] :
+                              (ms_result[1:0] == 2'd1) ? data_rdata[15:8 ] :
+                              (ms_result[1:0] == 2'd2) ? data_rdata[23:16] :
+                                                             data_rdata[31:24];
+assign mem_result_lb[31:8]  = {24{load_sign_lb}};
+assign mem_result_lbu       = {24'd0, mem_result_lb[7:0]};
+
+
+//lh/lhu
+assign load_sign_lh         = (ms_result[1:0] == 2'b00) ? data_rdata[15]   :
+                              (ms_result[1:0] == 2'b10) ? data_rdata[31]   : 1'b0;                                                   
+assign mem_result_lh[15:0]  = (ms_result[1:0] == 2'b00) ? data_rdata[15:0] : 
+                              (ms_result[1:0] == 2'b10) ? data_rdata[31:16]: 16'd0;
+assign mem_result_lh[31:16] = {16{load_sign_lh}};
+assign mem_result_lhu       = {16'd0, mem_result_lh[15:0]};
+
+//lwl
+assign mem_result_lwl       = (ms_result[1:0] == 2'd0) ? {data_rdata[ 7:0], ms_rt_value[23:0]} :
+                              (ms_result[1:0] == 2'd1) ? {data_rdata[15:0], ms_rt_value[15:0]} :
+                              (ms_result[1:0] == 2'd2) ? {data_rdata[23:0], ms_rt_value[7 :0]} :
+                                                              data_rdata[31:0];
+
+//lwr
+assign mem_result_lwr       = (ms_result[1:0] == 2'd0) ?  data_rdata[31:0]                       :
+                              (ms_result[1:0] == 2'd1) ? {ms_rt_value[31:24], data_rdata[31: 8]} :
+                              (ms_result[1:0] == 2'd2) ? {ms_rt_value[31:16], data_rdata[31:16]} :
+                                                             {ms_rt_value[31: 8], data_rdata[31:24]} ;
 
 assign ms_ready_go    = ms_store_flow | ~dcache_busy;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
@@ -95,11 +129,37 @@ always @(posedge clk ) begin
     end
 end
 
+`ifdef PMON_debug
+always @(posedge clk ) begin
+    if (reset) begin
+        ms_inst <= 0;
+        ms_data_wstrb <= 0;
+        ms_data_wdata <= 0;
+    end
+    else if (m1s_to_ms_valid && ms_allowin) begin
+        ms_inst <= m1s_inst;
+        ms_data_wstrb <= m1s_data_wstrb;
+        ms_data_wdata <= m1s_data_wdata;
+    end
+end
+`endif
+
+assign mem_data = (ms_mem_inst[2]) ? mem_result_lb  :
+                  (ms_mem_inst[3]) ? mem_result_lbu :
+                  (ms_mem_inst[4]) ? mem_result_lh  :
+                  (ms_mem_inst[5]) ? mem_result_lhu : 
+                  (ms_mem_inst[6]) ? mem_result_lwl :
+                  (ms_mem_inst[7]) ? mem_result_lwr : data_rdata; //lw对应data_rdata
+
+
 `ifdef OPEN_VA_PERF
     reg [31:0] getsoccount; 
     //lw v0, -8192(t9)
     assign ms_final_result =((ms_mem_inst[0] == 1) && (ms_result == 32'hbfafe000) && (ms_dest == 5'h02)) ?
-                            getsoccount : ms_result;
+                            getsoccount :
+                            ms_res_from_mem ? mem_data :
+                            // ms_inst_mfc0    ? CP0_data :
+                                              ms_result;
     always @(posedge clk) begin //set values for soc count
         if(reset)
             getsoccount <= 0;
@@ -109,7 +169,10 @@ end
     end
 
 `else
-    assign ms_final_result = ms_result;
+    assign ms_final_result = ms_res_from_mem ? mem_data:
+    //                          ms_inst_mfc0    ? CP0_data :
+                                               ms_result;
+    // assign ms_final_result =   ms_result;
 `endif
 
 //lab4添加

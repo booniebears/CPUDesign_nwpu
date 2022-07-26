@@ -40,10 +40,10 @@ module pre_if_stage(
     input      [31:0]              m1s_pc,
     input                          m1s_is_ICacheInst,
     input      [11:4]              cache_index, //M1阶段传回 Cache指令使用的index
-    output reg                     ICacheInst_delayed,
-    input      [ 2:0]              CP0_Config_K0_out,
-    output                         isUncache //
+    output reg                     ICacheInst_delayed
 );
+
+wire         inst_valid_end;
 
 wire         ps_ready_go;
 wire         ps_allowin;
@@ -55,7 +55,6 @@ wire         ps_ex;
 wire [4:0]   ps_Exctype;
 wire [4:0]   ITLB_Exctype;
 wire         ITLB_Buffer_Stall;
-wire         inst_valid_end;
 
 //PC_reg
 reg   [31:0] nextpc;
@@ -163,23 +162,11 @@ always @(*) begin //nextpc
         else 
             nextpc = `GENERAL_EX_PC;
     end
-    else if(is_branch)begin
-        if(br_BPU_valid)begin
-            if(br_BPU_right)begin
-                nextpc = right_flow_pc;
-            end
-            else begin
-                nextpc = wrong_flow_pc;
-            end
-        end
-        else begin
-            if (br_taken) begin
-                nextpc = br_target;
-            end
-            else begin
-                nextpc = right_flow_pc;
-            end
-        end
+    else if(is_branch & br_BPU_valid & ~br_BPU_right)begin
+        nextpc = wrong_flow_pc;
+    end
+    else if(is_branch & ~br_BPU_valid & br_taken)begin
+        nextpc = br_target;
     end
     else 
         nextpc = right_flow_pc;
@@ -208,13 +195,11 @@ ITLB_stage ITLB(
         .ITLB_v1              (ITLB_v1             ),
         .ITLB_Exctype         (ITLB_Exctype        ),
         .ITLB_ex              (ITLB_ex             ),
-        .isUncache            (isUncache           ),
         .ITLB_Buffer_Stall    (ITLB_Buffer_Stall   ),
-        .TLB_Buffer_Flush     (TLB_Buffer_Flush    ),
-        .CP0_Config_K0_out    (CP0_Config_K0_out   )
+        .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
 );
 
-assign ADEL_ex    = prefs_pc[1:0] != 2'b00; 
+assign ADEL_ex    = (prefs_pc[1:0] != 2'b00) & ~br_flush; 
 assign ps_ex      = ADEL_ex | ITLB_ex;
 assign ps_Exctype = ADEL_ex ? `AdEL         :
                     ITLB_ex ?  ITLB_Exctype : 

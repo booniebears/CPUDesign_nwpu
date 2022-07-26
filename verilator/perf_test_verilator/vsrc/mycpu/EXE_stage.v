@@ -14,6 +14,10 @@ module exe_stage(
     //to fs
     output [`BRESULT_WD      -1:0] EXE_BResult,
     output                         es_br_flush,
+`ifdef PMON_debug
+    input      [31:0]              ds_inst,
+    output reg [31:0]              es_inst,
+`endif
     //to ms
     output        es_to_m1s_valid,
     output [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
@@ -26,18 +30,25 @@ module exe_stage(
     input                          m1s_inst_eret
 );
 
-wire [31                 :0] ds_pc;
+wire [31:0] ds_pc;
 assign ds_pc = ds_to_es_bus[31:0];
 reg         es_valid      ;
 wire        es_ready_go   ;
 
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
-// wire [40:0] es_alu_op     ;
-wire [19:0] es_alu_op     ;
+wire [`ALUOP_WD-1:0] es_alu_op; //ALUOP_WD = 29bit
 wire        es_src1_is_not_rs_value ;
 wire        es_src2_is_not_rt_value ;
 wire [31:0] es_not_rs_value;
 wire [31:0] es_not_rt_value;
+wire [2:0]  es_trap_op;
+wire [2:0]  es_CacheInst_type;
+wire        es_is_ICacheInst;
+wire        es_is_DCacheInst;
+wire        es_br_is_imm;
+wire        es_br_is_reg;
+wire [31:0] es_imm_br_addr;
+
 wire        es_gr_we      ;
 wire        es_mem_we     ;
 wire [ 4:0] es_dest       ;
@@ -46,7 +57,7 @@ wire [31:0] es_rs_value   ;
 wire [31:0] es_rt_value   ;
 wire [31:0] es_pc         ;
 wire [11:0] es_mem_inst; //lab7添加 区别不同的存取数指令
-wire [3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
+wire [ 3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
 
 wire [25:0] es_part_inst;
@@ -67,14 +78,30 @@ wire        Overflow_ex; //有整型溢出置为1
 wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,addi,sub
 wire        ADES_ex; //地址错例外(写数据)
 wire        ADEL_ex; //地址错例外(读数据)
+wire        trap_ex;
 
+/* verilator lint_off UNOPTFLAT */
 wire es_BPU_right;
+
+wire inst_beq   ;
+wire inst_bne   ;
+wire inst_jal   ;
+wire inst_jr    ;
+wire inst_j     ;
+wire inst_jalr  ;
+wire inst_bgez  ;
+wire inst_bgtz  ;
+wire inst_blez  ;
+wire inst_bltz  ;
+wire inst_bgezal;
+wire inst_bltzal;
 
 wire [31:0] es_BPU_ret_addr;
 wire es_BPU_is_taken;
 wire es_BPU_valid;
 wire [1:0] es_Count;
 wire [3:0] es_branch_type;
+wire [11:0] es_br_inst;
 wire [25:0] es_jidx;
 wire es_is_branch;
 // wire es_br_stall;
@@ -88,90 +115,104 @@ wire        es_rsgtz;
 wire        es_rslez;
 wire        es_rsltz;
 
+/******************ds_to_es_bus Total: 316 + 29 bits******************/
 assign {
-        es_not_rs_value             ,  //330:299
-        es_not_rt_value             ,  //298:267
-        es_BPU_ret_addr             ,  //266:235
-        es_BPU_is_taken             ,  //234:234
-        es_BPU_valid                ,  //233:233
-        es_Count                    ,  //232:231
-        es_is_branch                ,  //230:230 
-        es_branch_type              ,  //229:226 
-        es_part_inst                ,  //225:200
-        es_inst_tlbp                ,  //199:199
-        es_inst_tlbr                ,  //198:198
-        es_inst_tlbwi               ,  //197:197
-        es_inst_tlbwr               ,  //196:196
-        Overflow_inst               ,  //190:198
-        temp_ex                     ,  //197:197 
-        temp_ExcCode                ,  //186:182 
-        es_bd                       ,  //181:181
-        es_inst_eret                ,  //180:180
-        es_inst_mtc0                ,  //176:176 
-        es_inst_mfc0                ,  //175:175 
-        es_mem_inst                 ,  //174:163
-        es_alu_op                   ,  //162:122
-        es_load_op                  ,  //121:121
-        es_src1_is_not_rs_value     ,  //120:120
-        es_src2_is_not_rt_value     ,  //119:119
-        es_gr_we                    ,  //118:118 --写RF使能
-        es_mem_we                   ,  //117:117 --写DM使能
-        es_dest                     ,  //116:112 
-        es_rs_value                 ,  //95 :64  
-        es_rt_value                 ,  //63 :32  
-        es_pc                          //31 :0    
+        es_alu_op              ,  //344:316
+        es_is_ICacheInst       ,  //315:315
+        es_is_DCacheInst       ,  //314:314
+        es_CacheInst_type      ,  //313:311
+        es_trap_op             ,  //310:308
+        es_br_is_reg           ,  //307:307
+        es_br_is_imm           ,  //306:306
+        es_imm_br_addr         ,  //305:274
+        es_not_rs_value        ,  //273:242
+        es_not_rt_value        ,  //241:210
+        es_BPU_ret_addr        ,  //209:178
+        es_BPU_is_taken        ,  //177:177
+        es_BPU_valid           ,  //176:176
+        es_Count               ,  //175:174
+        es_is_branch           ,  //173:173 
+        es_br_inst             ,  //172:161
+        es_part_inst           ,  //160:135
+        es_inst_tlbp           ,  //134:134
+        es_inst_tlbr           ,  //133:133
+        es_inst_tlbwi          ,  //132:132
+        es_inst_tlbwr          ,  //131:131
+        Overflow_inst          ,  //130:128
+        temp_ex                ,  //127:127 
+        temp_ExcCode           ,  //126:122 
+        es_bd                  ,  //121:121
+        es_inst_eret           ,  //120:120
+        es_inst_mtc0           ,  //119:119 
+        es_inst_mfc0           ,  //118:118 
+        es_mem_inst            ,  //117:106
+        es_load_op             ,  //105:105
+        es_src1_is_not_rs_value,  //104:104
+        es_src2_is_not_rt_value,  //103:103
+        es_gr_we               ,  //102:102 --写RF使能
+        es_mem_we              ,  //101:101 --写DM使能
+        es_dest                ,  //100:96 
+        es_rs_value            ,  //95 :64 
+        es_rt_value            ,  //63 :32 
+        es_pc                     //31 :0  
        } = ds_to_es_bus_r;
+
+assign {    inst_beq   ,
+            inst_bne   ,
+            inst_jal   ,
+            inst_jr    ,
+            inst_j     ,
+            inst_jalr  ,
+            inst_bgez  ,
+            inst_bgtz  ,
+            inst_blez  ,
+            inst_bltz  ,
+            inst_bgezal,
+            inst_bltzal     } = es_br_inst;
 
 assign es_rs_eq_rt = (es_rs_value == es_rt_value);
 
-assign es_imm = es_part_inst[15:0];
-assign es_sel = es_part_inst[ 2:0];
+assign es_imm     = es_part_inst[15:0];
+assign es_sel     = es_part_inst[ 2:0];
 assign es_mfc0_rd = es_part_inst[15:11];
-assign es_jidx = es_part_inst[25:0];
+assign es_jidx    = es_part_inst[25:0];
 
 //lab7添加
-assign es_rsgez = (es_rs_value[31] == 1'b0  ||  es_rs_value == 32'b0); //>=0
-assign es_rsgtz = (es_rs_value[31] == 1'b0  &&  es_rs_value != 32'b0); //>0
-assign es_rslez = (es_rs_value[31] == 1'b1  ||  es_rs_value == 32'b0); //<=0
-assign es_rsltz = (es_rs_value[31] == 1'b1  &&  es_rs_value != 32'b0); //<0
+assign es_rsgez =  (       ~es_rs_value[31] ); //>=0
+assign es_rsgtz =  ($signed(es_rs_value) > 0); // >0
+assign es_rslez = ~($signed(es_rs_value) > 0); //<=0
+assign es_rsltz =  (        es_rs_value[31] ); // <0
 
-assign es_br_target = (    es_branch_type == `BRANCH_TYPE_BEQ
-                        || es_branch_type == `BRANCH_TYPE_BNE
-                        || es_branch_type == `BRANCH_TYPE_BGEZ
-                        || es_branch_type == `BRANCH_TYPE_BGTZ
-                        || es_branch_type == `BRANCH_TYPE_BLEZ
-                        || es_branch_type == `BRANCH_TYPE_BLTZ
-                        || es_branch_type == `BRANCH_TYPE_BGEZAL
-                        || es_branch_type == `BRANCH_TYPE_BLTZAL ) ? (ds_pc + {{14{es_imm[15]}}, es_imm[15:0], 2'b0}) :
-                      (    es_branch_type == `BRANCH_TYPE_JR
-                        || es_branch_type == `BRANCH_TYPE_JALR   ) ? es_rs_value    : {ds_pc[31:28], es_jidx[25:0], 2'b0};
+assign es_br_target =   es_br_is_imm                ?  es_imm_br_addr     :
+                        es_br_is_reg                ? es_rs_value         :
+                        /*inst_jal,inst_j*/         {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
-assign es_br_taken =  (    (es_branch_type == `BRANCH_TYPE_BEQ     &  es_rs_eq_rt)
-                        || (es_branch_type == `BRANCH_TYPE_BNE     & !es_rs_eq_rt)
-                        || (es_branch_type == `BRANCH_TYPE_JAL                   )
-                        || (es_branch_type == `BRANCH_TYPE_JR                    )
-                        || (es_branch_type == `BRANCH_TYPE_J                     )
-                        || (es_branch_type == `BRANCH_TYPE_JALR                  )
-                        || (es_branch_type == `BRANCH_TYPE_BGEZ    & es_rsgez    )
-                        || (es_branch_type == `BRANCH_TYPE_BGTZ    & es_rsgtz    )
-                        || (es_branch_type == `BRANCH_TYPE_BLEZ    & es_rslez    )
-                        || (es_branch_type == `BRANCH_TYPE_BLTZ    & es_rsltz    )
-                        || (es_branch_type == `BRANCH_TYPE_BGEZAL  & es_rsgez   )
-                        || (es_branch_type == `BRANCH_TYPE_BLTZAL  & es_rsltz   )
-                      ) ;           
+assign es_br_taken =  (   inst_beq  &  es_rs_eq_rt
+                        | inst_bne  & !es_rs_eq_rt
+                        | inst_jal
+                        | inst_jr
+                        | inst_j
+                        | inst_jalr
+                        | inst_bgez & es_rsgez
+                        | inst_bgtz & es_rsgtz
+                        | inst_blez & es_rslez
+                        | inst_bltz & es_rsltz
+                        | inst_bgezal & es_rsgez
+                        | inst_bltzal & es_rsltz
+                      ) ;
                     //   ) & es_valid;           
 
 
-
-assign EXE_BResult = {  es_pc,
-                        es_Count,//
-                        es_is_branch,//
-                        es_br_taken,//
-                        es_br_target//
+/******************BResult Total: 68bits******************/
+assign EXE_BResult = {  es_pc,        //67:36
+                        es_Count,     //35:34
+                        es_is_branch, //33:33
+                        es_br_taken,  //32:32
+                        es_br_target  //31:0
                     };
 
 assign es_BPU_right = es_br_taken ? ( es_br_target == es_BPU_ret_addr) : ~es_BPU_is_taken;
-
+/******************Br bus Total: 68bits******************/
 assign EXE_br_bus       = { 
                             es_BPU_valid, // 该条指令BPU进行了预测
                             es_is_branch, // 该条指令是跳转指令
@@ -180,6 +221,7 @@ assign EXE_br_bus       = {
                             es_br_target, //ID阶段确定跳转的地址
                             es_pc       
                         };
+
 
 assign es_br_flush = es_BPU_valid ? ( es_is_branch & ~es_BPU_right ) : es_br_taken;
 
@@ -216,7 +258,11 @@ assign      inst_is_lw  = es_mem_inst[0];
 
 
 assign es_res_from_mem = es_load_op;
+/******************es_to_m1s_bus Total: 180bits******************/
 assign es_to_m1s_bus = {
+                       es_is_ICacheInst, //179:179
+                       es_is_DCacheInst, //178:178
+                       es_CacheInst_type,//177:175
                        sram_wdata     ,  //174:143
                        sram_wen       ,  //142:139
                        es_mem_we      ,  //138:138
@@ -224,9 +270,7 @@ assign es_to_m1s_bus = {
                        es_inst_tlbr   ,  //136:136
                        es_inst_tlbwi  ,  //135:135
                        es_inst_tlbwr  ,  //134:134
-                      //TODO:es_alu_result目前暂代data_sram_addr
                        es_load_op     ,  //133:133
-                       //es_alu_result  ,  //164:133 --读写sram的地址
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_Exctype     ,  //126:122 
@@ -262,12 +306,24 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush ) //清除流水线
+    else if (flush) //清除流水线
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;
     end
 end
+
+`ifdef PMON_debug
+always @(posedge clk ) begin
+    if (reset)
+        es_inst <= 0;
+    else if (flush) //清除流水线
+        es_inst <= 0;
+    else if (ds_to_es_valid && es_allowin) begin
+        es_inst <= ds_inst;
+    end
+end
+`endif
 
 assign es_alu_src1 = es_src1_is_not_rs_value ? es_not_rs_value : es_rs_value;
 
@@ -307,22 +363,21 @@ alu u_alu(
     .clk                 (clk                 ),
     .reset               (reset               ),
     .alu_op              (es_alu_op           ),
+    .trap_op             (es_trap_op          ),
     .alu_src1            (es_alu_src1         ),
     .alu_src2            (es_alu_src2         ),
     .alu_result          (temp_alu_result     ),
     .Overflow_inst       (Overflow_inst       ),
     .m_axis_dout_tvalid  (m_axis_dout_tvalid  ),
     .m_axis_dout_tvalidu (m_axis_dout_tvalidu ),
-    // .isMul               (isMul               ),//TODO
-    // .isDiv               (isDiv               ),//TODO
+    .isMul               (isMul               ),
+    .isDiv               (isDiv               ),
     .mul_finished        (mul_finished        ),
     .Overflow_ex         (Overflow_ex         ),
+    .trap_ex             (trap_ex             ),
     .es_ex               (es_ex               ),
     .m1s_ex              (m1s_ex              )
 );
-
-assign isMul = es_alu_op[14] | es_alu_op[15];
-assign isDiv = es_alu_op[13] | es_alu_op[12];
 
 //lab8添加 当该指令为mtc0 把es_alu_result保存为es_rt_value;否则即为alu运算得到的值
 assign es_alu_result = es_inst_mtc0 ? es_rt_value : temp_alu_result; 
@@ -335,8 +390,9 @@ assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
 assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && (es_alu_result[1:0] != 0) ? 1'b1 : 1'b0;
 
-assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
+assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex | trap_ex; 
 assign es_Exctype = temp_ex     ? temp_ExcCode:
+                    trap_ex     ?       `Trap :
                     Overflow_ex ?       `Ov   : 
                     ADES_ex     ?       `AdES : 
                     ADEL_ex     ?       `AdEL : `NO_EX;

@@ -67,14 +67,25 @@ wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
 wire  [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
+/* verilator lint_off UNOPTFLAT */
 wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
 wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
 wire  [`BRESULT_WD      -1:0] BResult;
+`ifdef PMON_debug
+wire  [31:0] es_inst;
+wire  [31:0] m1s_inst;
+wire  [31:0] ms_inst;
+// wire  [ 3:0] m1s_data_wstrb; //m1s_data_wstrb即为data_wstrb,已经传出
+wire  [ 3:0] ms_data_wstrb; 
+// wire  [31:0] m1s_data_wdata; //m1s_data_wdata即为data_wdata,已经传出
+wire  [31:0] ms_data_wdata;
+`endif
 wire         br_flush;
 wire         is_branch;
+wire  [31:0] ds_inst;
 
 wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
 wire  [ 4:0] M1s_dest;
@@ -88,6 +99,7 @@ wire         es_load_op; //EXE阶段 判定是否为load指令
 wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
+wire         flush_refill;
 wire         m1s_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
@@ -98,6 +110,34 @@ wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
+
+wire         ITLB_found;
+wire  [19:0] ITLB_pfn0;
+wire  [ 2:0] ITLB_c0;
+wire         ITLB_d0;
+wire         ITLB_v0;
+wire  [19:0] ITLB_pfn1;
+wire  [ 2:0] ITLB_c1;
+wire         ITLB_d1;
+wire         ITLB_v1;
+
+wire         DTLB_found;
+wire  [19:0] DTLB_pfn0;
+wire  [ 2:0] DTLB_c0;
+wire         DTLB_d0;
+wire         DTLB_v0;
+wire  [19:0] DTLB_pfn1;
+wire  [ 2:0] DTLB_c1;
+wire         DTLB_d1;
+wire         DTLB_v1;
+
+wire  [31:0] prefs_pc;
+wire  [31:0] m1s_pc;
+wire         m1s_refetch;
+wire         m1s_is_ICacheInst;
+wire         m1s_is_DCacheInst;
+wire         ICacheInst_delayed;
+wire  [ 2:0] m1s_CacheInst_type;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -152,35 +192,123 @@ wire         isUncache;
 wire         dcache_busy;
 wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
 
+`ifdef ILA_debug
+// wire  [31:0] prefs_pc;
+wire  [31:0] fs_pc;
+wire  [31:0] ds_pc;
+wire  [31:0] es_pc;
+//wire  [31:0] m1s_pc;
+wire  [31:0] ms_pc;
+wire  [31:0] ws_pc;
+wire  [31:0] ws_final_result;
+wire  [31:0] dcache_addr;
+wire  [31:0] fs_inst;
+//wire  [31:0] ds_inst;
+wire         ds_ex;
+wire  [ 4:0] m1s_Exctype;
+wire  [31:0] ra;
+wire  [31:0] sp;
+// assign prefs_pc = ps_to_fs_bus[37:6]; //no need
+assign fs_pc    = fs_to_ds_bus[31:0];
+assign ds_pc    = ds_to_es_bus[31:0];
+assign es_pc    = es_to_m1s_bus[31:0];
+// assign m1s_pc   = m1s_to_ms_bus[31:0]; //no need
+assign ms_pc    = ms_to_ws_bus[31:0];
+assign fs_inst  = fs_to_ds_bus[63:32];
+// //ds_inst临时送出
+// ex_ila U_ex_ila(
+//     .clk(aclk),
+//     .probe0 (ds_pc),
+//     .probe1 (es_pc),
+//     .probe2 (m1s_pc),
+//     .probe3 (debug_wb_pc),
+//     .probe4 (m1s_ex),
+//     .probe5 (CP0_Cause_IP_out),
+//     .probe6 (CP0_Status_IM_out),
+//     .probe7 (CP0_Status_EXL_out),
+//     .probe8 (CP0_Status_IE_out),
+//     .probe9 (ds_ex),
+//     .probe10 (m1s_Exctype),
+//     .probe11 (prefs_pc),
+//     .probe12 (ext_int)
+// );
+
+// pc_ila U_pc_ila(
+//     .clk(aclk),
+//     .probe0 (prefs_pc),
+//     .probe1 (fs_pc),
+//     .probe2 (ds_pc),
+//     .probe3 (es_pc),
+//     .probe4 (m1s_pc),
+//     .probe5 (ms_pc),
+//     .probe6 (ws_pc),
+//     .probe7 (ws_final_result),
+//     .probe8 (debug_wb_rf_wen),
+//     .probe9 (debug_wb_rf_wnum),
+//     .probe10 (fs_inst),
+//     .probe11 (ds_inst)
+// );
+
+// assign dcache_addr = {data_tag,data_index,data_offset};
+// complex_ila U_complex_ila(
+//     .clk(aclk),
+//     .probe0 (data_valid),
+//     .probe1 (data_op),
+//     .probe2 (dcache_addr),
+//     .probe3 (data_wstrb),
+//     .probe4 (load_size),
+//     .probe5 (data_wdata),
+//     .probe6 (dcache_busy),
+//     .probe7 (data_rdata),
+//     .probe8 (isUncache),
+//     .probe9 (m1s_pc),
+//     .probe10 (ms_pc),
+//     .probe11 (ext_int),
+//     .probe12 (ds_ex),
+//     .probe13 (m1s_ex),
+//     .probe14 (ra),
+//     .probe15 (sp),
+//     .probe16 (ws_pc),
+//     .probe17 (ws_final_result)
+// );
+
+`endif
+
 /********************TLB-CP0交互信号如下********************/
-wire           tlb_to_cp0_found; //tlb查找是否成功
-wire  [18:0]   tlb_to_cp0_vpn2 ; //以下为tlb写入的数据
-wire  [7:0]    tlb_to_cp0_asid ;
-wire  [3:0]    tlb_to_cp0_index; 
-wire  [19:0]   tlb_to_cp0_pfn0 ; //以下为entrylo0寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c0   ;
-wire           tlb_to_cp0_d0   ;
-wire           tlb_to_cp0_v0   ;
-wire           tlb_to_cp0_g0   ;
-wire  [19:0]   tlb_to_cp0_pfn1 ; //以下为entrylo1寄存器写入tlb的数据
-wire  [2:0]    tlb_to_cp0_c1   ;
-wire           tlb_to_cp0_d1   ;
-wire           tlb_to_cp0_v1   ;
-wire           tlb_to_cp0_g1   ;
-wire  [18:0]   cp0_to_tlb_vpn2 ; //以下为tlb读出的数据
-wire  [7:0]    cp0_to_tlb_asid ;
-wire  [19:0]   cp0_to_tlb_pfn0 ; //以下为entrylo0寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c0   ;
-wire           cp0_to_tlb_d0   ;
-wire           cp0_to_tlb_v0   ;
-wire           cp0_to_tlb_g0   ;
-wire  [19:0]   cp0_to_tlb_pfn1 ; //以下为entrylo1寄存器读出的tlb的数据
-wire  [2:0]    cp0_to_tlb_c1   ;
-wire           cp0_to_tlb_d1   ;
-wire           cp0_to_tlb_v1   ;
-wire           cp0_to_tlb_g1   ;
-wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
+wire           m1s_inst_tlbwi   ; //写使能:对应inst_tlbwi
+wire           m1s_inst_tlbwr   ; //写使能:对应inst_tlbwr
+wire           m1s_inst_tlbp    ; //查询:对应inst_tlbp
+wire           tlb_to_cp0_found ; //tlb查找是否成功
+wire  [18:0]   tlb_to_cp0_vpn2  ; //以下为tlb写入的数据
+wire  [7:0]    tlb_to_cp0_asid  ;
+wire  [3:0]    tlb_to_cp0_index ; 
+wire  [19:0]   tlb_to_cp0_pfn0  ; //以下为entrylo0寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c0    ;
+wire           tlb_to_cp0_d0    ;
+wire           tlb_to_cp0_v0    ;
+wire           tlb_to_cp0_g0    ;
+wire  [19:0]   tlb_to_cp0_pfn1  ; //以下为entrylo1寄存器写入tlb的数据
+wire  [2:0]    tlb_to_cp0_c1    ;
+wire           tlb_to_cp0_d1    ;
+wire           tlb_to_cp0_v1    ;
+wire           tlb_to_cp0_g1    ;
+wire  [18:0]   cp0_to_tlb_vpn2  ; //以下为tlb读出的数据
+wire  [7:0]    cp0_to_tlb_asid  ;
+wire  [19:0]   cp0_to_tlb_pfn0  ; //以下为entrylo0寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c0    ;
+wire           cp0_to_tlb_d0    ;
+wire           cp0_to_tlb_v0    ;
+wire           cp0_to_tlb_g0    ;
+wire  [19:0]   cp0_to_tlb_pfn1  ; //以下为entrylo1寄存器读出的tlb的数据
+wire  [2:0]    cp0_to_tlb_c1    ;
+wire           cp0_to_tlb_d1    ;
+wire           cp0_to_tlb_v1    ;
+wire           cp0_to_tlb_g1    ;
+wire  [3:0]    cp0_to_tlb_index ; //tlbwi指令的索引值
+wire  [3:0]    cp0_to_tlb_random; //tlbwr指令的索引值
+wire  [31:0]   m1s_alu_result   ;
 /********************TLB-CP0交互信号如上********************/
+wire           TLB_Buffer_Flush;
 
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
@@ -255,80 +383,100 @@ AXI_Interface U_AXI_Interface(
 );
 
 Icache U_Icache(
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .inst_valid       (inst_valid       ),
-    .inst_index       (inst_index       ),
-    .inst_tag         (inst_tag         ),
-    .inst_offset      (inst_offset      ),
-    .icache_busy      (icache_busy      ),
-    .inst_rdata       (inst_rdata       ),
+    .clk                 (aclk              ),
+    .reset               (reset             ),
+    .inst_valid          (inst_valid        ),
+    .inst_index          (inst_index        ),
+    .inst_tag            (inst_tag          ),
+    .inst_offset         (inst_offset       ),
+    .icache_busy         (icache_busy       ),
+    .inst_rdata          (inst_rdata        ),
+    .ICacheInst_delayed  (ICacheInst_delayed),
 
-    .icache_rd_req    (icache_rd_req    ),
-    .icache_rd_addr   (icache_rd_addr   ),
-    .icache_rd_rdy    (icache_rd_rdy    ),
-    .icache_ret_valid (icache_ret_valid ),
-    .icache_ret_data  (icache_ret_data  )
+    .icache_rd_req       (icache_rd_req     ),
+    .icache_rd_addr      (icache_rd_addr    ),
+    .icache_rd_rdy       (icache_rd_rdy     ),
+    .icache_ret_valid    (icache_ret_valid  ),
+    .icache_ret_data     (icache_ret_data   )
 );
 
 DCache U_DCache(
-    .clk                 (aclk              ),
-    .reset               (reset             ),
-    .data_valid          (data_valid        ),
-    .data_op             (data_op           ),
-    .data_index          (data_index        ),
-    .data_tag            (data_tag          ),
-    .data_offset         (data_offset       ),
-    .data_wstrb          (data_wstrb        ),
-    .data_wdata          (data_wdata        ),
-    .data_rdata          (data_rdata        ),
-    .load_size           (load_size         ),
-    .busy                (dcache_busy       ),
-    .store_record        (store_record      ),
+    .clk                 (aclk               ),
+    .reset               (reset              ),
+    .data_valid          (data_valid         ),
+    .data_op             (data_op            ),
+    .data_index          (data_index         ),
+    .data_tag            (data_tag           ),
+    .data_offset         (data_offset        ),
+    .data_wstrb          (data_wstrb         ),
+    .data_wdata          (data_wdata         ),
+    .data_rdata          (data_rdata         ),
+    .load_size           (load_size          ),
+    .busy                (dcache_busy        ),
+    .store_record        (store_record       ),
+    .is_DCacheInst       (m1s_is_DCacheInst  ),
+    .CacheInst_type      (m1s_CacheInst_type ),
  
-    .dcache_rd_req       (dcache_rd_req     ),
-    .dcache_rd_addr      (dcache_rd_addr    ),
-    .dcache_rd_rdy       (dcache_rd_rdy     ),
-    .dcache_ret_valid    (dcache_ret_valid  ),
-    .dcache_ret_data     (dcache_ret_data   ),
-    .dcache_wr_req       (dcache_wr_req     ),
-    .dcache_wr_addr      (dcache_wr_addr    ),
-    .dcache_wr_data      (dcache_wr_data    ),
-    .dcache_wr_rdy       (dcache_wr_rdy     ),
-    .dcache_wr_valid     (dcache_wr_valid   ),
+    .dcache_rd_req       (dcache_rd_req      ),
+    .dcache_rd_addr      (dcache_rd_addr     ),
+    .dcache_rd_rdy       (dcache_rd_rdy      ),
+    .dcache_ret_valid    (dcache_ret_valid   ),
+    .dcache_ret_data     (dcache_ret_data    ),
+    .dcache_wr_req       (dcache_wr_req      ),
+    .dcache_wr_addr      (dcache_wr_addr     ),
+    .dcache_wr_data      (dcache_wr_data     ),
+    .dcache_wr_rdy       (dcache_wr_rdy      ),
+    .dcache_wr_valid     (dcache_wr_valid    ),
 
-    .udcache_rd_req      (udcache_rd_req    ),
-    .udcache_rd_addr     (udcache_rd_addr   ),
-    .udcache_load_size   (udcache_load_size ),
-    .udcache_rd_rdy      (udcache_rd_rdy    ),
-    .udcache_ret_valid   (udcache_ret_valid ),
-    .udcache_ret_data    (udcache_ret_data  ),
-    .udcache_wr_req      (udcache_wr_req    ),
-    .udcache_wr_addr     (udcache_wr_addr   ),
-    .udcache_wr_strb     (udcache_wr_strb   ),
-    .udcache_wr_data     (udcache_wr_data   ),
-    .udcache_wr_rdy      (udcache_wr_rdy    ),
-    .udcache_wr_valid    (udcache_wr_valid  ),
-    .isUncache           (isUncache         ) 
+    .udcache_rd_req      (udcache_rd_req     ),
+    .udcache_rd_addr     (udcache_rd_addr    ),
+    .udcache_load_size   (udcache_load_size  ),
+    .udcache_rd_rdy      (udcache_rd_rdy     ),
+    .udcache_ret_valid   (udcache_ret_valid  ),
+    .udcache_ret_data    (udcache_ret_data   ),
+    .udcache_wr_req      (udcache_wr_req     ),
+    .udcache_wr_addr     (udcache_wr_addr    ),
+    .udcache_wr_strb     (udcache_wr_strb    ),
+    .udcache_wr_data     (udcache_wr_data    ),
+    .udcache_wr_rdy      (udcache_wr_rdy     ),
+    .udcache_wr_valid    (udcache_wr_valid   ),
+    .isUncache           (isUncache          ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .fs_allowin       (fs_allowin       ),
-    .br_bus           (br_bus           ),
-    .BPU_to_ps_bus    (BPU_to_ps_bus    ),
-    .ps_to_fs_bus     (ps_to_fs_bus     ),
-    .ps_to_fs_valid   (ps_to_fs_valid   ),
-    .br_flush         (br_flush         ),
-    .flush            (flush            ),
-    .CP0_EPC_out      (CP0_EPC_out      ),
-    .m1s_inst_eret    (m1s_inst_eret    ),
-    .inst_index       (inst_index       ),
-    .inst_tag         (inst_tag         ),
-    .inst_offset      (inst_offset      ),
-    .icache_busy      (icache_busy      ),
-    .inst_valid       (inst_valid       )
+    .clk                 (aclk                 ),
+    .reset               (reset                ),
+    .fs_allowin          (fs_allowin           ),
+    .br_bus              (br_bus               ),
+    .BPU_to_ps_bus       (BPU_to_ps_bus        ),
+    .ps_to_fs_bus        (ps_to_fs_bus         ),
+    .ps_to_fs_valid      (ps_to_fs_valid       ),
+    .br_flush            (br_flush             ),
+    .flush               (flush                ),
+    .flush_refill        (flush_refill         ),
+    .CP0_EPC_out         (CP0_EPC_out          ),
+    .m1s_inst_eret       (m1s_inst_eret        ),
+    .inst_index          (inst_index           ),
+    .inst_tag            (inst_tag             ),
+    .inst_offset         (inst_offset          ),
+    .icache_busy         (icache_busy          ),
+    .prefs_pc            (prefs_pc             ),
+    .ITLB_found          (ITLB_found           ),
+    .ITLB_pfn0           (ITLB_pfn0            ),
+    .ITLB_c0             (ITLB_c0              ),
+    .ITLB_d0             (ITLB_d0              ),
+    .ITLB_v0             (ITLB_v0              ),
+    .ITLB_pfn1           (ITLB_pfn1            ),
+    .ITLB_c1             (ITLB_c1              ),
+    .ITLB_d1             (ITLB_d1              ),
+    .ITLB_v1             (ITLB_v1              ),
+    .TLB_Buffer_Flush    (TLB_Buffer_Flush     ),
+    .inst_valid          (inst_valid           ),
+    .m1s_refetch         (m1s_refetch          ),
+    .m1s_pc              (m1s_pc               ),
+    .cache_index         (m1s_alu_result[11:4] ),
+    .m1s_is_ICacheInst   (m1s_is_ICacheInst    ),
+    .ICacheInst_delayed  (ICacheInst_delayed   )
 );
 
 // IF stage
@@ -353,10 +501,17 @@ if_stage if_stage(
     .icache_busy    (icache_busy    ),
     .inst_rdata     (inst_rdata     )
 );
+
 // ID stage
 id_stage id_stage(
     .clk                (aclk               ),
     .reset              (reset              ),
+    .ds_inst            (ds_inst            ),
+`ifdef ILA_debug
+    .ds_ex              (ds_ex              ),
+    .ra                 (ra                 ),
+    .sp                 (sp                 ),
+`endif
     //allowin        
     .es_allowin         (es_allowin         ),
     .ds_allowin         (ds_allowin         ),
@@ -381,7 +536,6 @@ id_stage id_stage(
     .WB_result          (WB_result          ),
     .es_load_op         (es_load_op         ),
     .m1s_load_op        (m1s_load_op        ),
-    .ms_load_op         (ms_load_op         ),
     .flush              (flush              ),
     .es_inst_mfc0       (es_inst_mfc0       ),
     .m1s_inst_mfc0      (m1s_inst_mfc0      ),
@@ -408,6 +562,10 @@ exe_stage exe_stage(
     //to fs
     .EXE_BResult     (BResult        ),
     .es_br_flush     (br_flush       ),
+`ifdef PMON_debug
+    .ds_inst         (ds_inst        ),
+    .es_inst         (es_inst        ),
+`endif
     //to ms
     .es_to_m1s_valid (es_to_m1s_valid ),
     .es_to_m1s_bus   (es_to_m1s_bus   ),
@@ -426,12 +584,19 @@ m1_stage m1_stage(
     .ext_int            (ext_int            ),
     .clk                (aclk               ),
     .reset              (reset              ),
+`ifdef ILA_debug
+    .m1s_Exctype        (m1s_Exctype        ),
+`endif
     //allowin        
     .ms_allowin         (ms_allowin         ),
     .m1s_allowin        (m1s_allowin        ),
     //from es        
     .es_to_m1s_valid    (es_to_m1s_valid    ),
     .es_to_m1s_bus      (es_to_m1s_bus      ),
+`ifdef PMON_debug
+    .es_inst            (es_inst            ),
+    .m1s_inst           (m1s_inst           ),
+`endif
     //to ms      
     .m1s_to_ms_valid    (m1s_to_ms_valid    ),
     .m1s_to_ms_bus      (m1s_to_ms_bus      ),
@@ -439,6 +604,7 @@ m1_stage m1_stage(
     .M1s_dest           (M1s_dest           ), 
     .M1s_result         (M1s_result         ),
     .flush              (flush              ), 
+    .flush_refill       (flush_refill       ),
     .m1s_ex             (m1s_ex             ), 
     .m1s_inst_mfc0      (m1s_inst_mfc0      ), 
     .m1s_inst_eret      (m1s_inst_eret      ),
@@ -448,6 +614,9 @@ m1_stage m1_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .m1s_inst_tlbwi     (m1s_inst_tlbwi     ),
+    .m1s_inst_tlbwr     (m1s_inst_tlbwr     ),
+    .m1s_inst_tlbp      (m1s_inst_tlbp      ),
     .tlb_to_cp0_found   (tlb_to_cp0_found   ),
     .tlb_to_cp0_vpn2    (tlb_to_cp0_vpn2    ),
     .tlb_to_cp0_asid    (tlb_to_cp0_asid    ),
@@ -475,6 +644,8 @@ m1_stage m1_stage(
     .cp0_to_tlb_v1      (cp0_to_tlb_v1      ),
     .cp0_to_tlb_g1      (cp0_to_tlb_g1      ),
     .cp0_to_tlb_index   (cp0_to_tlb_index   ),
+    .cp0_to_tlb_random  (cp0_to_tlb_random  ),
+    .m1s_alu_result     (m1s_alu_result     ),
     .data_valid         (data_valid         ),
     .data_op            (data_op            ),
     .data_index         (data_index         ),
@@ -485,8 +656,24 @@ m1_stage m1_stage(
     .dcache_busy        (dcache_busy        ),
     .store_record       (store_record       ),
     .load_size          (load_size          ),
-    .isUncache          (isUncache          )
+    .DTLB_found         (DTLB_found         ),
+    .DTLB_pfn0          (DTLB_pfn0          ),
+    .DTLB_c0            (DTLB_c0            ),
+    .DTLB_d0            (DTLB_d0            ),
+    .DTLB_v0            (DTLB_v0            ),
+    .DTLB_pfn1          (DTLB_pfn1          ),
+    .DTLB_c1            (DTLB_c1            ),
+    .DTLB_d1            (DTLB_d1            ),
+    .DTLB_v1            (DTLB_v1            ),
+    .isUncache          (isUncache          ),
+    .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
+    .m1s_pc             (m1s_pc             ),
+    .m1s_refetch        (m1s_refetch        ),
+    .m1s_is_ICacheInst  (m1s_is_ICacheInst  ),
+    .m1s_is_DCacheInst  (m1s_is_DCacheInst  ),
+    .m1s_CacheInst_type (m1s_CacheInst_type )
 );
+
 // MEM stage
 mem_stage mem_stage(
     .clk             (aclk             ),
@@ -495,7 +682,14 @@ mem_stage mem_stage(
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
     //to ds
-    .ms_load_op      (ms_load_op       ),
+`ifdef PMON_debug
+    .m1s_inst        (m1s_inst         ),
+    .m1s_data_wstrb  (data_wstrb       ),
+    .m1s_data_wdata  (data_wdata       ),
+    .ms_inst         (ms_inst          ),
+    .ms_data_wstrb   (ms_data_wstrb    ),
+    .ms_data_wdata   (ms_data_wdata    ),
+`endif
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
@@ -511,6 +705,10 @@ mem_stage mem_stage(
 wb_stage wb_stage(
     .clk              (aclk             ),
     .reset            (reset            ),
+`ifdef ILA_debug
+    .ws_pc            (ws_pc            ),
+    .ws_final_result  (ws_final_result  ),
+`endif
     //allowin
     .ws_allowin       (ws_allowin       ),
     //from ms
@@ -518,6 +716,11 @@ wb_stage wb_stage(
     .ms_to_ws_bus     (ms_to_ws_bus     ),
     //to rf: for write back
     .ws_to_rf_bus     (ws_to_rf_bus     ),
+`ifdef PMON_debug
+    .ms_data_wstrb    (ms_data_wstrb    ),
+    .ms_data_wdata    (ms_data_wdata    ),
+    .ms_inst          (ms_inst          ),
+`endif
     //trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
     .debug_wb_rf_wen  (debug_wb_rf_wen  ),
@@ -527,57 +730,65 @@ wb_stage wb_stage(
     .WB_result        (WB_result        )
 );
 
-tlb tlb_stage(
+tlb U_tlb(
     //TODO: add more signals
-    .clk              (aclk             ),
-    .reset            (reset            ),
-    .s0_vpn2          (0                ),
-    .s0_odd_page      (0                ),
-    .s0_asid          (cp0_to_tlb_asid  ),        
-    .s0_found         (                 ),
-    .s0_index         (                 ),
-    .s0_pfn           (                 ),
-    .s0_c             (                 ),
-    .s0_d             (                 ),
-    .s0_v             (                 ),
-    .s1_vpn2          (0                ),
-    .s1_odd_page      (0                ),
-    .s1_asid          (cp0_to_tlb_asid  ),
-    .s1_found         (                 ),
-    .s1_index         (                 ),
-    .s1_pfn           (                 ),
-    .s1_c             (                 ),
-    .s1_d             (                 ),
-    .s1_v             (                 ),
-    .inst_tlbwi       (0                ),
-    .inst_tlbp        (0                ),
-    .tlb_to_cp0_found (tlb_to_cp0_found ),
-    .tlb_to_cp0_vpn2  (tlb_to_cp0_vpn2  ),
-    .tlb_to_cp0_asid  (tlb_to_cp0_asid  ),
-    .tlb_to_cp0_index (tlb_to_cp0_index ),
-    .tlb_to_cp0_pfn0  (tlb_to_cp0_pfn0  ),
-    .tlb_to_cp0_c0    (tlb_to_cp0_c0    ),
-    .tlb_to_cp0_d0    (tlb_to_cp0_d0    ),
-    .tlb_to_cp0_v0    (tlb_to_cp0_v0    ),
-    .tlb_to_cp0_g0    (tlb_to_cp0_g0    ),
-    .tlb_to_cp0_pfn1  (tlb_to_cp0_pfn1  ),
-    .tlb_to_cp0_c1    (tlb_to_cp0_c1    ),
-    .tlb_to_cp0_d1    (tlb_to_cp0_d1    ),
-    .tlb_to_cp0_v1    (tlb_to_cp0_v1    ),
-    .tlb_to_cp0_g1    (tlb_to_cp0_g1    ),
-    .cp0_to_tlb_vpn2  (cp0_to_tlb_vpn2  ),
-    .cp0_to_tlb_asid  (cp0_to_tlb_asid  ),
-    .cp0_to_tlb_pfn0  (cp0_to_tlb_pfn0  ),
-    .cp0_to_tlb_c0    (cp0_to_tlb_c0    ),
-    .cp0_to_tlb_d0    (cp0_to_tlb_d0    ),
-    .cp0_to_tlb_v0    (cp0_to_tlb_v0    ),
-    .cp0_to_tlb_g0    (cp0_to_tlb_g0    ),
-    .cp0_to_tlb_pfn1  (cp0_to_tlb_pfn1  ),
-    .cp0_to_tlb_c1    (cp0_to_tlb_c1    ),
-    .cp0_to_tlb_d1    (cp0_to_tlb_d1    ),
-    .cp0_to_tlb_v1    (cp0_to_tlb_v1    ),
-    .cp0_to_tlb_g1    (cp0_to_tlb_g1    ),
-    .cp0_to_tlb_index (cp0_to_tlb_index )
+    .clk               (aclk             ),
+    .reset             (reset            ),
+    .ITLB_vpn2         (prefs_pc[31:13]  ),
+    .ITLB_asid         (cp0_to_tlb_asid  ),
+    .ITLB_found        (ITLB_found       ),
+    .ITLB_pfn0         (ITLB_pfn0        ),   
+    .ITLB_c0           (ITLB_c0          ),
+    .ITLB_d0           (ITLB_d0          ),
+    .ITLB_v0           (ITLB_v0          ),
+    .ITLB_pfn1         (ITLB_pfn1        ), 
+    .ITLB_c1           (ITLB_c1          ),
+    .ITLB_d1           (ITLB_d1          ), 
+    .ITLB_v1           (ITLB_v1          ),
+ 
+    .DTLB_vpn2         (m1s_alu_result[31:13]),
+    .DTLB_asid         (cp0_to_tlb_asid  ),
+    .DTLB_found        (DTLB_found       ),
+    .DTLB_pfn0         (DTLB_pfn0        ), 
+    .DTLB_c0           (DTLB_c0          ),
+    .DTLB_d0           (DTLB_d0          ),
+    .DTLB_v0           (DTLB_v0          ),
+    .DTLB_pfn1         (DTLB_pfn1        ), 
+    .DTLB_c1           (DTLB_c1          ),
+    .DTLB_d1           (DTLB_d1          ), 
+    .DTLB_v1           (DTLB_v1          ),
+ 
+    .inst_tlbwi        (m1s_inst_tlbwi   ),
+    .inst_tlbwr        (m1s_inst_tlbwr   ),
+    .inst_tlbp         (m1s_inst_tlbp    ),
+    .tlb_to_cp0_found  (tlb_to_cp0_found ),
+    .tlb_to_cp0_vpn2   (tlb_to_cp0_vpn2  ),
+    .tlb_to_cp0_asid   (tlb_to_cp0_asid  ),
+    .tlb_to_cp0_index  (tlb_to_cp0_index ),
+    .tlb_to_cp0_pfn0   (tlb_to_cp0_pfn0  ),
+    .tlb_to_cp0_c0     (tlb_to_cp0_c0    ),
+    .tlb_to_cp0_d0     (tlb_to_cp0_d0    ),
+    .tlb_to_cp0_v0     (tlb_to_cp0_v0    ),
+    .tlb_to_cp0_g0     (tlb_to_cp0_g0    ),
+    .tlb_to_cp0_pfn1   (tlb_to_cp0_pfn1  ),
+    .tlb_to_cp0_c1     (tlb_to_cp0_c1    ),
+    .tlb_to_cp0_d1     (tlb_to_cp0_d1    ),
+    .tlb_to_cp0_v1     (tlb_to_cp0_v1    ),
+    .tlb_to_cp0_g1     (tlb_to_cp0_g1    ),
+    .cp0_to_tlb_vpn2   (cp0_to_tlb_vpn2  ),
+    .cp0_to_tlb_asid   (cp0_to_tlb_asid  ),
+    .cp0_to_tlb_pfn0   (cp0_to_tlb_pfn0  ),
+    .cp0_to_tlb_c0     (cp0_to_tlb_c0    ),
+    .cp0_to_tlb_d0     (cp0_to_tlb_d0    ),
+    .cp0_to_tlb_v0     (cp0_to_tlb_v0    ),
+    .cp0_to_tlb_g0     (cp0_to_tlb_g0    ),
+    .cp0_to_tlb_pfn1   (cp0_to_tlb_pfn1  ),
+    .cp0_to_tlb_c1     (cp0_to_tlb_c1    ),
+    .cp0_to_tlb_d1     (cp0_to_tlb_d1    ),
+    .cp0_to_tlb_v1     (cp0_to_tlb_v1    ),
+    .cp0_to_tlb_g1     (cp0_to_tlb_g1    ),
+    .cp0_to_tlb_index  (cp0_to_tlb_index ),
+    .cp0_to_tlb_random (cp0_to_tlb_random)
 );
 
 endmodule

@@ -1,6 +1,10 @@
 module regfile(
     input         clk,
     input         reset,
+`ifdef ILA_debug
+    output [31:0] ra,
+    output [31:0] sp,
+`endif
     // READ PORT 1
     input  [ 4:0] raddr1,
     output [31:0] rdata1,
@@ -31,4 +35,8 @@ assign rdata1 = (raddr1==5'b0) ? 32'b0 : rf[raddr1];
 //READ OUT 2
 assign rdata2 = (raddr2==5'b0) ? 32'b0 : rf[raddr2];
 
+`ifdef ILA_debug
+    assign ra = rf[31];
+    assign sp = rf[29];
+`endif
 endmodule
