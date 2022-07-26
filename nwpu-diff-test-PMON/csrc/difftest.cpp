@@ -75,20 +75,20 @@ void difftest_init(){
     ref_napi_get_store_vaddr  = (uint32_t (*)())dlsym(handle, "napi_get_store_vaddr");
 
 
-   assert(ref_napi_init          );
-   assert(ref_napi_exec          );
-   assert(ref_napi_mmio_peek     );
-   assert(ref_napi_get_instr     );
-   assert(ref_napi_get_pc        );
-   assert(ref_napi_addr_is_valid );
-   assert(ref_napi_set_irq       );
-   assert(ref_napi_dump_states   );
-   assert(ref_napi_get_gpr       );
-   assert(ref_napi_set_gpr       );
-       
-   assert(ref_napi_get_store_data);
-   assert(ref_napi_get_store_wen     );
-   assert(ref_napi_get_store_vaddr);
+   // assert(ref_napi_init          );
+   // assert(ref_napi_exec          );
+   // assert(ref_napi_mmio_peek     );
+   // assert(ref_napi_get_instr     );
+   // assert(ref_napi_get_pc        );
+   // assert(ref_napi_addr_is_valid );
+   // assert(ref_napi_set_irq       );
+   // assert(ref_napi_dump_states   );
+   // assert(ref_napi_get_gpr       );
+   // assert(ref_napi_set_gpr       );
+   //     
+   // assert(ref_napi_get_store_data);
+   // assert(ref_napi_get_store_wen     );
+   // assert(ref_napi_get_store_vaddr);
 
     
     //make sure all work normal
@@ -232,19 +232,12 @@ int difftest_rtl_nemu(rtlreg_t* reg_sv,int emu_pc,int emu_instr,int emu_store_le
         // getchar(); 
         nemu_find_queue_push(nemu_pc,nemu_instr);
         if (nemu_pc == emu_pc) {
-
+            
             nemu_rtl_find = 1;
             break;
         }
         nemu_steps_cnt++;
-        if(ninstr%100000 == 0)
-        {
-            std::cout <<"nemu is : "<< std::hex << nemu_pc << "   "<< nemu_instr << std::endl;
-            std::cout <<" emu is : "<< std::hex <<  emu_pc << "   "<<  emu_instr << std::endl;
-        }
-
     }
-    // disp_nemu_find_queue();
 
     // check dev
     bool dev = 0;

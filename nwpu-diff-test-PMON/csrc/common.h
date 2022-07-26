@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <cassert>
 #include <pthread.h>
-// #include <iostream>
+#include <iostream>
 
-// #define HINT                                                                   \
-//     std::cout << _warning("<<<<<\t" + std::string(__FILE__) + ":" +            \
-//                           std::to_string(__LINE__) + "\t>>>>>") +              \
-//                      "\n";
-// std::string _warning(std::string content);
+#define HINT                                                                   \
+    std::cout << _warning("<<<<<\t" + std::string(__FILE__) + ":" +            \
+                          std::to_string(__LINE__) + "\t>>>>>") +              \
+                     "\n";
+std::string _warning(std::string content);

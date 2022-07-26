@@ -82,7 +82,7 @@ always @(posedge clk) begin
         data_wstrb_r <= ms_data_wstrb;
         data_wdata_r <= ms_data_wdata;
         ws_inst_r <= ms_inst;
-        ws_final_result_r <= ws_result;
+        ws_final_result_r <= ms_to_ws_bus[63:32];
     end
 end
 `endif

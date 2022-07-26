@@ -468,6 +468,7 @@ always @(posedge clk) begin
 end
 
 /*************************以下为Config1寄存器部分*************************/
+
 reg [31:31] CP0_Config1_M;
 reg [30:25] CP0_Config1_MMUSize;
 reg [24:22] CP0_Config1_IS;
@@ -476,7 +477,20 @@ reg [18:16] CP0_Config1_IA;
 reg [15:13] CP0_Config1_DS;
 reg [12:10] CP0_Config1_DL;
 reg [  9:7] CP0_Config1_DA;
-
+`ifdef PMON_debug
+always @(posedge clk) begin
+    if(reset) begin //R
+        CP0_Config1_M       <= 1'b0; //Config2未实现
+        CP0_Config1_MMUSize <= 31;   //NEMU TLB 32items
+        CP0_Config1_IS      <= 3'b010; //ICache一路有256个Cache line,编码为3'b010
+        CP0_Config1_IL      <= 3'b011; //ICache每个Cache line为128bits,16bytes,编码为3'b011
+        CP0_Config1_IA      <= 3'b011; //ICache四路组相连,编码为3'b011;
+        CP0_Config1_DS      <= 3'b010; //DCache一路有256个Cache line,编码为3'b010
+        CP0_Config1_DL      <= 3'b011; //DCache每个Cache line为128bits,16bytes,编码为3'b011
+        CP0_Config1_DA      <= 3'b011; //DCache四路组相连,编码为3'b011;
+    end
+end
+`else
 always @(posedge clk) begin
     if(reset) begin //R
         CP0_Config1_M       <= 1'b0; //Config2未实现
@@ -489,6 +503,7 @@ always @(posedge clk) begin
         CP0_Config1_DA      <= 3'b001; //DCache两路组相连,编码为3'b001;
     end
 end
+`endif
 /*************************以上为Config1寄存器部分*************************/
 
 //mfc0指令实现:

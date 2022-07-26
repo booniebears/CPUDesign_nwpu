@@ -40,9 +40,9 @@ int main(int argc, char **argv)
   int begin = 0;
   int check = 0;
   int exec = 0;
-  for (int i = 0; i < 200000000; i++)
+  for (int i = 0; i < 2000000000; i++)
   {
-    if (i % 1000000 == 0)
+    if (i % 10000000 == 0)
       printf("now have executed %d instructions\n", i);
 
         emu.step(); //执行一次

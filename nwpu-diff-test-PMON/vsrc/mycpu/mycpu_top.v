@@ -67,7 +67,7 @@ wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
 wire  [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
-// xkxverilator lint_off UNOPTFLATxkx
+/* verilator lint_off UNOPTFLAT */
 wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;

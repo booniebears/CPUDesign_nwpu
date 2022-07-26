@@ -735,7 +735,7 @@ tlb U_tlb(
     .clk               (aclk             ),
     .reset             (reset            ),
     .ITLB_vpn2         (prefs_pc[31:13]  ),
-    .ITLB_asid         (cp0_to_tlb_asid  ),
+    // .ITLB_asid         (cp0_to_tlb_asid  ),
     .ITLB_found        (ITLB_found       ),
     .ITLB_pfn0         (ITLB_pfn0        ),   
     .ITLB_c0           (ITLB_c0          ),
@@ -747,7 +747,7 @@ tlb U_tlb(
     .ITLB_v1           (ITLB_v1          ),
  
     .DTLB_vpn2         (m1s_alu_result[31:13]),
-    .DTLB_asid         (cp0_to_tlb_asid  ),
+    // .DTLB_asid         (cp0_to_tlb_asid  ),
     .DTLB_found        (DTLB_found       ),
     .DTLB_pfn0         (DTLB_pfn0        ), 
     .DTLB_c0           (DTLB_c0          ),
