@@ -347,7 +347,8 @@ assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: ar
 
 /******************例外处理部分********************/
 //TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB/ITLB不相对应
-assign TLB_Buffer_Flush = m1s_inst_tlbwi | m1s_inst_tlbr | 
+//另外要等tlbr正确执行后再flush
+assign TLB_Buffer_Flush = m1s_inst_tlbwi | (m1s_inst_tlbr & TLBInst_flow) | 
                          (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
 //当一条TLBWI发生在M1级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer
 // assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
@@ -363,8 +364,8 @@ assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
 /******************Refetch处理部分********************/
 //1. TLB refetch
 //以下三种情况发生后,会影响之后指令的虚实地址转换结果,故需要重取
-//就用当前指令对应PC重取,在PREIF级标注,在IF级置为nop,以防止死循环
-assign TLB_refetch  = m1s_inst_tlbwi | m1s_inst_tlbr | 
+//就用当前指令对应PC重取,在PREIF级标注,在IF级置为nop,以防止死循环;另外要等tlbr正确执行后再refetch
+assign TLB_refetch  = m1s_inst_tlbwi | (m1s_inst_tlbr & TLBInst_flow) | 
                      (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
 
 //2. ICache refetch

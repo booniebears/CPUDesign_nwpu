@@ -423,7 +423,8 @@ assign inst_break  = op_d[6'h00] & func_d[6'h0d];
 
 //tlb添加 添加指令TLBWI,TLBWR,TLBP,TLBR 
 assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
-assign inst_tlbr   = op_d[6'h10] & func_d[6'h01];
+//Attention:利用ds_inst[25]=1'b1 区分TLBR与MFC0两条指令
+assign inst_tlbr   = op_d[6'h10] & func_d[6'h01] & ds_inst[25]; 
 assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
 assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
 
