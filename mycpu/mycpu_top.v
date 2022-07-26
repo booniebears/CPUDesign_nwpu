@@ -183,6 +183,90 @@ wire           cp0_to_tlb_g1   ;
 wire  [3:0]    cp0_to_tlb_index; //tlbwr指令的索引值
 /********************TLB-CP0交互信号如上********************/
 
+/********************debug********************/
+`ifdef ILA_debug
+wire [31:0] prefs_pc;
+wire [31:0] fs_pc;
+wire [31:0] ds_pc;
+wire [31:0] es_pc;
+wire [31:0] m1s_pc;
+wire [31:0] ms_pc;
+wire [31:0] ws_pc;
+wire [31:0] ws_final_result;
+wire [31:0] dcache_addr;
+wire [31:0] fs_inst;
+wire [31:0] ds_inst;
+wire        ds_ex;
+wire [ 4:0] m1s_Exctype;
+wire [31:0] ra;
+wire [31:0] sp;
+assign prefs_pc = ps_to_fs_bus[37:6];
+assign fs_pc    = fs_to_ds_bus[31:0];
+assign ds_pc    = ds_to_es_bus[31:0];
+assign es_pc    = es_to_m1s_bus[31:0];
+assign m1s_pc   = m1s_to_ms_bus[31:0];
+assign ms_pc    = ms_to_ws_bus[31:0];
+assign fs_inst  = fs_to_ds_bus[63:32];
+//ds_inst临时送出
+ex_ila U_ex_ila(
+    .clk(aclk),
+    .probe0 (ds_pc),
+    .probe1 (es_pc),
+    .probe2 (m1s_pc),
+    .probe3 (debug_wb_pc),
+    .probe4 (m1s_ex),
+    .probe5 (CP0_Cause_IP_out),
+    .probe6 (CP0_Status_IM_out),
+    .probe7 (CP0_Status_EXL_out),
+    .probe8 (CP0_Status_IE_out),
+    .probe9 (ds_ex),
+    .probe10 (m1s_Exctype),
+    .probe11 (prefs_pc),
+    .probe12 (ext_int)
+);
+
+pc_ila U_pc_ila(
+    .clk(aclk),
+    .probe0 (prefs_pc),
+    .probe1 (fs_pc),
+    .probe2 (ds_pc),
+    .probe3 (es_pc),
+    .probe4 (m1s_pc),
+    .probe5 (ms_pc),
+    .probe6 (ws_pc),
+    .probe7 (ws_final_result),
+    .probe8 (debug_wb_rf_wen),
+    .probe9 (debug_wb_rf_wnum),
+    .probe10 (fs_inst),
+    .probe11 (ds_inst)
+);
+
+assign dcache_addr = {data_tag,data_index,data_offset};
+complex_ila U_complex_ila(
+    .clk(aclk),
+    .probe0 (data_valid),
+    .probe1 (data_op),
+    .probe2 (dcache_addr),
+    .probe3 (data_wstrb),
+    .probe4 (load_size),
+    .probe5 (data_wdata),
+    .probe6 (dcache_busy),
+    .probe7 (data_rdata),
+    .probe8 (isUncache),
+    .probe9 (m1s_pc),
+    .probe10 (ms_pc),
+    .probe11 (ext_int),
+    .probe12 (ds_ex),
+    .probe13 (m1s_ex),
+    .probe14 (ra),
+    .probe15 (sp),
+    .probe16 (ws_pc),
+    .probe17 (ws_final_result)
+);
+
+`endif
+/********************debug********************/
+
 AXI_Interface U_AXI_Interface(
     .clk     (aclk     ),
     .resetn  (aresetn  ),
@@ -359,6 +443,12 @@ if_stage if_stage(
 id_stage id_stage(
     .clk                (aclk               ),
     .reset              (reset              ),
+`ifdef ILA_debug
+    .ds_inst            (ds_inst            ),
+    .ds_ex              (ds_ex              ),
+    .ra                 (ra                 ),
+    .sp                 (sp                 ),
+`endif
     //allowin        
     .es_allowin         (es_allowin         ),
     .ds_allowin         (ds_allowin         ),
@@ -429,6 +519,9 @@ m1_stage m1_stage(
     .ext_int            (ext_int            ),
     .clk                (aclk               ),
     .reset              (reset              ),
+`ifdef ILA_debug
+    .m1s_Exctype        (m1s_Exctype        ),
+`endif
     //allowin        
     .ms_allowin         (ms_allowin         ),
     .m1s_allowin        (m1s_allowin        ),
@@ -514,6 +607,10 @@ mem_stage mem_stage(
 wb_stage wb_stage(
     .clk              (aclk             ),
     .reset            (reset            ),
+`ifdef ILA_debug
+    .ws_pc            (ws_pc            ),
+    .ws_final_result  (ws_final_result  ),
+`endif
     //allowin
     .ws_allowin       (ws_allowin       ),
     //from ms

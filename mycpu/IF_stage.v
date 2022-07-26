@@ -11,7 +11,6 @@ module if_stage(
     //brbus
     input                          fs_bd, 
     input [`BRESULT_WD  -1:0]      BResult,
-    // input [31:0]                   stack_addr,
     //to ps
     output [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
     //to ds

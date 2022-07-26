@@ -4,6 +4,9 @@ module m1_stage(
     input  [ 5:0]   ext_int, //6个外部硬件中断输入
     input           clk,
     input           reset,
+`ifdef ILA_debug
+    output [ 4:0]   m1s_Exctype,
+`endif
     //allowin  
     input           ms_allowin,
     output          m1s_allowin,
@@ -87,7 +90,9 @@ wire [ 2:0]   m1s_sel;
 wire [ 4:0]   m1s_mfc0_rd; 
 wire          m1s_inst_mtc0;
 wire          m1s_bd;
+`ifndef ILA_debug
 wire [ 4:0]   m1s_Exctype;
+`endif
 wire [31:0]   m1s_alu_result;
 wire [31:0]   m1s_fianl_result;
 wire [31:12]  DTLB_PFN;

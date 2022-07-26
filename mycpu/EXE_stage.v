@@ -71,6 +71,7 @@ wire [ 2:0] Overflow_inst; //可能涉及整型溢出例外的三条指令:add,a
 wire        ADES_ex; //地址错例外(写数据)
 wire        ADEL_ex; //地址错例外(读数据)
 
+/* verilator lint_off UNOPTFLAT */
 wire es_BPU_right;
 
 wire inst_beq   ;
