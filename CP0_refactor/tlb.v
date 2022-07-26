@@ -7,7 +7,6 @@ module tlb
     input                             reset,
     //ITLB port
     input        [18:0]               ITLB_vpn2,
-    // input        [7:0]                cp0_to_tlb_asid,
     output                            ITLB_found,
     output       [19:0]               ITLB_pfn0,
     output       [2:0]                ITLB_c0,
@@ -20,7 +19,6 @@ module tlb
 
     //DTLB port
     input        [18:0]               DTLB_vpn2,
-    // input        [7:0]                DTLB_asid,
     output                            DTLB_found,
     output       [19:0]               DTLB_pfn0,
     output       [2:0]                DTLB_c0,
@@ -86,6 +84,7 @@ module tlb
     wire [$clog2(TLBNUM)-1:0] write_index;
     //DTLB CP0共用match逻辑
     wire [18:0]               common_vpn2;
+    reg  [$clog2(TLBNUM)-1:0] latched_index;
     reg  [ 7:0]               latched_asid;
     reg  [18:0]               latched_ITLB_vpn2;
     reg  [18:0]               latched_common_vpn2;
@@ -131,19 +130,21 @@ module tlb
             latched_asid        <= 0;
             latched_common_vpn2 <= 0;
             latched_ITLB_vpn2   <= 0;
+            latched_index       <= 0;
         end
         else begin
             latched_asid        <= cp0_to_tlb_asid;
             latched_common_vpn2 <= common_vpn2;
-            latched_ITLB_vpn2   <= 0;
+            latched_ITLB_vpn2   <= ITLB_vpn2;
+            latched_index       <= cp0_to_tlb_index;
         end
     end
 
 generate
     genvar j;
     for(j = 0; j < TLBNUM; j = j + 1) begin
-        assign ITLB_match[j] = (ITLB_vpn2 == tlb_vpn2[j]) && ((cp0_to_tlb_asid == tlb_asid[j])
-                                                            || tlb_g[j]) ;
+        assign ITLB_match[j] = (latched_ITLB_vpn2 == tlb_vpn2[j]) && 
+                              ((latched_asid == tlb_asid[j])|| tlb_g[j]) ;
     end
 endgenerate
     
@@ -185,13 +186,13 @@ endgenerate
 generate
     genvar k;
     for(k = 0; k < TLBNUM; k = k + 1) begin
-        assign common_match[k] = (common_vpn2 == tlb_vpn2[k]) && ((cp0_to_tlb_asid == tlb_asid[k])
-                                                                || tlb_g[k]) ;
+        assign common_match[k] = (latched_common_vpn2 == tlb_vpn2[k]) && 
+                                ((latched_asid == tlb_asid[k]) || tlb_g[k]);
     end
 endgenerate
 
     //TLB -> DTLB 返回一项TLB
-    assign DTLB_found = (common_match != 16'b0);
+    assign DTLB_found = |common_match;
     assign DTLB_pfn0  = tlb_pfn0[common_index];
     assign DTLB_c0    = tlb_c0[common_index];
     assign DTLB_d0    = tlb_d0[common_index];
@@ -202,19 +203,19 @@ endgenerate
     assign DTLB_v1    = tlb_v1[common_index];   
 
     //TLB <-> CP0
-    assign tlb_to_cp0_vpn2  = tlb_vpn2[cp0_to_tlb_index];
-    assign tlb_to_cp0_asid  = tlb_asid[cp0_to_tlb_index];
-    assign tlb_to_cp0_g0    = tlb_g[cp0_to_tlb_index];
-    assign tlb_to_cp0_g1    = tlb_g[cp0_to_tlb_index];
-    assign tlb_to_cp0_pfn0  = tlb_pfn0[cp0_to_tlb_index];
-    assign tlb_to_cp0_c0    = tlb_c0[cp0_to_tlb_index];
-    assign tlb_to_cp0_d0    = tlb_d0[cp0_to_tlb_index];
-    assign tlb_to_cp0_v0    = tlb_v0[cp0_to_tlb_index];
-    assign tlb_to_cp0_pfn1  = tlb_pfn1[cp0_to_tlb_index];
-    assign tlb_to_cp0_c1    = tlb_c1[cp0_to_tlb_index];
-    assign tlb_to_cp0_d1    = tlb_d1[cp0_to_tlb_index];
-    assign tlb_to_cp0_v1    = tlb_v1[cp0_to_tlb_index];    
-    assign tlb_to_cp0_found = (common_match != 16'b0); //与DTLB共用match逻辑
+    assign tlb_to_cp0_vpn2  = tlb_vpn2[latched_index];
+    assign tlb_to_cp0_asid  = tlb_asid[latched_index];
+    assign tlb_to_cp0_g0    = tlb_g[latched_index];
+    assign tlb_to_cp0_g1    = tlb_g[latched_index];
+    assign tlb_to_cp0_pfn0  = tlb_pfn0[latched_index];
+    assign tlb_to_cp0_c0    = tlb_c0[latched_index];
+    assign tlb_to_cp0_d0    = tlb_d0[latched_index];
+    assign tlb_to_cp0_v0    = tlb_v0[latched_index];
+    assign tlb_to_cp0_pfn1  = tlb_pfn1[latched_index];
+    assign tlb_to_cp0_c1    = tlb_c1[latched_index];
+    assign tlb_to_cp0_d1    = tlb_d1[latched_index];
+    assign tlb_to_cp0_v1    = tlb_v1[latched_index];    
+    assign tlb_to_cp0_found = |common_match; //与DTLB共用match逻辑
     assign tlb_to_cp0_index = common_index; 
 
     always @(*) begin

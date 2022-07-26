@@ -3,9 +3,9 @@
     /*********************模块使能定义*********************/
     `define FPU_EX_Valid
     `define CacheInst_EN
-    // `define OPEN_VA             //verilator仿真需要 注释
+    `define OPEN_VA             //verilator仿真需要 注释
     // `define OPEN_VA_PERF        //verilator仿真需要 注释
-    `define use_crossbar_ip   //vivado仿真需要 解注释
+    // `define use_crossbar_ip   //vivado仿真需要 解注释
     `define PMON_debug   
     `define ILA_debug
     /*********************通道宽度*********************/

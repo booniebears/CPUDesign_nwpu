@@ -20,8 +20,8 @@ module ITLB_stage(
     input              TLB_Buffer_Flush //
 );
 
-parameter    IDLE   = 1'b0,
-             SEARCH = 1'b1;
+parameter    ITLB_IDLE   = 1'b0,
+             ITLB_START = 1'b1;
 
 reg          ITLB_state;
 reg          ITLB_nextstate;  
@@ -93,7 +93,7 @@ assign ITLB_Buffer_Stall = ~ITLB_Buffer_Hit;
 
 always @(posedge clk) begin
     if(reset) begin
-        ITLB_state <= IDLE;
+        ITLB_state <= ITLB_IDLE;
     end else begin
         ITLB_state <= ITLB_nextstate;
     end    
@@ -101,19 +101,19 @@ end
 
 always @(*) begin
     case(ITLB_state)
-        IDLE :
+        ITLB_IDLE :
             if(ITLB_Buffer_Hit == 1'b0) 
-                ITLB_nextstate = SEARCH;
+                ITLB_nextstate = ITLB_START;
             else 
-                ITLB_nextstate = IDLE;
-        SEARCH :
+                ITLB_nextstate = ITLB_IDLE;
+        ITLB_START :
             if(ITLB_Buffer_Hit == 1'b1) 
-                ITLB_nextstate = IDLE;
+                ITLB_nextstate = ITLB_IDLE;
             else 
-                ITLB_nextstate = SEARCH; 
+                ITLB_nextstate = ITLB_START; 
      endcase
 end
-assign ITLB_Buffer_Wr  = (ITLB_state == SEARCH);
+assign ITLB_Buffer_Wr  = (ITLB_state == ITLB_START);
 /********************TLB装填TLB Buffer逻辑********************/
 
 always @(posedge clk) begin

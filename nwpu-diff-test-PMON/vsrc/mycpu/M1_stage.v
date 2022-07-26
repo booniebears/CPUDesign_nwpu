@@ -131,7 +131,8 @@ wire         ICache_refetch; //表明出现冒险,需要refetch
 wire [ 2:0]  CP0_Config_K0_out;
 
 wire [31:0]  CP0_data;
-wire         m1s_inst_tlbr; 
+wire         m1s_inst_tlbr;
+reg          TLBInst_flow;
 wire         m1s_mem_we;
 wire [ 3:0]  sram_wen;
 wire [31:0]  sram_wdata;//位数问题！
@@ -188,9 +189,10 @@ assign m1s_to_ms_bus = {
                         m1s_pc             //31:0
                        } ;               
 
-assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we & ~m1s_is_DCacheInst) | 
+assign m1s_ready_go    = m1s_ex | (~m1s_load_op & ~m1s_mem_we & ~m1s_is_DCacheInst & 
+                        ~m1s_inst_tlbp & ~m1s_inst_tlbr) | 
                         ((m1s_load_op | m1s_mem_we | m1s_is_DCacheInst) & ~dcache_busy &
-                         ~DTLB_Buffer_Stall);
+                         ~DTLB_Buffer_Stall) | ((m1s_inst_tlbp | m1s_inst_tlbr) & TLBInst_flow);
 assign m1s_allowin     = ~m1s_valid || m1s_ready_go && ms_allowin;
 assign m1s_to_ms_valid = m1s_valid && m1s_ready_go;
 always @(posedge clk) begin
@@ -285,6 +287,7 @@ CP0_Reg u_CP0_Reg(
 );
 /******************CP0推到MEM阶段******************/
 
+/******************DTLB及TLB阻塞生成逻辑如下******************/
 DTLB_stage DTLB(
     .clk                 (clk                   ),
     .reset               (reset                 ),
@@ -308,6 +311,17 @@ DTLB_stage DTLB(
     .DTLB_Buffer_Stall   (DTLB_Buffer_Stall     ),
     .CP0_Config_K0_out   (CP0_Config_K0_out     )
 );
+
+always @(posedge clk) begin
+    if(reset)
+        TLBInst_flow <= 1'b0;
+    else if(TLBInst_flow)
+        TLBInst_flow <= 1'b0;
+    else if(m1s_inst_tlbp | m1s_inst_tlbr)
+        TLBInst_flow <= 1'b1;
+end
+
+/******************DTLB及TLB阻塞生成逻辑如上******************/
 
 /*******************CPU与DCache的交互信号赋值如下******************/
 always @(*) begin

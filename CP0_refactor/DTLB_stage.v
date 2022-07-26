@@ -24,12 +24,11 @@ module DTLB_stage(
     input      [ 2:0]  CP0_Config_K0_out
 );
 
-parameter    DTLB_IDLE   = 2'd0,
-             DTLB_START  = 2'd1,
-             DTLB_RETURN = 2'd2;
+parameter    DTLB_IDLE   = 1'b0,
+             DTLB_START  = 1'b1;
 
-reg  [ 1:0]  DTLB_state;
-reg  [ 1:0]  DTLB_nextstate;  
+reg          DTLB_state;
+reg          DTLB_nextstate;  
 reg          DTLB_Buffer_Hit;
 reg          DTLB_Buffer_valid;//todo
 reg          DTLB_Buffer_found;
