@@ -1,6 +1,10 @@
 module regfile(
     input         clk,
     input         reset,
+`ifdef ILA_debug
+    output [31:0] ra,
+    output [31:0] sp,
+`endif
     // READ PORT 1
     input  [ 4:0] raddr1,
     output [31:0] rdata1,
@@ -10,12 +14,9 @@ module regfile(
     // WRITE PORT
     input         we,       //write enable, HIGH valid
     input  [ 4:0] waddr,
-    input  [31:0] wdata,
-    output [31:0] stack_addr
+    input  [31:0] wdata
 );
 reg [31:0] rf[31:0];
-
-assign stack_addr = rf[31];
 
 integer i;
 //WRITE
@@ -34,4 +35,8 @@ assign rdata1 = (raddr1==5'b0) ? 32'b0 : rf[raddr1];
 //READ OUT 2
 assign rdata2 = (raddr2==5'b0) ? 32'b0 : rf[raddr2];
 
+`ifdef ILA_debug
+    assign ra = rf[31];
+    assign sp = rf[29];
+`endif
 endmodule

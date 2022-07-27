@@ -67,14 +67,25 @@ wire  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus;
 wire  [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus;
 wire  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus;
 wire  [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus;
+/* verilator lint_off UNOPTFLAT */
 wire  [`M1_TO_MS_BUS_WD -1:0] m1s_to_ms_bus;
 wire  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire  [`BR_BUS_WD       -1:0] br_bus;
 wire  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus;
 wire  [`BRESULT_WD      -1:0] BResult;
+`ifdef PMON_debug
+wire  [31:0] es_inst;
+wire  [31:0] m1s_inst;
+wire  [31:0] ms_inst;
+// wire  [ 3:0] m1s_data_wstrb; //m1s_data_wstrb即为data_wstrb,已经传出
+wire  [ 3:0] ms_data_wstrb; 
+// wire  [31:0] m1s_data_wdata; //m1s_data_wdata即为data_wdata,已经传出
+wire  [31:0] ms_data_wdata;
+`endif
 wire         br_flush;
 wire         is_branch;
+wire  [31:0] ds_inst;
 
 wire  [ 4:0] EXE_dest; // EXE阶段写RF地址 通过旁路送到ID阶段
 wire  [ 4:0] M1s_dest;
@@ -127,7 +138,6 @@ wire         m1s_is_ICacheInst;
 wire         m1s_is_DCacheInst;
 wire         ICacheInst_delayed;
 wire  [ 2:0] m1s_CacheInst_type;
-wire  [ 2:0] CP0_Config_K0_out;
 
 //AXI和Cache的交互信号
 wire         icache_rd_req;
@@ -146,14 +156,7 @@ wire [127:0] dcache_wr_data; //一次写一个cache line的数据
 wire         dcache_wr_rdy;
 wire         dcache_wr_valid;
 
-//AXI和Uncache的交互信号
-`ifdef use_new_axi_crossbar
-    wire         uicache_rd_req; 
-    wire  [31:0] uicache_rd_addr; 
-    wire         uicache_rd_rdy; 
-    wire         uicache_ret_valid; 
-    wire  [31:0] uicache_ret_data;
-`endif
+//AXI和Uncache(DCache)的交互信号
 wire         udcache_rd_req; 
 wire  [31:0] udcache_rd_addr;
 wire  [ 2:0] udcache_load_size;
@@ -185,10 +188,91 @@ wire  [ 3:0] data_wstrb;
 wire  [31:0] data_wdata;
 wire  [31:0] data_rdata;
 wire  [ 2:0] load_size;
-wire         DCache_isUncache;
-wire         ICache_isUncache;
+wire         isUncache;
 wire         dcache_busy;
 wire         store_record;//store_record = 1'b1表示当前有未处理完的Cached store
+
+`ifdef ILA_debug
+// wire  [31:0] prefs_pc;
+wire  [31:0] fs_pc;
+wire  [31:0] ds_pc;
+wire  [31:0] es_pc;
+//wire  [31:0] m1s_pc;
+wire  [31:0] ms_pc;
+wire  [31:0] ws_pc;
+wire  [31:0] ws_final_result;
+wire  [31:0] dcache_addr;
+wire  [31:0] fs_inst;
+//wire  [31:0] ds_inst;
+wire         ds_ex;
+wire  [ 4:0] m1s_Exctype;
+wire  [31:0] ra;
+wire  [31:0] sp;
+// assign prefs_pc = ps_to_fs_bus[37:6]; //no need
+assign fs_pc    = fs_to_ds_bus[31:0];
+assign ds_pc    = ds_to_es_bus[31:0];
+assign es_pc    = es_to_m1s_bus[31:0];
+// assign m1s_pc   = m1s_to_ms_bus[31:0]; //no need
+assign ms_pc    = ms_to_ws_bus[31:0];
+assign fs_inst  = fs_to_ds_bus[63:32];
+// //ds_inst临时送出
+// ex_ila U_ex_ila(
+//     .clk(aclk),
+//     .probe0 (ds_pc),
+//     .probe1 (es_pc),
+//     .probe2 (m1s_pc),
+//     .probe3 (debug_wb_pc),
+//     .probe4 (m1s_ex),
+//     .probe5 (CP0_Cause_IP_out),
+//     .probe6 (CP0_Status_IM_out),
+//     .probe7 (CP0_Status_EXL_out),
+//     .probe8 (CP0_Status_IE_out),
+//     .probe9 (ds_ex),
+//     .probe10 (m1s_Exctype),
+//     .probe11 (prefs_pc),
+//     .probe12 (ext_int)
+// );
+
+// pc_ila U_pc_ila(
+//     .clk(aclk),
+//     .probe0 (prefs_pc),
+//     .probe1 (fs_pc),
+//     .probe2 (ds_pc),
+//     .probe3 (es_pc),
+//     .probe4 (m1s_pc),
+//     .probe5 (ms_pc),
+//     .probe6 (ws_pc),
+//     .probe7 (ws_final_result),
+//     .probe8 (debug_wb_rf_wen),
+//     .probe9 (debug_wb_rf_wnum),
+//     .probe10 (fs_inst),
+//     .probe11 (ds_inst)
+// );
+
+// assign dcache_addr = {data_tag,data_index,data_offset};
+// complex_ila U_complex_ila(
+//     .clk(aclk),
+//     .probe0 (data_valid),
+//     .probe1 (data_op),
+//     .probe2 (dcache_addr),
+//     .probe3 (data_wstrb),
+//     .probe4 (load_size),
+//     .probe5 (data_wdata),
+//     .probe6 (dcache_busy),
+//     .probe7 (data_rdata),
+//     .probe8 (isUncache),
+//     .probe9 (m1s_pc),
+//     .probe10 (ms_pc),
+//     .probe11 (ext_int),
+//     .probe12 (ds_ex),
+//     .probe13 (m1s_ex),
+//     .probe14 (ra),
+//     .probe15 (sp),
+//     .probe16 (ws_pc),
+//     .probe17 (ws_final_result)
+// );
+
+`endif
 
 /********************TLB-CP0交互信号如下********************/
 wire           m1s_inst_tlbwi   ; //写使能:对应inst_tlbwi
@@ -284,13 +368,6 @@ AXI_Interface U_AXI_Interface(
     .dcache_wr_data    (dcache_wr_data    ),
     .dcache_wr_rdy     (dcache_wr_rdy     ),
     .dcache_wr_valid   (dcache_wr_valid   ),
-`ifdef use_new_axi_crossbar
-    .uicache_rd_req    (uicache_rd_req    ),
-    .uicache_rd_addr   (uicache_rd_addr   ),
-    .uicache_rd_rdy    (uicache_rd_rdy    ),
-    .uicache_ret_valid (uicache_ret_valid ),
-    .uicache_ret_data  (uicache_ret_data  ),   
-`endif
     .udcache_rd_req    (udcache_rd_req    ),
     .udcache_rd_addr   (udcache_rd_addr   ),
     .udcache_load_size (udcache_load_size ),
@@ -312,18 +389,10 @@ Icache U_Icache(
     .inst_index          (inst_index        ),
     .inst_tag            (inst_tag          ),
     .inst_offset         (inst_offset       ),
-    .busy                (icache_busy       ),
+    .icache_busy         (icache_busy       ),
     .inst_rdata          (inst_rdata        ),
     .ICacheInst_delayed  (ICacheInst_delayed),
 
-`ifdef use_new_axi_crossbar
-    .uicache_rd_req      (uicache_rd_req    ),
-    .uicache_rd_addr     (uicache_rd_addr   ),
-    .uicache_rd_rdy      (uicache_rd_rdy    ),
-    .uicache_ret_valid   (uicache_ret_valid ),
-    .uicache_ret_data    (uicache_ret_data  ),  
-    .isUncache           (ICache_isUncache  ),  
-`endif
     .icache_rd_req       (icache_rd_req     ),
     .icache_rd_addr      (icache_rd_addr    ),
     .icache_rd_rdy       (icache_rd_rdy     ),
@@ -371,7 +440,7 @@ DCache U_DCache(
     .udcache_wr_data     (udcache_wr_data    ),
     .udcache_wr_rdy      (udcache_wr_rdy     ),
     .udcache_wr_valid    (udcache_wr_valid   ),
-    .isUncache           (DCache_isUncache   ) 
+    .isUncache           (isUncache          ) 
 );
 //pre_if stage
 pre_if_stage pre_if_stage(
@@ -407,9 +476,7 @@ pre_if_stage pre_if_stage(
     .m1s_pc              (m1s_pc               ),
     .cache_index         (m1s_alu_result[11:4] ),
     .m1s_is_ICacheInst   (m1s_is_ICacheInst    ),
-    .ICacheInst_delayed  (ICacheInst_delayed   ),
-    .CP0_Config_K0_out   (CP0_Config_K0_out    ),
-    .isUncache           (ICache_isUncache     )
+    .ICacheInst_delayed  (ICacheInst_delayed   )
 );
 
 // IF stage
@@ -439,6 +506,12 @@ if_stage if_stage(
 id_stage id_stage(
     .clk                (aclk               ),
     .reset              (reset              ),
+    .ds_inst            (ds_inst            ),
+`ifdef ILA_debug
+    .ds_ex              (ds_ex              ),
+    .ra                 (ra                 ),
+    .sp                 (sp                 ),
+`endif
     //allowin        
     .es_allowin         (es_allowin         ),
     .ds_allowin         (ds_allowin         ),
@@ -463,7 +536,6 @@ id_stage id_stage(
     .WB_result          (WB_result          ),
     .es_load_op         (es_load_op         ),
     .m1s_load_op        (m1s_load_op        ),
-    .ms_load_op         (ms_load_op         ),
     .flush              (flush              ),
     .es_inst_mfc0       (es_inst_mfc0       ),
     .m1s_inst_mfc0      (m1s_inst_mfc0      ),
@@ -490,6 +562,10 @@ exe_stage exe_stage(
     //to fs
     .EXE_BResult     (BResult        ),
     .es_br_flush     (br_flush       ),
+`ifdef PMON_debug
+    .ds_inst         (ds_inst        ),
+    .es_inst         (es_inst        ),
+`endif
     //to ms
     .es_to_m1s_valid (es_to_m1s_valid ),
     .es_to_m1s_bus   (es_to_m1s_bus   ),
@@ -508,12 +584,19 @@ m1_stage m1_stage(
     .ext_int            (ext_int            ),
     .clk                (aclk               ),
     .reset              (reset              ),
+`ifdef ILA_debug
+    .m1s_Exctype        (m1s_Exctype        ),
+`endif
     //allowin        
     .ms_allowin         (ms_allowin         ),
     .m1s_allowin        (m1s_allowin        ),
     //from es        
     .es_to_m1s_valid    (es_to_m1s_valid    ),
     .es_to_m1s_bus      (es_to_m1s_bus      ),
+`ifdef PMON_debug
+    .es_inst            (es_inst            ),
+    .m1s_inst           (m1s_inst           ),
+`endif
     //to ms      
     .m1s_to_ms_valid    (m1s_to_ms_valid    ),
     .m1s_to_ms_bus      (m1s_to_ms_bus      ),
@@ -582,14 +665,13 @@ m1_stage m1_stage(
     .DTLB_c1            (DTLB_c1            ),
     .DTLB_d1            (DTLB_d1            ),
     .DTLB_v1            (DTLB_v1            ),
-    .isUncache          (DCache_isUncache   ),
+    .isUncache          (isUncache          ),
     .TLB_Buffer_Flush   (TLB_Buffer_Flush   ),
     .m1s_pc             (m1s_pc             ),
     .m1s_refetch        (m1s_refetch        ),
     .m1s_is_ICacheInst  (m1s_is_ICacheInst  ),
     .m1s_is_DCacheInst  (m1s_is_DCacheInst  ),
-    .m1s_CacheInst_type (m1s_CacheInst_type ),
-    .CP0_Config_K0_out  (CP0_Config_K0_out  )
+    .m1s_CacheInst_type (m1s_CacheInst_type )
 );
 
 // MEM stage
@@ -600,7 +682,14 @@ mem_stage mem_stage(
     .ws_allowin      (ws_allowin       ),
     .ms_allowin      (ms_allowin       ),
     //to ds
-    .ms_load_op      (ms_load_op       ),
+`ifdef PMON_debug
+    .m1s_inst        (m1s_inst         ),
+    .m1s_data_wstrb  (data_wstrb       ),
+    .m1s_data_wdata  (data_wdata       ),
+    .ms_inst         (ms_inst          ),
+    .ms_data_wstrb   (ms_data_wstrb    ),
+    .ms_data_wdata   (ms_data_wdata    ),
+`endif
     //from es
     .m1s_to_ms_valid (m1s_to_ms_valid  ),
     .m1s_to_ms_bus   (m1s_to_ms_bus    ),
@@ -616,6 +705,10 @@ mem_stage mem_stage(
 wb_stage wb_stage(
     .clk              (aclk             ),
     .reset            (reset            ),
+`ifdef ILA_debug
+    .ws_pc            (ws_pc            ),
+    .ws_final_result  (ws_final_result  ),
+`endif
     //allowin
     .ws_allowin       (ws_allowin       ),
     //from ms
@@ -623,6 +716,11 @@ wb_stage wb_stage(
     .ms_to_ws_bus     (ms_to_ws_bus     ),
     //to rf: for write back
     .ws_to_rf_bus     (ws_to_rf_bus     ),
+`ifdef PMON_debug
+    .ms_data_wstrb    (ms_data_wstrb    ),
+    .ms_data_wdata    (ms_data_wdata    ),
+    .ms_inst          (ms_inst          ),
+`endif
     //trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
     .debug_wb_rf_wen  (debug_wb_rf_wen  ),
@@ -637,7 +735,7 @@ tlb U_tlb(
     .clk               (aclk             ),
     .reset             (reset            ),
     .ITLB_vpn2         (prefs_pc[31:13]  ),
-    .ITLB_asid         (cp0_to_tlb_asid  ),
+    // .ITLB_asid         (cp0_to_tlb_asid  ),
     .ITLB_found        (ITLB_found       ),
     .ITLB_pfn0         (ITLB_pfn0        ),   
     .ITLB_c0           (ITLB_c0          ),
@@ -649,7 +747,7 @@ tlb U_tlb(
     .ITLB_v1           (ITLB_v1          ),
  
     .DTLB_vpn2         (m1s_alu_result[31:13]),
-    .DTLB_asid         (cp0_to_tlb_asid  ),
+    // .DTLB_asid         (cp0_to_tlb_asid  ),
     .DTLB_found        (DTLB_found       ),
     .DTLB_pfn0         (DTLB_pfn0        ), 
     .DTLB_c0           (DTLB_c0          ),

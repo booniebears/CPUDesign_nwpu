@@ -24,8 +24,9 @@ module DTLB_stage(
     input      [ 2:0]  CP0_Config_K0_out
 );
 
-parameter    IDLE   = 1'b0,
-             SEARCH = 1'b1;
+parameter    DTLB_IDLE   = 1'b0,
+             DTLB_START  = 1'b1;
+
 reg          DTLB_state;
 reg          DTLB_nextstate;  
 reg          DTLB_Buffer_Hit;
@@ -56,12 +57,12 @@ always @(*) begin //虚实地址转换
     end
 end
 
-always @(*) begin
+always @(*) begin //TODO:目前比较简化,没有考虑Config寄存器.kseg1固定为uncache,kseg0先认为是cache属性
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache = 1'b1;
     else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) begin
         if(CP0_Config_K0_out == 3'b011)
-            isUncache = 1'b1;
+            isUncache = 1'b0;
         else
             isUncache = 1'b1;
     end
@@ -179,7 +180,7 @@ assign DTLB_Buffer_Stall = ~DTLB_Buffer_Hit;
 
 always @(posedge clk) begin
     if(reset) begin
-        DTLB_state <= IDLE;
+        DTLB_state <= DTLB_IDLE;
     end else begin
         DTLB_state <= DTLB_nextstate;
     end    
@@ -187,19 +188,19 @@ end
 
 always @(*) begin
     case(DTLB_state)
-        IDLE:
+        DTLB_IDLE:
             if(DTLB_Buffer_Hit == 1'b0) 
-                DTLB_nextstate = SEARCH;
+                DTLB_nextstate = DTLB_START;
             else 
-                DTLB_nextstate = IDLE;
-        SEARCH:
+                DTLB_nextstate = DTLB_IDLE;
+        DTLB_START:
             if(DTLB_Buffer_Hit == 1'b1) 
-                DTLB_nextstate = IDLE;
+                DTLB_nextstate = DTLB_IDLE;
             else
-                DTLB_nextstate = SEARCH; 
+                DTLB_nextstate = DTLB_START; 
      endcase
 end
-assign DTLB_Buffer_Wr = (DTLB_state == SEARCH);
+assign DTLB_Buffer_Wr = (DTLB_state == DTLB_START);
 /********************TLB装填TLB Buffer逻辑********************/
 
 always @(posedge clk) begin

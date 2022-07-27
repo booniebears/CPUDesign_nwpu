@@ -1,7 +1,7 @@
 module alu(
     input         clk,
     input         reset,
-    input  [40:0] alu_op,
+    input  [19:0] alu_op,
     input  [31:0] alu_src1,
     input  [31:0] alu_src2,
     output reg [31:0] alu_result,

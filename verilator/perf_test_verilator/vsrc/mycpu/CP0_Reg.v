@@ -4,7 +4,7 @@ module CP0_Reg
 (
     input         clk,
     input         reset,
-    input  [ 4:0] m1s_mfc0_rd,
+    input  [ 4:0] m1s_mtc0_rd,
     input  [ 2:0] m1s_sel,
     input         m1s_valid,
     input         m1s_inst_mtc0,
@@ -46,39 +46,25 @@ module CP0_Reg
     output        cp0_to_tlb_v1 ,
     output        cp0_to_tlb_g1 ,
     output [ 3:0] cp0_to_tlb_index,//索引值
+    output [ 3:0] cp0_to_tlb_random,//索引值
     output [31:0] CP0_EPC_out, 
     output        CP0_Status_IE_out,
     output        CP0_Status_EXL_out,
     output [ 7:0] CP0_Status_IM_out,
     output [ 7:0] CP0_Cause_IP_out,
-    output        CP0_Cause_TI_out //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output        CP0_Cause_TI_out, //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [ 2:0] CP0_Config_K0_out 
 );
 
-/*
-    待添加的CP0寄存器模块:
-    CP0_Cause_CE   29-28  R
-    CP0_Context_BadVPN2 22-4
-    CP0_PageMask 31-0
-    CP0_PRId 31-0
-    CP0_Ebase 31-0
-    CP0_Config 31-0
-    CP0_Config1_M 31 R
-    CP0_Config1_MMUSize 30-25 R
-    CP0_Config1_IS 24-22 R      
-    CP0_Config1_IL 21-19 R	
-    CP0_Config1_IA 18-16 R
-    CP0_Config1_DS 15-13 R	
-    CP0_Config1_DL 12-10 R
-    CP0_Config1_DA 9-7 R
-*/
-parameter TLBNUM = 5'd16;
+parameter TLBNUM           = 16;
+parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b011}; //K0初始赋值为cached
 
 wire [ 7:0] CP0_Addr; //写CP0寄存器组的地址
 wire        mtc0_we; //写CP0寄存器的写使能信号
 
-assign CP0_Addr   = {m1s_mfc0_rd,m1s_sel}; //按照指令要求,CP0的8位读写地址由rd段(这里就是m1s_mfc0_rd)和sel段拼起来
-assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && !m1s_ex; //指令为mtc0,且MEM阶段没有报出例外,则写使能生效
-assign eret_flush = m1s_valid && m1s_inst_eret && !m1s_ex; //指令为eret,且MEM阶段没有报出例外,则清空流水线使能有效
+assign CP0_Addr   = {m1s_mtc0_rd,m1s_sel}; //按照指令要求,CP0的8位读写地址由rd段(这里就是m1s_mfc0_rd)和sel段拼起来
+assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && ~m1s_ex; //指令为mtc0,且MEM阶段没有报出例外,则写使能生效
+assign eret_flush = m1s_valid && m1s_inst_eret && ~m1s_ex; //指令为eret,且MEM阶段没有报出例外,则清空流水线使能有效
 
 /*************************以下为Status寄存器部分*************************/
 reg        CP0_Status_CU0; //28 R/W
@@ -154,7 +140,8 @@ always @(posedge clk) begin
     else 
         tick <= ~tick;
 
-    if(reset) CP0_Count <= 32'b0;
+    if(reset) 
+        CP0_Count <= 32'b0;
     else if(mtc0_we && CP0_Addr == `Count_RegAddr)
         CP0_Count <= m1s_alu_result;
     else if(tick)
@@ -162,9 +149,7 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin //Compare
-    if(reset) 
-        CP0_Compare <= 32'h000155cc; //TODO:目前是凑出来的,之后要根据时间间隔和主频来计算
-    else if(mtc0_we && CP0_Addr == `Compare_RegAddr)
+    if(mtc0_we && CP0_Addr == `Compare_RegAddr)
         CP0_Compare <= m1s_alu_result;
 end
 /*************************以上Count&Compare寄存器部分*************************/
@@ -198,6 +183,8 @@ assign CP0_Cause_TI_out = CP0_Cause_TI;
 always @(posedge clk) begin //CE 29-28 R TODO:在发生CpU异常的时候赋值,目前置空
     if(reset) //TODO:按照规范的话，可以不用reset
         CP0_Cause_CE <= 2'b00;
+    else if(Exctype == `CpU)
+        CP0_Cause_CE <= 2'b01;
 end
 
 always @(posedge clk) begin //IP7-IP2 15-10 R TODO: ext_int处理
@@ -236,13 +223,13 @@ always @(posedge clk) begin //ExeCode 6-2 R
             `Sys                : CP0_Cause_ExcCode <= 5'b01000;
             `Bp                 : CP0_Cause_ExcCode <= 5'b01001;
             `RI                 : CP0_Cause_ExcCode <= 5'b01010;
+            `CpU                : CP0_Cause_ExcCode <= 5'b01011;
             `Ov                 : CP0_Cause_ExcCode <= 5'b01100;
+            `Trap               : CP0_Cause_ExcCode <= 5'b01101;
             default             : CP0_Cause_ExcCode <= `NO_EX;
         endcase
     end
 end
-
-
 /*************************以上为Cause寄存器部分*************************/
 
 /*************************以下为Random&Wired寄存器部分*************************/
@@ -257,13 +244,14 @@ always @(posedge clk) begin
         CP0_Wired_Wired <= m1s_alu_result[3:0];
 end
 
-assign Random_next = CP0_Random_Random + 1'b1;
+assign Random_next = CP0_Random_Random + 1'b1; //由于只有四位,故上限为TLBNUM - 1'b1
 always @(posedge clk) begin //Random 3-0 R
     if(reset)
         CP0_Random_Random <= 4'b1111;
-    else //Random的赋值可参考学长代码,每个时钟周期都会变化。
+    else //Random的赋值 从CP0_Wired_Wired变化到TLBNUM - 1'b1
         CP0_Random_Random <= (CP0_Wired_Wired < Random_next) ? Random_next : CP0_Wired_Wired;
 end
+assign cp0_to_tlb_random = CP0_Random_Random;
 /*************************以上为Random&Wired寄存器部分*************************/
 
 /*************************以下为Context寄存器部分*************************/
@@ -276,18 +264,22 @@ always @(posedge clk) begin //PTEBase 31-23 R/W
 end
 
 always @(posedge clk) begin //BadVPN2 22-4 R
-    //TODO:BadVPN2的赋值涉及TLB例外
+    if(Exctype == `ITLB_EX_Refill || Exctype == `ITLB_EX_Invalid)   
+        CP0_Context_BadVPN2 <= m1s_pc[31:13];
+    else if(Exctype == `DTLB_EX_RD_Refill || Exctype == `DTLB_EX_RD_Invalid  || 
+    Exctype == `DTLB_EX_WR_Refill || Exctype == `DTLB_EX_WR_Invalid || Exctype == `DTLB_EX_Modified)
+        CP0_Context_BadVPN2 <= m1s_alu_result[31:13];
 end
 /*************************以上为Context寄存器部分*************************/
 
-//PageMask 
-reg [31:0] CP0_PageMask;
+//PageMask寄存器
+reg [31:0] CP0_PageMask; 
 always @(posedge clk) begin
-    if(reset) //到这里好像就可以了 简化
+    if(reset) //PageMask设零（固定为4K页大小）
         CP0_PageMask <= 32'b0;
 end
 
-//4.EPC寄存器
+//EPC寄存器
 reg [31:0] CP0_EPC;
 always @(posedge clk) begin
     if(m1s_ex && ~CP0_Status_EXL) begin //EXL为0的时候才能写EPC
@@ -298,20 +290,23 @@ always @(posedge clk) begin
 end
 assign CP0_EPC_out = CP0_EPC;
 
-//5.BadVAddr寄存器
+//BadVAddr寄存器
 reg [31:0]  CP0_BadVAddr;
 always @(posedge clk) begin //BadVAddr寄存器只读 只要有地址错(读写sram或者读inst_ram)就记录
     if(m1s_ex) begin
         if(Exctype == `AdES)
             CP0_BadVAddr <= m1s_alu_result;
         else if(Exctype == `AdEL)
-            CP0_BadVAddr <= ( m1s_pc[1:0] != 0 ) ? m1s_pc : m1s_alu_result;
-       /* else if(Exctype==`TLBL||Exctype==`TLBS ||Exctype==`Mod)
-            CP0_BadVAddr <= m1s_alu_result;*/
+            CP0_BadVAddr <= (m1s_pc[1:0] != 0) ? m1s_pc : m1s_alu_result;
+        else if(Exctype == `ITLB_EX_Refill || Exctype == `ITLB_EX_Invalid) 
+            CP0_BadVAddr <= m1s_pc;
+        else if(Exctype == `DTLB_EX_RD_Refill || Exctype == `DTLB_EX_RD_Invalid  || 
+    Exctype == `DTLB_EX_WR_Refill || Exctype == `DTLB_EX_WR_Invalid || Exctype == `DTLB_EX_Modified)
+            CP0_BadVAddr <= m1s_alu_result;
     end
 end
 
-//6.EntryHi寄存器
+/*************************以下为EntryHi寄存器部分*************************/
 reg [18:0] CP0_Entryhi_VPN2; //EntryHi寄存器中的VPN2
 reg [ 7:0] CP0_Entryhi_ASID; //EntryHi寄存器中的ASID
 always @(posedge clk) begin
@@ -327,16 +322,19 @@ always @(posedge clk) begin
         CP0_Entryhi_VPN2 <= tlb_to_cp0_vpn2 ;
         CP0_Entryhi_ASID <= tlb_to_cp0_asid ;
     end
-
-    /*else if(Exctype==`TLBL||Exctype==`TLBS ||Exctype==`Mod) begin
-        CP0_Entryhi_VPN2<=virtual_vpn2;*/
+    else if(Exctype == `ITLB_EX_Refill || Exctype == `ITLB_EX_Invalid) 
+        CP0_Entryhi_VPN2 <= m1s_pc[31:13];
+    else if(Exctype == `DTLB_EX_RD_Refill || Exctype == `DTLB_EX_RD_Invalid  || 
+    Exctype == `DTLB_EX_WR_Refill || Exctype == `DTLB_EX_WR_Invalid || Exctype == `DTLB_EX_Modified)
+        CP0_Entryhi_VPN2 <= m1s_alu_result[31:13];
 end
 
 assign cp0_to_tlb_vpn2 = CP0_Entryhi_VPN2;
 assign cp0_to_tlb_asid = CP0_Entryhi_ASID;
+/*************************以上为EntryHi寄存器部分*************************/
 
-//7.EntryLo0寄存器
-reg [19:0] CP0_Entrylo0_PFN0;//entrylo0寄存器的值
+/*************************以下为EntryLo0寄存器部分*************************/
+reg [19:0] CP0_Entrylo0_PFN0;
 reg [ 2:0] CP0_Entrylo0_C0;
 reg        CP0_Entrylo0_D0;
 reg        CP0_Entrylo0_V0;
@@ -370,9 +368,10 @@ assign cp0_to_tlb_c0   = CP0_Entrylo0_C0  ;
 assign cp0_to_tlb_d0   = CP0_Entrylo0_D0  ;
 assign cp0_to_tlb_v0   = CP0_Entrylo0_V0  ;
 assign cp0_to_tlb_g0   = CP0_Entrylo0_G0  ;
+/*************************以上为EntryLo0寄存器部分*************************/
 
-//8.EntryLo1寄存器，只实现了描述中的功能
-reg [19:0] CP0_Entrylo1_PFN1;//entrylo1寄存器的值
+/*************************以下为EntryLo1寄存器部分*************************/
+reg [19:0] CP0_Entrylo1_PFN1;
 reg [ 2:0] CP0_Entrylo1_C1;
 reg        CP0_Entrylo1_D1;
 reg        CP0_Entrylo1_V1;
@@ -405,8 +404,9 @@ assign cp0_to_tlb_c1   = CP0_Entrylo1_C1  ;
 assign cp0_to_tlb_d1   = CP0_Entrylo1_D1  ;
 assign cp0_to_tlb_v1   = CP0_Entrylo1_V1  ;
 assign cp0_to_tlb_g1   = CP0_Entrylo1_G1  ;
+/*************************以上为EntryLo1寄存器部分*************************/
 
-//9.index寄存器
+/*************************以下为Index寄存器部分*************************/
 reg       CP0_Index_P;
 reg [3:0] CP0_Index_Index;
 
@@ -430,6 +430,60 @@ always @(posedge clk) begin
     end
 end
 assign cp0_to_tlb_index = CP0_Index_Index;
+/*************************以上为Index寄存器部分*************************/
+
+//Config寄存器
+reg [31:0] CP0_Config;
+
+always @(posedge clk) begin
+    if(reset)
+        CP0_Config      <= Config_reset_val;
+    else if(mtc0_we && CP0_Addr == `Config_RegAddr) //K0域 R/W
+        CP0_Config[2:0] <= m1s_alu_result[2:0];
+end
+assign CP0_Config_K0_out = CP0_Config[2:0];
+
+//Prid寄存器
+reg [31:0] CP0_Prid;
+always @(posedge clk) begin //R
+    if(reset) begin
+        CP0_Prid <= 32'h00004220;
+    end
+end
+
+//EBase寄存器
+reg [31:0] CP0_EBase;
+
+always @(posedge clk) begin
+    if(reset)
+        CP0_EBase        <= 32'h8000_0000;
+    else if(mtc0_we && CP0_Addr == `EBase_RegAddr) //R/W
+        CP0_EBase[29:12] <= m1s_alu_result[29:12];
+end
+
+/*************************以下为Config1寄存器部分*************************/
+reg [31:31] CP0_Config1_M;
+reg [30:25] CP0_Config1_MMUSize;
+reg [24:22] CP0_Config1_IS;
+reg [21:19] CP0_Config1_IL;
+reg [18:16] CP0_Config1_IA;
+reg [15:13] CP0_Config1_DS;
+reg [12:10] CP0_Config1_DL;
+reg [  9:7] CP0_Config1_DA;
+
+always @(posedge clk) begin
+    if(reset) begin //R
+        CP0_Config1_M       <= 1'b0; //Config2未实现
+        CP0_Config1_MMUSize <= TLBNUM - 1;
+        CP0_Config1_IS      <= 3'b010; //ICache一路有256个Cache line,编码为3'b010
+        CP0_Config1_IL      <= 3'b011; //ICache每个Cache line为128bits,16bytes,编码为3'b011
+        CP0_Config1_IA      <= 3'b001; //ICache两路组相连,编码为3'b001;
+        CP0_Config1_DS      <= 3'b010; //DCache一路有256个Cache line,编码为3'b010
+        CP0_Config1_DL      <= 3'b011; //DCache每个Cache line为128bits,16bytes,编码为3'b011
+        CP0_Config1_DA      <= 3'b001; //DCache两路组相连,编码为3'b001;
+    end
+end
+/*************************以上为Config1寄存器部分*************************/
 
 //mfc0指令实现:
 assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
@@ -447,6 +501,12 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Random_RegAddr  )? {28'b0,CP0_Random_Random}:
                   (CP0_Addr == `Wired_RegAddr   )? {28'b0,CP0_Wired_Wired}:
                   (CP0_Addr == `Context_RegAddr )? {CP0_Context_PTEBase,CP0_Context_BadVPN2,4'b0}:
-                                                    32'b0; //TODO:目前CP0_data默认32'b0
+                  (CP0_Addr == `Prid_RegAddr    )? CP0_Prid:
+                  (CP0_Addr == `EBase_RegAddr   )? CP0_EBase:
+                  (CP0_Addr == `Config_RegAddr  )? CP0_Config: 
+                  (CP0_Addr == `Config1_RegAddr )? {CP0_Config1_M,CP0_Config1_MMUSize,CP0_Config1_IS,
+                                                    CP0_Config1_IL,CP0_Config1_IA,CP0_Config1_DS,CP0_Config1_DL,
+                                                    CP0_Config1_DA,7'b0}:
+                                                   32'b0; //TODO:目前CP0_data默认32'b0
 
 endmodule //CP0_Reg

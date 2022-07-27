@@ -22,6 +22,27 @@ module if_stage(
     input                          icache_busy,
     input  [31:0]                  inst_rdata
 );
+wire [31:0] prefs_pc;
+
+wire [ 5:0]  pre_inst_op;
+wire [ 4:0]  pre_inst_rt;
+wire [10:0]  pre_inst_last;
+
+wire [31:0]  ja_target;
+wire         inst_is_ja;
+wire         inst_is_jr;
+
+assign       pre_inst_op = inst_rdata[31:26]; 
+assign       pre_inst_rt = inst_rdata[20:16];  
+assign       pre_inst_last = inst_rdata[10: 0] ;
+assign       inst_is_ja = ( pre_inst_op[5:1] == 5'b00001); /*   J指令 和 JAL指令 的op段前五位都是00001，
+                                                                    最后一位分别是0和1，所以我们只对前五位进行
+                                                                    提前译码，判断是否是 J指令 或者是 JAL指令*/
+assign       ja_target  = { prefs_pc[31:28] , inst_rdata[25:0] , 2'b0};
+
+// assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
+
+
 
 reg          fs_valid;
 wire         fs_ready_go;
@@ -44,7 +65,6 @@ assign {
     ps_Exctype     //4:0
 } = ps_to_fs_bus_r;
 
-wire [31:0] prefs_pc;
 assign prefs_pc = ps_to_fs_bus[37:6];
 
 assign fs_ready_go    = ~icache_busy;
@@ -89,7 +109,7 @@ assign BPU_to_ps_bus = {
                         predict_valid //0:0
                        };
 
-assign fs_ex      = ps_ex;
+assign fs_ex      = (ps_ex & ~br_flush);
 assign fs_Exctype = ps_Exctype;
 
 assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
@@ -107,6 +127,10 @@ BPU u_BPU(
     .pc_valid           (to_BPU_pc_valid),
     .ds_allowin         (ds_allowin),
     .BResult            (BResult),
+    .ja_target          (ja_target ),
+    // .stack_addr         (stack_addr),
+    .inst_is_ja         (inst_is_ja),    
+    // .inst_is_jr         (inst_is_jr),    
     //***********output************//
     .target             (BPU_target),
     .BPU_valid          (BPU_valid),
