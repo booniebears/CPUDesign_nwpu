@@ -30,13 +30,13 @@ module m1_stage(
     output          m1s_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
-    output          flush_refill,
     output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
     output          CP0_Status_IE_out, //IE=1,全局中断使能开启
     output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
     output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [31:0]   Exception_Addr,
 
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
@@ -283,7 +283,8 @@ CP0_Reg u_CP0_Reg(
     .CP0_Status_IM_out   (CP0_Status_IM_out),
     .CP0_Cause_IP_out    (CP0_Cause_IP_out),
     .CP0_Cause_TI_out    (CP0_Cause_TI_out),
-    .CP0_Config_K0_out   (CP0_Config_K0_out)
+    .CP0_Config_K0_out   (CP0_Config_K0_out),
+    .Exception_Addr      (Exception_Addr   )
 );
 /******************CP0推到MEM阶段******************/
 
@@ -354,8 +355,6 @@ assign TLB_Buffer_Flush = m1s_inst_tlbwi | (m1s_inst_tlbr & TLBInst_flow) |
 // assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
 //Attention:认为refetch也是一种例外,需要清空流水级
 assign flush        = eret_flush | m1s_ex | m1s_refetch; 
-assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_EX_RD_Refill)
-                    | (m1s_Exctype == `DTLB_EX_WR_Refill); 
 assign m1s_ex       = temp_m1s_ex | DTLB_ex;
 assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
                           DTLB_ex ? DTLB_Exctype     : `NO_EX;    

@@ -81,8 +81,10 @@
 
     /*********************定义复位与例外入口*********************/
     `define RESET_PC            32'hbfc0_0000
-    `define REFILL_EX_PC        32'hbfc0_0200
-    `define GENERAL_EX_PC       32'hbfc0_0380
+    // `define REFILL_EX_PC        32'hbfc0_0200
+    // `define GENERAL_EX_PC       32'hbfc0_0380
+    `define GENERAL_EX_BASE     32'hbfc0_0200
+    `define GENERAL_EX_OFFSET   32'h0000_0180
 
     /*********************FPU指令类型*********************/
     `define NOT_FPU             2'b00

@@ -53,7 +53,8 @@ module CP0_Reg
     output [ 7:0] CP0_Status_IM_out,
     output [ 7:0] CP0_Cause_IP_out,
     output        CP0_Cause_TI_out, //TI为1,触发定时中断;我们将该中断标记在ID阶段
-    output [ 2:0] CP0_Config_K0_out 
+    output [ 2:0] CP0_Config_K0_out,
+    output [31:0] Exception_Addr
 );
 
 parameter TLBNUM           = 16;
@@ -65,6 +66,8 @@ parameter TLBNUM           = 16;
 
 wire [ 7:0] CP0_Addr; //写CP0寄存器组的地址
 wire        mtc0_we; //写CP0寄存器的写使能信号
+wire [31:0] Exception_Base;
+wire [31:0] Exception_Offset;
 
 assign CP0_Addr   = {m1s_mtc0_rd,m1s_sel}; //按照指令要求,CP0的8位读写地址由rd段(这里就是m1s_mfc0_rd)和sel段拼起来
 assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && ~m1s_ex; //指令为mtc0,且MEM阶段没有报出例外,则写使能生效
@@ -172,7 +175,7 @@ assign Count_eq_Compare = (CP0_Count == CP0_Compare);
 always @(posedge clk) begin //31 R
     if(reset)
         CP0_Cause_BD <= 1'b0;
-    else if(m1s_ex && !CP0_Status_EXL) //只有在EXL域为0的之后,才更新BD
+    else if(m1s_ex && ~CP0_Status_EXL) //只有在EXL域为0的之后,才更新BD
         CP0_Cause_BD <= m1s_bd;
 end
 
@@ -529,5 +532,9 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                                                     CP0_Config1_IL,CP0_Config1_IA,CP0_Config1_DS,CP0_Config1_DL,
                                                     CP0_Config1_DA,7'b0}:
                                                    32'b0; //TODO:目前CP0_data默认32'b0
-
+//例外地址入口
+assign Exception_Base   = CP0_Status_Bev ? `GENERAL_EX_BASE : CP0_EBase; //例外基地址
+assign Exception_Offset = (Exctype == `ITLB_EX_Refill || Exctype == `DTLB_EX_RD_Refill
+                        || Exctype == `DTLB_EX_WR_Refill) ? 0: `GENERAL_EX_OFFSET; //例外偏移量
+assign Exception_Addr   = Exception_Base + Exception_Offset;
 endmodule //CP0_Reg

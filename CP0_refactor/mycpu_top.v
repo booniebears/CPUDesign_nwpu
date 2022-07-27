@@ -99,7 +99,6 @@ wire         es_load_op; //EXE阶段 判定是否为load指令
 wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
-wire         flush_refill;
 wire         m1s_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
@@ -107,6 +106,7 @@ wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
 wire         CP0_Status_EXL_out; //EXL=0,没有例外正在处理
 wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
 wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
+wire  [31:0] Exception_Addr;
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
@@ -453,7 +453,7 @@ pre_if_stage pre_if_stage(
     .ps_to_fs_valid      (ps_to_fs_valid       ),
     .br_flush            (br_flush             ),
     .flush               (flush                ),
-    .flush_refill        (flush_refill         ),
+    .Exception_Addr      (Exception_Addr       ),
     .CP0_EPC_out         (CP0_EPC_out          ),
     .m1s_inst_eret       (m1s_inst_eret        ),
     .inst_index          (inst_index           ),
@@ -604,7 +604,6 @@ m1_stage m1_stage(
     .M1s_dest           (M1s_dest           ), 
     .M1s_result         (M1s_result         ),
     .flush              (flush              ), 
-    .flush_refill       (flush_refill       ),
     .m1s_ex             (m1s_ex             ), 
     .m1s_inst_mfc0      (m1s_inst_mfc0      ), 
     .m1s_inst_eret      (m1s_inst_eret      ),
@@ -614,6 +613,7 @@ m1_stage m1_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .Exception_Addr     (Exception_Addr     ),
     .m1s_inst_tlbwi     (m1s_inst_tlbwi     ),
     .m1s_inst_tlbwr     (m1s_inst_tlbwr     ),
     .m1s_inst_tlbp      (m1s_inst_tlbp      ),
