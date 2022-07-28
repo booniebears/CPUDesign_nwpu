@@ -59,7 +59,7 @@ module CP0_Reg
 
 parameter TLBNUM           = 16;
 `ifdef PMON_debug
-    parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b000}; //K0初始赋值为cached
+    parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b011}; //ucore赋值为3'b011
 `else
     parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b011}; //K0初始赋值为cached
 `endif

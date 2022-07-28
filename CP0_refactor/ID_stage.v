@@ -426,7 +426,7 @@ assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
 //Attention:利用ds_inst[25]=1'b1 区分TLBR与MFC0两条指令
 assign inst_tlbr   = op_d[6'h10] & func_d[6'h01] & ds_inst[25]; 
 assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
-assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
+assign inst_tlbwr  = op_d[6'h10] & func_d[6'h06];
 
 //clo_clz
 assign inst_clo    = op_d[6'h1c] & func_d[6'h21];
@@ -595,7 +595,7 @@ reg [1:0] Time_state,Time_nextstate;
 always @(*) begin //该状态机同时处理next_state和Time_int
     case (Time_state)
         Time_Idle: 
-            if(CP0_Cause_TI_out && ds_valid) begin
+            if(has_int && CP0_Cause_TI_out && ds_valid) begin
                 Time_nextstate = Time_Start;
                 Time_int       = 1'b1;
             end
@@ -613,7 +613,7 @@ always @(*) begin //该状态机同时处理next_state和Time_int
                 Time_int       = 1'b1;
             end
         Time_Rollback:
-            if(~CP0_Cause_TI_out) begin
+            if(~CP0_Cause_TI_out && ~has_int) begin
                 Time_nextstate = Time_Idle;
                 Time_int       = 1'b0;
             end
