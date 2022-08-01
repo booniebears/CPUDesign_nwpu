@@ -43,19 +43,31 @@ wire [31:0] es_not_rs_value;
 wire [31:0] es_not_rt_value;
 wire [2:0]  es_trap_op;
 wire [2:0]  es_CacheInst_type;
-wire        es_is_ICacheInst;
-wire        es_is_DCacheInst;
+wire        es_is_ICacheInst; //TODO:修改
+wire        es_is_DCacheInst; //TODO:修改
 wire        es_br_is_imm;
 wire        es_br_is_reg;
 wire [31:0] es_imm_br_addr;
 
-wire        es_gr_we      ;
-wire        es_mem_we     ;
-wire [ 4:0] es_dest       ;
-wire [15:0] es_imm        ;
-wire [31:0] es_rs_value   ;
-wire [31:0] es_rt_value   ;
-wire [31:0] es_pc         ;
+wire        temp_gr_we     ;
+wire        temp_load_op   ;
+wire        temp_mem_we    ;
+wire        temp_inst_tlbp ;
+wire        temp_inst_tlbr ;
+wire        temp_inst_tlbwi;
+wire        temp_inst_tlbwr;
+wire        temp_ICacheInst;
+wire        temp_DCacheInst;
+wire        temp_inst_mtc0 ;
+wire        temp_inst_eret ;
+wire        es_gr_we       ;
+wire        es_mem_we      ;
+wire [ 4:0] temp_dest      ; //待branch_likely指令处理
+wire [ 4:0] es_dest        ; //branch_likely指令处理后的dest
+wire [15:0] es_imm         ;
+wire [31:0] es_rs_value    ;
+wire [31:0] es_rt_value    ;
+wire [31:0] es_pc          ;
 wire [11:0] es_mem_inst; //lab7添加 区别不同的存取数指令
 wire [ 3:0] sram_wen; //sram写信号,可以区分不同的store指令,最后赋值给 data_sram_wen
 wire [31:0] sram_wdata; //写sram的数据,最后赋值给data_sram_wdata
@@ -81,45 +93,48 @@ wire        ADEL_ex; //地址错例外(读数据)
 wire        trap_ex;
 
 /* verilator lint_off UNOPTFLAT */
-wire es_BPU_right;
+wire        es_BPU_right;
 
-wire inst_beq   ;
-wire inst_bne   ;
-wire inst_jal   ;
-wire inst_jr    ;
-wire inst_j     ;
-wire inst_jalr  ;
-wire inst_bgez  ;
-wire inst_bgtz  ;
-wire inst_blez  ;
-wire inst_bltz  ;
-wire inst_bgezal;
-wire inst_bltzal;
+wire        inst_beq   ;
+wire        inst_bne   ;
+wire        inst_jal   ;
+wire        inst_jr    ;
+wire        inst_j     ;
+wire        inst_jalr  ;
+wire        inst_bgez  ;
+wire        inst_bgtz  ;
+wire        inst_blez  ;
+wire        inst_bltz  ;
+wire        inst_bgezal;
+wire        inst_bltzal;
+wire        inst_beql  ;
+wire        inst_bnel  ;
 
 wire [31:0] es_BPU_ret_addr;
-wire es_BPU_is_taken;
-wire es_BPU_valid;
-wire [1:0] es_Count;
-wire [3:0] es_branch_type;
-wire [11:0] es_br_inst;
+wire        es_BPU_is_taken;
+wire        es_BPU_valid;
+wire [1:0]  es_Count;
+wire [3:0]  es_branch_type;
+wire [13:0] es_br_inst;
 wire [25:0] es_jidx;
-wire es_is_branch;
-// wire es_br_stall;
-wire es_br_taken;
+wire        es_is_branch;
+wire        es_br_taken;
 wire [31:0] es_br_target;
 
-wire es_rs_eq_rt;
+wire        es_rs_eq_rt;
 //lab7添加 用于辅助判断b型指令的跳转状况
 wire        es_rsgez;
 wire        es_rsgtz;
 wire        es_rslez;
 wire        es_rsltz;
 
-/******************ds_to_es_bus Total: 316 + 29 bits******************/
+reg         likely_invalid; //Branch Likely未跳转信息记录在reg中
+
+/******************ds_to_es_bus Total: 318 + 29 bits******************/
 assign {
         es_alu_op              ,  //344:316
-        es_is_ICacheInst       ,  //315:315
-        es_is_DCacheInst       ,  //314:314
+        temp_ICacheInst        ,  //315:315
+        temp_DCacheInst        ,  //314:314
         es_CacheInst_type      ,  //313:311
         es_trap_op             ,  //310:308
         es_br_is_reg           ,  //307:307
@@ -132,26 +147,26 @@ assign {
         es_BPU_valid           ,  //176:176
         es_Count               ,  //175:174
         es_is_branch           ,  //173:173 
-        es_br_inst             ,  //172:161
+        es_br_inst             ,  //172:161 + 2
         es_part_inst           ,  //160:135
-        es_inst_tlbp           ,  //134:134
-        es_inst_tlbr           ,  //133:133
-        es_inst_tlbwi          ,  //132:132
-        es_inst_tlbwr          ,  //131:131
+        temp_inst_tlbp         ,  //134:134
+        temp_inst_tlbr         ,  //133:133
+        temp_inst_tlbwi        ,  //132:132
+        temp_inst_tlbwr        ,  //131:131
         Overflow_inst          ,  //130:128
         temp_ex                ,  //127:127 
         temp_ExcCode           ,  //126:122 
         es_bd                  ,  //121:121
-        es_inst_eret           ,  //120:120
-        es_inst_mtc0           ,  //119:119 
+        temp_inst_eret         ,  //120:120
+        temp_inst_mtc0         ,  //119:119 
         es_inst_mfc0           ,  //118:118 
         es_mem_inst            ,  //117:106
-        es_load_op             ,  //105:105
+        temp_load_op           ,  //105:105
         es_src1_is_not_rs_value,  //104:104
         es_src2_is_not_rt_value,  //103:103
-        es_gr_we               ,  //102:102 --写RF使能
-        es_mem_we              ,  //101:101 --写DM使能
-        es_dest                ,  //100:96 
+        temp_gr_we             ,  //102:102 --写RF使能
+        temp_mem_we            ,  //101:101 --写DM使能
+        temp_dest              ,  //100:96 
         es_rs_value            ,  //95 :64 
         es_rt_value            ,  //63 :32 
         es_pc                     //31 :0  
@@ -168,7 +183,9 @@ assign {    inst_beq   ,
             inst_blez  ,
             inst_bltz  ,
             inst_bgezal,
-            inst_bltzal     } = es_br_inst;
+            inst_bltzal,
+            inst_beql  ,
+            inst_bnel  } = es_br_inst;
 
 assign es_rs_eq_rt = (es_rs_value == es_rt_value);
 
@@ -183,12 +200,12 @@ assign es_rsgtz =  ($signed(es_rs_value) > 0); // >0
 assign es_rslez = ~($signed(es_rs_value) > 0); //<=0
 assign es_rsltz =  (        es_rs_value[31] ); // <0
 
-assign es_br_target =   es_br_is_imm                ?  es_imm_br_addr     :
+assign es_br_target =   es_br_is_imm                ? es_imm_br_addr     :
                         es_br_is_reg                ? es_rs_value         :
                         /*inst_jal,inst_j*/         {ds_pc[31:28], es_jidx[25:0], 2'b0};
 
-assign es_br_taken =  (   inst_beq  &  es_rs_eq_rt
-                        | inst_bne  & !es_rs_eq_rt
+assign es_br_taken =  (   (inst_beq | inst_beql)  &  es_rs_eq_rt
+                        | (inst_bne | inst_bnel)  & ~es_rs_eq_rt
                         | inst_jal
                         | inst_jr
                         | inst_j
@@ -202,6 +219,14 @@ assign es_br_taken =  (   inst_beq  &  es_rs_eq_rt
                       ) ;
                     //   ) & es_valid;           
 
+always @(posedge clk) begin
+    if(reset | flush)
+        likely_invalid <= 1'b0;
+    else if((inst_beql & ~es_rs_eq_rt) | (inst_bnel & es_rs_eq_rt))
+        likely_invalid <= 1'b1;
+    else if(es_to_m1s_valid && m1s_allowin) //Attention:Branch Likely延迟槽指令能流动到M1阶段则清零
+        likely_invalid <= 1'b0;        
+end
 
 /******************BResult Total: 68bits******************/
 assign EXE_BResult = {  es_pc,        //67:36
@@ -229,7 +254,6 @@ wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
 wire [31:0] temp_alu_result ; //临时接收alu计算得到的结果
 wire [31:0] es_alu_result ; //除了考虑alu运算结果,还考虑mtc0指令携带的rt数据;
-wire        es_res_from_mem;
 
 //MUL DIV控制信号
 wire        m_axis_dout_tvalid;
@@ -256,32 +280,29 @@ assign      inst_is_lh  = es_mem_inst[4];
 assign      inst_is_lhu = es_mem_inst[5];
 assign      inst_is_lw  = es_mem_inst[0];
 
-
-assign es_res_from_mem = es_load_op;
-/******************es_to_m1s_bus Total: 180bits******************/
+/******************es_to_m1s_bus Total: 179bits******************/
 assign es_to_m1s_bus = {
-                       es_is_ICacheInst, //179:179
-                       es_is_DCacheInst, //178:178
-                       es_CacheInst_type,//177:175
-                       sram_wdata     ,  //174:143
-                       sram_wen       ,  //142:139
-                       es_mem_we      ,  //138:138
-                       es_inst_tlbp   ,  //137:137
-                       es_inst_tlbr   ,  //136:136
-                       es_inst_tlbwi  ,  //135:135
-                       es_inst_tlbwr  ,  //134:134
-                       es_load_op     ,  //133:133
-                       es_mfc0_rd     ,  //132:128
-                       es_ex          ,  //127:127
-                       es_Exctype     ,  //126:122 
-                       es_bd          ,  //121:121
-                       es_inst_eret   ,  //120:120
-                       es_sel         ,  //119:117 
-                       es_inst_mtc0   ,  //116:116 
-                       es_inst_mfc0   ,  //115:115 
-                       es_rt_value    ,  //114:83
-                       es_mem_inst    ,  //82:71 
-                       es_res_from_mem,  //70:70 --是否为load指令(使用DM中数)
+                       es_is_ICacheInst, //178:178
+                       es_is_DCacheInst, //177:177
+                       es_CacheInst_type,//176:174
+                       sram_wdata     ,  //173:142
+                       sram_wen       ,  //141:138
+                       es_mem_we      ,  //137:137
+                       es_inst_tlbp   ,  //136:136
+                       es_inst_tlbr   ,  //135:135
+                       es_inst_tlbwi  ,  //134:134
+                       es_inst_tlbwr  ,  //133:133
+                       es_load_op     ,  //132:132
+                       es_mfc0_rd     ,  //131:127
+                       es_ex          ,  //126:126
+                       es_Exctype     ,  //125:121 
+                       es_bd          ,  //120:120
+                       es_inst_eret   ,  //119:119
+                       es_sel         ,  //118:116 
+                       es_inst_mtc0   ,  //115:115 
+                       es_inst_mfc0   ,  //114:114
+                       es_rt_value    ,  //113:82
+                       es_mem_inst    ,  //81:70 
                        es_gr_we       ,  //69:69 --写RF使能
                        es_dest        ,  //68:64 --写RF的地址
                        es_alu_result  ,  //63:32 --16位立即数
@@ -329,6 +350,20 @@ assign es_alu_src1 = es_src1_is_not_rs_value ? es_not_rs_value : es_rs_value;
 
 //lab6修改 对于es_src2_is_imm,非立即数:2'b00 立即数零扩展:2'b01 立即数有符号扩展:2'b10 
 assign es_alu_src2 = es_src2_is_not_rt_value ? es_not_rt_value : es_rt_value;
+
+assign es_load_op = (likely_invalid & es_bd) ? 1'b0 : temp_load_op;
+assign es_gr_we   = (likely_invalid & es_bd) ? 1'b0 : temp_gr_we;
+assign es_mem_we  = (likely_invalid & es_bd) ? 1'b0 : temp_mem_we;
+
+assign es_inst_tlbp  = (likely_invalid & es_bd) ? 1'b0 : temp_inst_tlbp ;
+assign es_inst_tlbr  = (likely_invalid & es_bd) ? 1'b0 : temp_inst_tlbr ;
+assign es_inst_tlbwi = (likely_invalid & es_bd) ? 1'b0 : temp_inst_tlbwi;
+assign es_inst_tlbwr = (likely_invalid & es_bd) ? 1'b0 : temp_inst_tlbwr;
+assign es_inst_mtc0  = (likely_invalid & es_bd) ? 1'b0 : temp_inst_mtc0 ;
+assign es_inst_eret  = (likely_invalid & es_bd) ? 1'b0 : temp_inst_eret ;
+
+assign es_is_ICacheInst = (likely_invalid & es_bd) ? 1'b0 : temp_ICacheInst;
+assign es_is_DCacheInst = (likely_invalid & es_bd) ? 1'b0 : temp_DCacheInst;
 
 //lab7 处理送入DM存储器的数据 store指令共五类
 assign sram_wdata = inst_is_sb  ? {4{es_rt_value[7:0]}}:
@@ -390,14 +425,18 @@ assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
 assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && (es_alu_result[1:0] != 0) ? 1'b1 : 1'b0;
 
-assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex | trap_ex; 
-assign es_Exctype = temp_ex     ? temp_ExcCode:
+assign es_ex      = (likely_invalid & es_bd) ? 1'b0 :
+                     temp_ex | Overflow_ex | ADES_ex | ADEL_ex | trap_ex; 
+assign es_Exctype = (likely_invalid & es_bd) ? `NO_EX:
+                    temp_ex     ? temp_ExcCode:
                     trap_ex     ?       `Trap :
                     Overflow_ex ?       `Ov   : 
                     ADES_ex     ?       `AdES : 
                     ADEL_ex     ?       `AdEL : `NO_EX;
 
-assign EXE_dest   = es_dest & {5{es_valid}}; //写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
+//写RF地址通过旁路送到ID阶段 注意考虑es_valid有效性
+assign es_dest    = (likely_invalid & es_bd) ? 0 : temp_dest;
+assign EXE_dest   = es_dest & {5{es_valid}}; 
 assign EXE_result = es_alu_result;
 
 endmodule

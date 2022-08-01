@@ -30,13 +30,13 @@ module m1_stage(
     output          m1s_inst_eret, //MEM阶段指令为eret 前递到EXE 控制SRAM读写
 
     output          flush, //flush=1时表明需要处理异常 flush由WB阶段中的CP0_reg产生
-    output          flush_refill,
     output [31:0]   CP0_EPC_out, //CP0寄存器中,EPC的值
     output          CP0_Status_IE_out, //IE=1,全局中断使能开启
     output          CP0_Status_EXL_out, //EXL=0,没有例外正在处理
     output [ 7:0]   CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     output [ 7:0]   CP0_Cause_IP_out, //待处理中断标识
     output          CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    output [31:0]   Exception_Addr,
 
     /********************TLB-CP0交互信号如下********************/
     output          m1s_inst_tlbwi, //TLB写使能:对应inst_tlbwi
@@ -106,7 +106,6 @@ reg          m1s_valid;
 wire         m1s_ready_go;
   
 reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
-wire         m1s_res_from_mem;
 wire         m1s_gr_we;
 wire [ 4:0]  m1s_dest;
 wire [11:0]  m1s_mem_inst;//直接传走
@@ -118,6 +117,7 @@ wire [ 4:0]  m1s_mtc0_rd;
 wire         m1s_inst_mtc0;
 wire         m1s_bd;
 wire         temp_m1s_ex;
+wire         has_int; //判定是否接收到中断 需要满足下面的条件
 wire         DTLB_ex;
 wire [ 4:0]  temp_m1s_Exctype;
 `ifndef ILA_debug
@@ -146,34 +146,33 @@ assign debug_lw = m1s_load_op & data_valid & isUncache;
 //TODO:感觉Cached和Uncached store都可以考虑按以下逻辑放行?
 assign m1s_store_flow = m1s_mem_we & ~store_record; 
 
-/******************es_to_m1s_bus Total: 180bits******************/
+/******************es_to_m1s_bus Total: 179bits******************/
 assign {
-        m1s_is_ICacheInst, //179:179
-        m1s_is_DCacheInst, //178:178
-        m1s_CacheInst_type,//177:175
-        sram_wdata      ,  //174:143
-        sram_wen        ,  //142:139
-        m1s_mem_we      ,  //138:138
-        m1s_inst_tlbp   ,  //137:137
-        m1s_inst_tlbr   ,  //136:136
-        m1s_inst_tlbwi  ,  //135:135
-        m1s_inst_tlbwr  ,  //134:134
-        m1s_load_op     ,  //133:133
-        m1s_mtc0_rd     ,  //132:128
-        temp_m1s_ex     ,  //127:127
-        temp_m1s_Exctype,  //126:122 
-        m1s_bd          ,  //121:121
-        m1s_inst_eret   ,  //120:120
-        m1s_sel         ,  //119:117 
-        m1s_inst_mtc0   ,  //116:116 
-        m1s_inst_mfc0   ,  //115:115
-        m1s_rt_value    ,  //114:83
-        m1s_mem_inst    ,  //82:71
-        m1s_res_from_mem,  //70:70
-        m1s_gr_we       ,  //69:69
-        m1s_dest        ,  //68:64
-        m1s_alu_result  ,  //63:32
-        m1s_pc             //31:0
+        m1s_is_ICacheInst, //178:178
+        m1s_is_DCacheInst, //177:177
+        m1s_CacheInst_type,//176:174
+        sram_wdata      ,  //173:142
+        sram_wen        ,  //141:139
+        m1s_mem_we      ,  //137:137
+        m1s_inst_tlbp   ,  //136:136
+        m1s_inst_tlbr   ,  //135:135
+        m1s_inst_tlbwi  ,  //134:134
+        m1s_inst_tlbwr  ,  //133:133
+        m1s_load_op     ,  //132:132
+        m1s_mtc0_rd     ,  //131:127
+        temp_m1s_ex     ,  //126:126
+        temp_m1s_Exctype,  //125:121  
+        m1s_bd          ,  //120:120
+        m1s_inst_eret   ,  //119:119
+        m1s_sel         ,  //118:116  
+        m1s_inst_mtc0   ,  //115:115  
+        m1s_inst_mfc0   ,  //114:114
+        m1s_rt_value    ,  //113:82
+        m1s_mem_inst    ,  //81:70 
+        m1s_gr_we       ,  //69:69 --写RF使能
+        m1s_dest        ,  //68:64 --写RF的地址
+        m1s_alu_result  ,  //63:32 --16位立即数
+        m1s_pc             //31:0 --EXE阶段 PC值
        } = es_to_m1s_bus_r;
 
 /******************m1s_to_ms_bus Total: 117bits******************/
@@ -182,7 +181,7 @@ assign m1s_to_ms_bus = {
                         m1s_ex          ,  //115:115                                 
                         m1s_rt_value    ,  //114:83
                         m1s_mem_inst    ,  //82:71
-                        m1s_res_from_mem,  //70:70
+                        m1s_load_op     ,  //70:70
                         m1s_gr_we       ,  //69:69
                         m1s_dest        ,  //68:64
                         m1s_final_result,  //63:32
@@ -283,7 +282,8 @@ CP0_Reg u_CP0_Reg(
     .CP0_Status_IM_out   (CP0_Status_IM_out),
     .CP0_Cause_IP_out    (CP0_Cause_IP_out),
     .CP0_Cause_TI_out    (CP0_Cause_TI_out),
-    .CP0_Config_K0_out   (CP0_Config_K0_out)
+    .CP0_Config_K0_out   (CP0_Config_K0_out),
+    .Exception_Addr      (Exception_Addr   )
 );
 /******************CP0推到MEM阶段******************/
 
@@ -346,18 +346,18 @@ assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: ar
 /*******************CPU与DCache的交互信号赋值如上******************/
 
 /******************例外处理部分********************/
+//中断:
+assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && 
+                   CP0_Status_IE_out && !CP0_Status_EXL_out;
 //TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB/ITLB不相对应
 //另外要等tlbr正确执行后再flush
 assign TLB_Buffer_Flush = m1s_inst_tlbwi | (m1s_inst_tlbr & TLBInst_flow) | 
                          (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
-//当一条TLBWI发生在M1级时发生恰好阻塞，他就流不走，就会出现反复清空TLBBuffer
-// assign TLB_Buffer_Flush_Final = (m1s_ex)? 1'b0 : TLB_Buffer_Flush;
 //Attention:认为refetch也是一种例外,需要清空流水级
 assign flush        = eret_flush | m1s_ex | m1s_refetch; 
-assign flush_refill = (m1s_Exctype == `ITLB_EX_Refill) | (m1s_Exctype == `DTLB_EX_RD_Refill)
-                    | (m1s_Exctype == `DTLB_EX_WR_Refill); 
-assign m1s_ex       = temp_m1s_ex | DTLB_ex;
+assign m1s_ex       = temp_m1s_ex | DTLB_ex | has_int;
 assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
+                          has_int ? `Int             :
                           DTLB_ex ? DTLB_Exctype     : `NO_EX;    
 /******************例外处理部分********************/
 

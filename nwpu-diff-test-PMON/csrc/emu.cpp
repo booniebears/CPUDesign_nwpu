@@ -21,7 +21,7 @@ Emulator:: Emulator()
     // ref_napi_init(3,command);
     // printf("Initial NEMU Finish\n");
     // init_ram("./ceo/ucore.coe");   // ceo/ucore.coe
-    init_ram("./ceo/axi_ram.coe");   // pmon.coe
+    init_ram("./ceo/gzrom.coe");   // pmon.coe
     //vcd
     tfp = new VerilatedVcdC;
     Verilated::traceEverOn(true);

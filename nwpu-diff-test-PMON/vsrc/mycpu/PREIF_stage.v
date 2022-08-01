@@ -14,8 +14,8 @@ module pre_if_stage(
 
     input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
-    input                          flush_refill, //告知PRE-IF阶段 M!阶段处理的例外是TLB Refill
-    input  [31:0]                  CP0_EPC_out, //CP0寄存器中,EPC的值
+    input      [31:0]              Exception_Addr, //flush=1时表明需要处理异常
+    input      [31:0]              CP0_EPC_out, //CP0寄存器中,EPC的值
     input                          m1s_inst_eret,
 
     //CPU和ICache的交互信号如下
@@ -155,12 +155,10 @@ always @(*) begin //nextpc
     if(m1s_inst_eret)
         nextpc = CP0_EPC_out;
     else if(flush) begin
-        if(flush_refill) 
-            nextpc = `REFILL_EX_PC;
-        else if(m1s_refetch)
+        if(m1s_refetch)
             nextpc = m1s_pc;
         else 
-            nextpc = `GENERAL_EX_PC;
+            nextpc = Exception_Addr; //例外地址
     end
     else if(is_branch & br_BPU_valid & ~br_BPU_right)begin
         nextpc = wrong_flow_pc;

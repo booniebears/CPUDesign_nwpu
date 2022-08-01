@@ -7,10 +7,10 @@
     // `define OPEN_VA_PERF        //verilator仿真需要 注释
     // `define use_crossbar_ip   //vivado仿真需要 解注释
     `define PMON_debug   
-    `define ILA_debug
+    // `define ILA_debug
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
-    `define DS_TO_ES_NOALU_WD   316
+    `define DS_TO_ES_NOALU_WD   318
     `define BR_BUS_WD           68
     `define BRESULT_WD          68
     `define BPU_TO_PS_BUS_WD    33
@@ -19,7 +19,7 @@
     `define PS_TO_FS_BUS_WD     39
     `define FS_TO_DS_BUS_WD     71
     `define DS_TO_ES_BUS_WD     (`ALUOP_WD + `DS_TO_ES_NOALU_WD)
-    `define ES_TO_M1_BUS_WD     180
+    `define ES_TO_M1_BUS_WD     179
     `define M1_TO_MS_BUS_WD     117
     `define MS_TO_WS_BUS_WD     71
     `define WS_TO_RF_BUS_WD     38
@@ -81,8 +81,10 @@
 
     /*********************定义复位与例外入口*********************/
     `define RESET_PC            32'hbfc0_0000
-    `define REFILL_EX_PC        32'hbfc0_0200
-    `define GENERAL_EX_PC       32'hbfc0_0380
+    // `define REFILL_EX_PC        32'hbfc0_0200
+    // `define GENERAL_EX_PC       32'hbfc0_0380
+    `define GENERAL_EX_BASE     32'hbfc0_0200
+    `define GENERAL_EX_OFFSET   32'h0000_0180
 
     /*********************FPU指令类型*********************/
     `define NOT_FPU             2'b00

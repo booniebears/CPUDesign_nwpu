@@ -51,7 +51,7 @@ module id_stage(
 reg         ds_valid   ;
 wire        ds_ready_go; //数据流从ID流向EXE阶段的控制信号
 
-wire [11:0] ds_br_inst;
+wire [13:0] ds_br_inst;
 
 wire [31                 :0] fs_pc;
 reg  [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus_r;//流水正常运作的话就等于fs_to_ds_bus,内容参考IF模块
@@ -244,6 +244,10 @@ wire        inst_tne;
 wire        inst_tnei;
 reg  [2:0]  trap_op;
 
+//Branch Likely
+wire        inst_beql;
+wire        inst_bnel;
+
 reg  [1:0]  FPU_inst_type; //2'b00:非FPU指令;2'b01:FPU保留指令;2'b10:FPU指令
 
 //cache指令
@@ -272,7 +276,7 @@ wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂�
 wire        mfc0_stall;
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
-/******************ds_to_es_bus Total: 316 + 29 bits******************/
+/******************ds_to_es_bus Total: 318 + 29 bits******************/
 assign ds_to_es_bus = {
                        alu_op              , //344:316 --alu指令控制
                        is_ICacheInst       , //315:315
@@ -289,7 +293,7 @@ assign ds_to_es_bus = {
                        BPU_valid           , //176:176
                        Count               , //175:174
                        is_branch           , //173:173
-                       ds_br_inst          , //172:161
+                       ds_br_inst          , //172:161 + 2
                        part_inst           , //160:135
                        inst_tlbp           , //134:134
                        inst_tlbr           , //133:133
@@ -426,7 +430,7 @@ assign inst_tlbp   = op_d[6'h10] & func_d[6'h08];
 //Attention:利用ds_inst[25]=1'b1 区分TLBR与MFC0两条指令
 assign inst_tlbr   = op_d[6'h10] & func_d[6'h01] & ds_inst[25]; 
 assign inst_tlbwi  = op_d[6'h10] & func_d[6'h02];
-assign inst_tlbwr  = op_d[6'h00] & func_d[6'h06];
+assign inst_tlbwr  = op_d[6'h10] & func_d[6'h06];
 
 //clo_clz
 assign inst_clo    = op_d[6'h1c] & func_d[6'h21];
@@ -464,6 +468,10 @@ assign inst_pref   = op_d[6'h33];
 assign inst_sync   = op_d[6'h00] & func_d[6'h0f];
 assign inst_wait   = op_d[6'h10] & func_d[6'h20];
 
+//Branch Likely
+assign inst_beql   = op_d[6'h14];
+assign inst_bnel   = op_d[6'h15];
+
 //已经在该mips指令集中定义过的指令
 assign inst_defined = inst_addu | inst_subu | inst_slt | inst_sltu | inst_and | inst_or | inst_xor | 
 inst_nor | inst_sll | inst_srl | inst_sra | inst_addiu | inst_lui | inst_lw | inst_sw | inst_beq |
@@ -475,7 +483,8 @@ inst_sh | inst_lb | inst_lbu | inst_lh | inst_lhu | inst_lwl | inst_lwr | inst_m
 inst_eret | inst_syscall | inst_break | inst_tlbp | inst_tlbr | inst_tlbwi | inst_tlbwr | inst_clo | 
 inst_clz | inst_madd | inst_maddu | inst_msub | inst_msubu | inst_mul | inst_movn | inst_movz | 
 inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt | inst_tlti | 
-inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_pref | inst_sync | inst_wait;
+inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_pref | inst_sync | inst_wait |
+inst_beql | inst_bnel;
 
 `ifdef FPU_EX_Valid
     always @(*) begin
@@ -580,126 +589,125 @@ inst_tltiu | inst_tltu | inst_tne | inst_tnei | inst_cache | inst_pref | inst_sy
     assign is_DCacheInst = 1'b0;
 `endif 
 
-//lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
-wire has_int; //判定是否接收到中断 需要满足下面的条件
-assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
+// //lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
+// wire has_int; //判定是否接收到中断 需要满足下面的条件
+// assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
 
-reg Time_int; //定时中断信号
-reg Soft_int; //中断信号
+// reg Time_int; //定时中断信号
+// reg Soft_int; //中断信号
 
-//处理定时中断
-parameter Time_Idle     = 2'd0,
-          Time_Start    = 2'd1,
-          Time_Rollback = 2'd2; 
-reg [1:0] Time_state,Time_nextstate;
-always @(*) begin //该状态机同时处理next_state和Time_int
-    case (Time_state)
-        Time_Idle: 
-            if(CP0_Cause_TI_out && ds_valid) begin
-                Time_nextstate = Time_Start;
-                Time_int       = 1'b1;
-            end
-            else begin
-                Time_nextstate = Time_Idle;
-                Time_int       = 1'b0;
-            end
-        Time_Start:
-            if(ds_to_es_valid && es_allowin) begin
-                Time_nextstate = Time_Rollback;
-                Time_int       = 1'b1;
-            end
-            else begin
-                Time_nextstate = Time_Start;
-                Time_int       = 1'b1;
-            end
-        Time_Rollback:
-            if(~CP0_Cause_TI_out) begin
-                Time_nextstate = Time_Idle;
-                Time_int       = 1'b0;
-            end
-            else begin
-                Time_nextstate = Time_Rollback;
-                Time_int       = 1'b0;
-            end
-        default: begin
-            Time_nextstate = Time_Idle;
-            Time_int       = 1'b0;
-        end
-    endcase
-end
+// //处理定时中断
+// parameter Time_Idle     = 2'd0,
+//           Time_Start    = 2'd1,
+//           Time_Rollback = 2'd2; 
+// reg [1:0] Time_state,Time_nextstate;
+// always @(*) begin //该状态机同时处理next_state和Time_int
+//     case (Time_state)
+//         Time_Idle: 
+//             if(has_int && CP0_Cause_TI_out && ds_valid) begin
+//                 Time_nextstate = Time_Start;
+//                 Time_int       = 1'b1;
+//             end
+//             else begin
+//                 Time_nextstate = Time_Idle;
+//                 Time_int       = 1'b0;
+//             end
+//         Time_Start:
+//             if(ds_to_es_valid && es_allowin) begin
+//                 Time_nextstate = Time_Rollback;
+//                 Time_int       = 1'b1;
+//             end
+//             else begin
+//                 Time_nextstate = Time_Start;
+//                 Time_int       = 1'b1;
+//             end
+//         Time_Rollback:
+//             if(~CP0_Cause_TI_out && ~has_int) begin
+//                 Time_nextstate = Time_Idle;
+//                 Time_int       = 1'b0;
+//             end
+//             else begin
+//                 Time_nextstate = Time_Rollback;
+//                 Time_int       = 1'b0;
+//             end
+//         default: begin
+//             Time_nextstate = Time_Idle;
+//             Time_int       = 1'b0;
+//         end
+//     endcase
+// end
 
 
-always @(posedge clk) begin
-    if(reset) 
-        Time_state <= Time_Idle;
-    else 
-        Time_state <= Time_nextstate;
-end
+// always @(posedge clk) begin
+//     if(reset) 
+//         Time_state <= Time_Idle;
+//     else 
+//         Time_state <= Time_nextstate;
+// end
 
-//处理软件中断
-parameter Soft_Idle     = 2'd0,
-          Soft_Start    = 2'd1,
-          Soft_Rollback = 2'd2; 
-reg [1:0] Soft_state,Soft_nextstate;
+// //处理软件中断
+// parameter Soft_Idle     = 2'd0,
+//           Soft_Start    = 2'd1,
+//           Soft_Rollback = 2'd2; 
+// reg [1:0] Soft_state,Soft_nextstate;
 
-always @(*) begin //该状态机同时处理next_state和Soft_int
-    case (Soft_state)
-        Soft_Idle: 
-            if(has_int && ds_valid && ~CP0_Cause_TI_out) begin
-                Soft_nextstate = Soft_Start;
-                Soft_int       = 1'b1;
-            end
-            else begin
-                Soft_nextstate = Soft_Idle;
-                Soft_int       = 1'b0;
-            end
-        Soft_Start:
-            if(ds_to_es_valid && es_allowin) begin
-                Soft_nextstate = Soft_Rollback;
-                Soft_int       = 1'b1;
-            end
-            else begin
-                Soft_nextstate = Soft_Start;
-                Soft_int       = 1'b1;
-            end
-        Soft_Rollback:
-            if(~has_int) begin
-                Soft_nextstate = Soft_Idle;
-                Soft_int       = 1'b0;
-            end
-            else begin
-                Soft_nextstate = Soft_Rollback;
-                Soft_int       = 1'b0;
-            end
-        default: begin
-            Soft_nextstate = Soft_Idle;
-            Soft_int       = 1'b0;
-        end
-    endcase
-end
+// always @(*) begin //该状态机同时处理next_state和Soft_int
+//     case (Soft_state)
+//         Soft_Idle: 
+//             if(has_int && ds_valid && ~CP0_Cause_TI_out) begin
+//                 Soft_nextstate = Soft_Start;
+//                 Soft_int       = 1'b1;
+//             end
+//             else begin
+//                 Soft_nextstate = Soft_Idle;
+//                 Soft_int       = 1'b0;
+//             end
+//         Soft_Start:
+//             if(ds_to_es_valid && es_allowin) begin
+//                 Soft_nextstate = Soft_Rollback;
+//                 Soft_int       = 1'b1;
+//             end
+//             else begin
+//                 Soft_nextstate = Soft_Start;
+//                 Soft_int       = 1'b1;
+//             end
+//         Soft_Rollback:
+//             if(~has_int) begin
+//                 Soft_nextstate = Soft_Idle;
+//                 Soft_int       = 1'b0;
+//             end
+//             else begin
+//                 Soft_nextstate = Soft_Rollback;
+//                 Soft_int       = 1'b0;
+//             end
+//         default: begin
+//             Soft_nextstate = Soft_Idle;
+//             Soft_int       = 1'b0;
+//         end
+//     endcase
+// end
 
-always @(posedge clk) begin
-    if(reset) 
-        Soft_state <= Soft_Idle;
-    else 
-        Soft_state <= Soft_nextstate;
-end
+// always @(posedge clk) begin
+//     if(reset) 
+//         Soft_state <= Soft_Idle;
+//     else 
+//         Soft_state <= Soft_nextstate;
+// end
 
 `ifdef FPU_EX_Valid
     assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
-                  (Soft_int | Time_int) | (FPU_inst_type == `FPU_RESERVED) |
+                  (FPU_inst_type == `FPU_RESERVED) |
                   (FPU_inst_type == `FPU_INST);
     assign ds_Exctype = temp_ex                      ? temp_Exctype :
-                        Soft_int | Time_int          ?         `Int :
+                        // Soft_int | Time_int          ?         `Int :
                         inst_syscall                 ?         `Sys : 
                         inst_break                   ?          `Bp : 
                         (FPU_inst_type == `FPU_INST) ?          `CpU:
                         ~inst_defined | (FPU_inst_type == `FPU_RESERVED)? `RI : `NO_EX; 
 `else
-    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
-                  (Soft_int | Time_int);
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break;
     assign ds_Exctype = temp_ex             ? temp_Exctype :
-                        Soft_int | Time_int ?         `Int :
+                        // Soft_int | Time_int ?         `Int :
                         ~inst_defined       ?          `RI : 
                         inst_syscall        ?         `Sys : 
                         inst_break          ?          `Bp : `NO_EX; 
@@ -791,7 +799,7 @@ assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne &  ~inst_jr & ~inst_bgez 
                       ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
                       ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
                       ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei &
-                      ~inst_cache & ~inst_pref & ~inst_sync & ~inst_wait;
+                      ~inst_cache & ~inst_pref & ~inst_sync & ~inst_wait & ~inst_beql & ~inst_bnel;
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
 regfile u_regfile(
@@ -821,7 +829,7 @@ assign rt_value = rt_wait ? (rt == EXE_dest ?  EXE_result :
 
 // assign rs_eq_rt  = (rs_value == rt_value);
 assign is_branch = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal 
-| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j;
+| inst_bltzal | inst_jr | inst_jalr | inst_jal | inst_j | inst_beql | inst_bnel;
 
 assign ds_br_inst = {
                         inst_beq    , 
@@ -835,11 +843,14 @@ assign ds_br_inst = {
                         inst_blez   , 
                         inst_bltz   , 
                         inst_bgezal , 
-                        inst_bltzal };
+                        inst_bltzal ,
+                        inst_beql   ,
+                        inst_bnel   };
 
 
 assign imm_br_addr = fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0};
-assign br_is_imm = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal | inst_bltzal;
+assign br_is_imm = inst_beq | inst_bne | inst_bgez | inst_bgtz | inst_blez | inst_bltz | inst_bgezal | inst_bltzal |
+                   inst_beql | inst_bnel;
 assign br_is_reg = inst_jr | inst_jalr;
 
 assign src1_no_rs = 1'b0;
@@ -855,7 +866,7 @@ assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
 //TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
 assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
 | inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache
-| inst_pref | inst_sync | inst_wait;
+| inst_pref | inst_sync | inst_wait | inst_beql | inst_bnel;
 
 assign dest         = dst_is_r31   ? 5'd31 :
                       dst_is_rt    ? rt    : 

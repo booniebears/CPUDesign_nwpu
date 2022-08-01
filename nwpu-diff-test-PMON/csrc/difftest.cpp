@@ -49,7 +49,7 @@ void difftest_step(int step);
 
 void difftest_init(){
   void *handle;
-    const char* REF_SO = "./nemu_pmon.so"; 
+    const char* REF_SO = "./nemu.so"; 
     printf("%s\n",REF_SO);
     handle = dlopen(REF_SO, RTLD_LAZY | RTLD_DEEPBIND);
     //   printf("hello\n");
@@ -95,7 +95,7 @@ void difftest_init(){
     const char* command[2];
     command[0]="-b";
     command[1]="-i";
-    command[2]="./ceo/gzrom-NO-PASSWORD.bin";  
+    command[2]="./ceo/gzrom.bin";  
     ref_napi_init(3,command);
     printf("Initial NEMU Finish\n");
     // for (int i=0;i<20000;i++){

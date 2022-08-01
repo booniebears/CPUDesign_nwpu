@@ -99,7 +99,6 @@ wire         es_load_op; //EXE阶段 判定是否为load指令
 wire         m1s_load_op; //M1阶段 判定是否为load指令
 
 wire         flush;
-wire         flush_refill;
 wire         m1s_ex;
 wire  [31:0] CP0_EPC_out;
 wire         CP0_Cause_TI_out;
@@ -107,6 +106,7 @@ wire         CP0_Status_IE_out; //IE=1,全局中断使能开启
 wire         CP0_Status_EXL_out; //EXL=0,没有例外正在处理
 wire  [ 7:0] CP0_Status_IM_out; //IM对应各个中断源屏蔽位
 wire  [ 7:0] CP0_Cause_IP_out; //待处理中断标识
+wire  [31:0] Exception_Addr;
 wire         es_inst_mfc0;
 wire         m1s_inst_mfc0;
 wire         m1s_inst_eret; 
@@ -215,62 +215,62 @@ assign es_pc    = es_to_m1s_bus[31:0];
 // assign m1s_pc   = m1s_to_ms_bus[31:0]; //no need
 assign ms_pc    = ms_to_ws_bus[31:0];
 assign fs_inst  = fs_to_ds_bus[63:32];
-// //ds_inst临时送出
-// ex_ila U_ex_ila(
-//     .clk(aclk),
-//     .probe0 (ds_pc),
-//     .probe1 (es_pc),
-//     .probe2 (m1s_pc),
-//     .probe3 (debug_wb_pc),
-//     .probe4 (m1s_ex),
-//     .probe5 (CP0_Cause_IP_out),
-//     .probe6 (CP0_Status_IM_out),
-//     .probe7 (CP0_Status_EXL_out),
-//     .probe8 (CP0_Status_IE_out),
-//     .probe9 (ds_ex),
-//     .probe10 (m1s_Exctype),
-//     .probe11 (prefs_pc),
-//     .probe12 (ext_int)
-// );
+//ds_inst临时送出
+ex_ila U_ex_ila(
+    .clk(aclk),
+    .probe0 (ds_pc),
+    .probe1 (es_pc),
+    .probe2 (m1s_pc),
+    .probe3 (debug_wb_pc),
+    .probe4 (m1s_ex),
+    .probe5 (CP0_Cause_IP_out),
+    .probe6 (CP0_Status_IM_out),
+    .probe7 (CP0_Status_EXL_out),
+    .probe8 (CP0_Status_IE_out),
+    .probe9 (ds_ex),
+    .probe10 (m1s_Exctype),
+    .probe11 (prefs_pc),
+    .probe12 (ext_int)
+);
 
-// pc_ila U_pc_ila(
-//     .clk(aclk),
-//     .probe0 (prefs_pc),
-//     .probe1 (fs_pc),
-//     .probe2 (ds_pc),
-//     .probe3 (es_pc),
-//     .probe4 (m1s_pc),
-//     .probe5 (ms_pc),
-//     .probe6 (ws_pc),
-//     .probe7 (ws_final_result),
-//     .probe8 (debug_wb_rf_wen),
-//     .probe9 (debug_wb_rf_wnum),
-//     .probe10 (fs_inst),
-//     .probe11 (ds_inst)
-// );
+pc_ila U_pc_ila(
+    .clk(aclk),
+    .probe0 (prefs_pc),
+    .probe1 (fs_pc),
+    .probe2 (ds_pc),
+    .probe3 (es_pc),
+    .probe4 (m1s_pc),
+    .probe5 (ms_pc),
+    .probe6 (ws_pc),
+    .probe7 (ws_final_result),
+    .probe8 (debug_wb_rf_wen),
+    .probe9 (debug_wb_rf_wnum),
+    .probe10 (fs_inst),
+    .probe11 (ds_inst)
+);
 
-// assign dcache_addr = {data_tag,data_index,data_offset};
-// complex_ila U_complex_ila(
-//     .clk(aclk),
-//     .probe0 (data_valid),
-//     .probe1 (data_op),
-//     .probe2 (dcache_addr),
-//     .probe3 (data_wstrb),
-//     .probe4 (load_size),
-//     .probe5 (data_wdata),
-//     .probe6 (dcache_busy),
-//     .probe7 (data_rdata),
-//     .probe8 (isUncache),
-//     .probe9 (m1s_pc),
-//     .probe10 (ms_pc),
-//     .probe11 (ext_int),
-//     .probe12 (ds_ex),
-//     .probe13 (m1s_ex),
-//     .probe14 (ra),
-//     .probe15 (sp),
-//     .probe16 (ws_pc),
-//     .probe17 (ws_final_result)
-// );
+assign dcache_addr = {data_tag,data_index,data_offset};
+complex_ila U_complex_ila(
+    .clk(aclk),
+    .probe0 (data_valid),
+    .probe1 (data_op),
+    .probe2 (dcache_addr),
+    .probe3 (data_wstrb),
+    .probe4 (load_size),
+    .probe5 (data_wdata),
+    .probe6 (dcache_busy),
+    .probe7 (data_rdata),
+    .probe8 (isUncache),
+    .probe9 (m1s_pc),
+    .probe10 (ms_pc),
+    .probe11 (ext_int),
+    .probe12 (ds_ex),
+    .probe13 (m1s_ex),
+    .probe14 (ra),
+    .probe15 (sp),
+    .probe16 (ws_pc),
+    .probe17 (ws_final_result)
+);
 
 `endif
 
@@ -453,7 +453,7 @@ pre_if_stage pre_if_stage(
     .ps_to_fs_valid      (ps_to_fs_valid       ),
     .br_flush            (br_flush             ),
     .flush               (flush                ),
-    .flush_refill        (flush_refill         ),
+    .Exception_Addr      (Exception_Addr       ),
     .CP0_EPC_out         (CP0_EPC_out          ),
     .m1s_inst_eret       (m1s_inst_eret        ),
     .inst_index          (inst_index           ),
@@ -604,7 +604,6 @@ m1_stage m1_stage(
     .M1s_dest           (M1s_dest           ), 
     .M1s_result         (M1s_result         ),
     .flush              (flush              ), 
-    .flush_refill       (flush_refill       ),
     .m1s_ex             (m1s_ex             ), 
     .m1s_inst_mfc0      (m1s_inst_mfc0      ), 
     .m1s_inst_eret      (m1s_inst_eret      ),
@@ -614,6 +613,7 @@ m1_stage m1_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .Exception_Addr     (Exception_Addr     ),
     .m1s_inst_tlbwi     (m1s_inst_tlbwi     ),
     .m1s_inst_tlbwr     (m1s_inst_tlbwr     ),
     .m1s_inst_tlbp      (m1s_inst_tlbp      ),

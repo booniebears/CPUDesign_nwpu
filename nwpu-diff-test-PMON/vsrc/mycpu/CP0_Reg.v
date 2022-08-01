@@ -53,18 +53,21 @@ module CP0_Reg
     output [ 7:0] CP0_Status_IM_out,
     output [ 7:0] CP0_Cause_IP_out,
     output        CP0_Cause_TI_out, //TI为1,触发定时中断;我们将该中断标记在ID阶段
-    output [ 2:0] CP0_Config_K0_out 
+    output [ 2:0] CP0_Config_K0_out,
+    output [31:0] Exception_Addr
 );
 
 parameter TLBNUM           = 16;
 `ifdef PMON_debug
-    parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b000}; //K0初始赋值为cached
+    parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b000}; //ucore赋值
 `else
     parameter Config_reset_val = {1'b1,15'b0,1'b0,2'b0,3'b0,3'b1,4'b0,3'b011}; //K0初始赋值为cached
 `endif
 
 wire [ 7:0] CP0_Addr; //写CP0寄存器组的地址
 wire        mtc0_we; //写CP0寄存器的写使能信号
+wire [31:0] Exception_Base;
+wire [31:0] Exception_Offset;
 
 assign CP0_Addr   = {m1s_mtc0_rd,m1s_sel}; //按照指令要求,CP0的8位读写地址由rd段(这里就是m1s_mfc0_rd)和sel段拼起来
 assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && ~m1s_ex; //指令为mtc0,且MEM阶段没有报出例外,则写使能生效
@@ -172,7 +175,7 @@ assign Count_eq_Compare = (CP0_Count == CP0_Compare);
 always @(posedge clk) begin //31 R
     if(reset)
         CP0_Cause_BD <= 1'b0;
-    else if(m1s_ex && !CP0_Status_EXL) //只有在EXL域为0的之后,才更新BD
+    else if(m1s_ex && ~CP0_Status_EXL) //只有在EXL域为0的之后,才更新BD
         CP0_Cause_BD <= m1s_bd;
 end
 
@@ -289,7 +292,10 @@ end
 reg [31:0] CP0_EPC;
 always @(posedge clk) begin
     if(m1s_ex && ~CP0_Status_EXL) begin //EXL为0的时候才能写EPC
-        CP0_EPC <= m1s_bd ? m1s_pc - 4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
+        if(Exctype == `Int && m1s_inst_mtc0) //TODO: not very rigorous
+            CP0_EPC <= m1s_pc + 4; //EPC points to the instruction following mtc0
+        else
+            CP0_EPC <= m1s_bd ? m1s_pc - 4 : m1s_pc; //指令在延迟槽,EPC指向延迟槽对应的分支跳转指令;否则指向指令本身
     end
     else if(mtc0_we && CP0_Addr == `EPC_RegAddr)
         CP0_EPC <= m1s_alu_result;
@@ -510,8 +516,8 @@ end
 assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                   (CP0_Addr == `Count_RegAddr   )? CP0_Count:
                   (CP0_Addr == `Compare_RegAddr )? CP0_Compare:
-                  (CP0_Addr == `Status_RegAddr  )? {3'b0,CP0_Status_CU0,5'b0,CP0_Status_Bev,6'b0,CP0_Status_IM,5'b0,
-                                                    CP0_Status_ERL,CP0_Status_EXL,CP0_Status_IE}:
+                  (CP0_Addr == `Status_RegAddr  )? {3'b0,CP0_Status_CU0,5'b0,CP0_Status_Bev,6'b0,CP0_Status_IM,3'b0,
+                                                    CP0_Status_UM,1'b0,CP0_Status_ERL,CP0_Status_EXL,CP0_Status_IE}:
                   (CP0_Addr == `Cause_RegAddr   )? {CP0_Cause_BD,CP0_Cause_TI,CP0_Cause_CE,12'b0,CP0_Cause_IP,
                                                     1'b0,CP0_Cause_ExcCode,2'b0}:
                   (CP0_Addr == `EPC_RegAddr     )? CP0_EPC:
@@ -529,5 +535,9 @@ assign CP0_data = (CP0_Addr == `BadVAddr_RegAddr)? CP0_BadVAddr:
                                                     CP0_Config1_IL,CP0_Config1_IA,CP0_Config1_DS,CP0_Config1_DL,
                                                     CP0_Config1_DA,7'b0}:
                                                    32'b0; //TODO:目前CP0_data默认32'b0
-
+//例外地址入口
+assign Exception_Base   = CP0_Status_Bev ? `GENERAL_EX_BASE : CP0_EBase; //例外基地址
+assign Exception_Offset = (Exctype == `ITLB_EX_Refill || Exctype == `DTLB_EX_RD_Refill
+                        || Exctype == `DTLB_EX_WR_Refill) ? 0: `GENERAL_EX_OFFSET; //例外偏移量
+assign Exception_Addr   = Exception_Base + Exception_Offset;
 endmodule //CP0_Reg
