@@ -8,6 +8,8 @@ module id_stage(
     output        ds_ex,
     output [31:0] ra,
     output [31:0] sp,
+    output        inst_beql,
+    output        inst_bnel,
 `endif
     //allowin
     input        es_allowin,
@@ -244,9 +246,11 @@ wire        inst_tne;
 wire        inst_tnei;
 reg  [2:0]  trap_op;
 
+`ifndef ILA_debug
 //Branch Likely
 wire        inst_beql;
 wire        inst_bnel;
+`endif
 
 reg  [1:0]  FPU_inst_type; //2'b00:非FPU指令;2'b01:FPU保留指令;2'b10:FPU指令
 

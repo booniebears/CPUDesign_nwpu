@@ -62,20 +62,20 @@ always @(*) begin //TODO:目前比较简化,没有考虑Config寄存器.kseg1固
         isUncache = 1'b1;
     else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) begin
         if(CP0_Config_K0_out == 3'b011)
-            isUncache = 1'b0;
+            isUncache = 1'b1;
         else
             isUncache = 1'b1;
     end
     else begin //考虑TLB控制Cache属性
         if(DTLB_VPN[12]) begin
             if(DTLB_Buffer_c1 == 3'b011)
-                isUncache = 1'b0;
+                isUncache = 1'b1;
             else
                 isUncache = 1'b1;
         end
         else begin
             if(DTLB_Buffer_c0 == 3'b011)
-                isUncache = 1'b0;
+                isUncache = 1'b1;
             else
                 isUncache = 1'b1;
         end

@@ -208,6 +208,8 @@ wire         ds_ex;
 wire  [ 4:0] m1s_Exctype;
 wire  [31:0] ra;
 wire  [31:0] sp;
+wire         inst_beql;
+wire         inst_bnel;
 // assign prefs_pc = ps_to_fs_bus[37:6]; //no need
 assign fs_pc    = fs_to_ds_bus[31:0];
 assign ds_pc    = ds_to_es_bus[31:0];
@@ -266,8 +268,8 @@ complex_ila U_complex_ila(
     .probe11 (ext_int),
     .probe12 (ds_ex),
     .probe13 (m1s_ex),
-    .probe14 (ra),
-    .probe15 (sp),
+    .probe14 (inst_beql),
+    .probe15 (inst_bnel),
     .probe16 (ws_pc),
     .probe17 (ws_final_result)
 );
@@ -511,6 +513,8 @@ id_stage id_stage(
     .ds_ex              (ds_ex              ),
     .ra                 (ra                 ),
     .sp                 (sp                 ),
+    .inst_beql          (inst_beql          ),
+    .inst_bnel          (inst_bnel          ),
 `endif
     //allowin        
     .es_allowin         (es_allowin         ),
