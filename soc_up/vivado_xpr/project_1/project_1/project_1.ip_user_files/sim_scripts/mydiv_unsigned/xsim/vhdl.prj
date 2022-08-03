@@ -1,4 +1,0 @@
-vhdl xil_defaultlib  \
-"../../../../project_1.srcs/sources_1/ip/mydiv_unsigned/sim/mydiv_unsigned.vhd" \
-
-nosort

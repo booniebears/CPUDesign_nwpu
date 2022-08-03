@@ -1,2 +1,0 @@
-mydiv.vhd,vhdl,xil_defaultlib,../../../../project_1.srcs/sources_1/ip/mydiv/sim/mydiv.vhd,
-glbl.v,Verilog,xil_defaultlib,glbl.v

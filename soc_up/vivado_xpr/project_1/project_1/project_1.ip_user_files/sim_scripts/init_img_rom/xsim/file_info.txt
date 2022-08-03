@@ -1,2 +1,0 @@
-init_img_rom.v,verilog,xil_defaultlib,../../../../../../../rtl/CONFREG/LCD/ip/init_img_rom/sim/init_img_rom.v,
-glbl.v,Verilog,xil_defaultlib,glbl.v

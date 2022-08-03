@@ -1,2 +1,0 @@
-multiplier.vhd,vhdl,xil_defaultlib,../../../../project_1.srcs/sources_1/ip/multiplier/sim/multiplier.vhd,
-glbl.v,Verilog,xil_defaultlib,glbl.v
