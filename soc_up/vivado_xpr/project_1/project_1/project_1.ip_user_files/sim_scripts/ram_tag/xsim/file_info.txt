@@ -1,0 +1,2 @@
+ram_tag.v,verilog,xil_defaultlib,../../../../project_1.srcs/sources_1/ip/ram_tag/sim/ram_tag.v,
+glbl.v,Verilog,xil_defaultlib,glbl.v

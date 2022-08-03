@@ -1,0 +1,97 @@
+#-----------------------------------------------------------
+# Vivado v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Tue Aug  2 15:38:34 2022
+# Process ID: 23116
+# Current directory: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent25320 E:\study\game\code\test\display\soc_up\vivado_xpr\project_1\project_1\project_1.xpr
+# Log file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/vivado.log
+# Journal file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1\vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.xpr
+update_compile_order -fileset sources_1
+export_ip_user_files -of_objects  [get_files E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/init/init_image.coe] -no_script -reset -force -quiet
+remove_files  E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/init/init_image.coe
+remove_files  E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/init/init_image.coe
+reset_run impl_1 -prev_step 
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+open_hw_manager
+connect_hw_server -url localhost:3121 -allow_non_jtag
+current_hw_target [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+set_property PARAM.FREQUENCY 15000000 [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+open_hw_target
+set_property PROGRAM.FILE {C:\Users\hesj\Desktop\soc_up_top.bit} [get_hw_devices xc7a200t_0]
+current_hw_device [get_hw_devices xc7a200t_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7a200t_0] 0]
+disconnect_hw_server localhost:3121
+connect_hw_server -url localhost:3121 -allow_non_jtag
+current_hw_target [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+set_property PARAM.FREQUENCY 15000000 [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+open_hw_target
+set_property PROGRAM.FILE {C:\Users\hesj\Desktop\soc_up_top.bit} [get_hw_devices xc7a200t_0]
+current_hw_device [get_hw_devices xc7a200t_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7a200t_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7a200t_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7a200t_0]
+set_property PROGRAM.FILE {C:/Users/hesj/Desktop/soc_up_top.bit} [get_hw_devices xc7a200t_0]
+program_hw_devices [get_hw_devices xc7a200t_0]
+refresh_hw_device [lindex [get_hw_devices xc7a200t_0] 0]
+close_hw_manager
+close_project
+open_project E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.xpr
+update_compile_order -fileset sources_1
+set_property -dict [list CONFIG.Write_Width_A {32} CONFIG.Write_Depth_A {384019} CONFIG.Read_Width_A {32} CONFIG.Write_Width_B {32} CONFIG.Read_Width_B {32} CONFIG.Coe_File {E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/init/init_image.coe}] [get_ips init_img_rom]
+generate_target all [get_files  E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci]
+catch { config_ip_cache -export [get_ips -all init_img_rom] }
+catch { [ delete_ip_run [get_ips -all init_img_rom] ] }
+export_ip_user_files -of_objects [get_files E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci] -no_script -sync -force -quiet
+create_ip_run [get_files -of_objects [get_fileset sources_1] E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci]
+export_simulation -of_objects [get_files E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci] -directory E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files/sim_scripts -ip_user_files_dir E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files -ipstatic_source_dir E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files/ipstatic -lib_map_path [list {modelsim=E:/study/game/code/test/display/Modeltech_pe_edu_10.4a/xilinx_lib} {questa=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/questa} {riviera=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/riviera} {activehdl=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/activehdl}] -use_ip_compiled_libs -force -quiet
+update_compile_order -fileset sources_1
+reset_run synth_1
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+open_run impl_1
+open_hw_manager
+connect_hw_server -url localhost:3121 -allow_non_jtag
+current_hw_target [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+set_property PARAM.FREQUENCY 15000000 [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+open_hw_target
+set_property PROGRAM.FILE {C:\Users\hesj\Desktop\soc_up_top.bit} [get_hw_devices xc7a200t_0]
+current_hw_device [get_hw_devices xc7a200t_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7a200t_0] 0]
+disconnect_hw_server localhost:3121
+connect_hw_server -url localhost:3121 -allow_non_jtag
+current_hw_target [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+set_property PARAM.FREQUENCY 15000000 [get_hw_targets */xilinx_tcf/Digilent/210251A08870]
+open_hw_target
+set_property PROGRAM.FILE {C:\Users\hesj\Desktop\soc_up_top.bit} [get_hw_devices xc7a200t_0]
+current_hw_device [get_hw_devices xc7a200t_0]
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices xc7a200t_0] 0]
+set_property PROBES.FILE {} [get_hw_devices xc7a200t_0]
+set_property FULL_PROBES.FILE {} [get_hw_devices xc7a200t_0]
+set_property PROGRAM.FILE {C:/Users/hesj/Desktop/soc_up_top.bit} [get_hw_devices xc7a200t_0]
+program_hw_devices [get_hw_devices xc7a200t_0]
+refresh_hw_device [lindex [get_hw_devices xc7a200t_0] 0]
+close_hw_manager
+set_property -dict [list CONFIG.Write_Width_A {16} CONFIG.Write_Depth_A {120000} CONFIG.Read_Width_A {16} CONFIG.Write_Width_B {16} CONFIG.Read_Width_B {16} CONFIG.Coe_File {D:/net/npu1.coe}] [get_ips init_img_rom]
+generate_target all [get_files  E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci]
+catch { config_ip_cache -export [get_ips -all init_img_rom] }
+export_ip_user_files -of_objects [get_files E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci] -no_script -sync -force -quiet
+create_ip_run [get_files -of_objects [get_fileset sources_1] E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci]
+launch_runs -jobs 4 init_img_rom_synth_1
+export_simulation -of_objects [get_files E:/study/game/code/test/display/soc_up/rtl/CONFREG/LCD/ip/init_img_rom/init_img_rom.xci] -directory E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files/sim_scripts -ip_user_files_dir E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files -ipstatic_source_dir E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.ip_user_files/ipstatic -lib_map_path [list {modelsim=E:/study/game/code/test/display/Modeltech_pe_edu_10.4a/xilinx_lib} {questa=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/questa} {riviera=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/riviera} {activehdl=E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.cache/compile_simlib/activehdl}] -use_ip_compiled_libs -force -quiet
+launch_simulation
+source godson_system.tcl
+reset_run synth_1
+launch_runs impl_1 -jobs 4
+wait_on_run impl_1
+close_sim
+close_design
+reset_run synth_1
+launch_runs impl_1 -jobs 4
+wait_on_run impl_1
+reset_run synth_1

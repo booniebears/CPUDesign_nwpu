@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Vivado v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Mon Aug  1 11:52:39 2022
+# Process ID: 20596
+# Current directory: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/mydiv_unsigned_synth_1
+# Command line: vivado.exe -log mydiv_unsigned.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source mydiv_unsigned.tcl
+# Log file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/mydiv_unsigned_synth_1/mydiv_unsigned.vds
+# Journal file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/mydiv_unsigned_synth_1\vivado.jou
+#-----------------------------------------------------------
+source mydiv_unsigned.tcl -notrace

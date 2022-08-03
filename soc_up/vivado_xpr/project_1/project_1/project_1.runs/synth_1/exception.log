@@ -1,0 +1,4 @@
+ERROR: Exception caught trying to open file E:\study\game\code\test\display\soc_up\vivado_xpr\project_1\project_1\project_1.runs\synth_1/runme.log
+	Exception name: Error
+	Exception error code: 70
+	Exception message: 没有权限

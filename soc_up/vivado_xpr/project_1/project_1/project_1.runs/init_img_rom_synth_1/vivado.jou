@@ -1,0 +1,12 @@
+#-----------------------------------------------------------
+# Vivado v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Tue Aug  2 17:03:33 2022
+# Process ID: 14748
+# Current directory: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/init_img_rom_synth_1
+# Command line: vivado.exe -log init_img_rom.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source init_img_rom.tcl
+# Log file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/init_img_rom_synth_1/init_img_rom.vds
+# Journal file: E:/study/game/code/test/display/soc_up/vivado_xpr/project_1/project_1/project_1.runs/init_img_rom_synth_1\vivado.jou
+#-----------------------------------------------------------
+source init_img_rom.tcl -notrace

@@ -1,0 +1,6 @@
+verilog xil_defaultlib  \
+"../../../../../../../rtl/CONFREG/LCD/ip/lcd_init_data/sim/lcd_init_data.v" \
+
+verilog xil_defaultlib "glbl.v"
+
+nosort

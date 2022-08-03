@@ -1,0 +1,7 @@
+Running: xsim.dir/godson_system_behav/xsimk.exe -simmode gui -wdb godson_system_behav.wdb -simrunnum 0 -socket 49604
+Design successfully loaded
+Design Loading Memory Usage: 124088 KB (Peak: 124088 KB)
+Design Loading CPU Usage: 265 ms
+Simulation completed
+Simulation Memory Usage: 1236932 KB (Peak: 1236932 KB)
+Simulation CPU Usage: 57921 ms

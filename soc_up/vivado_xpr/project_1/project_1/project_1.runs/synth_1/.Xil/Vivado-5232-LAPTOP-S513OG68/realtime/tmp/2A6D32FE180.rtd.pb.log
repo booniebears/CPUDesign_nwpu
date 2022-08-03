@@ -1,0 +1,44 @@
+xilinx rtfpga
+WARNING: [Synth 8-3917] design dma_master has port arid[3] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arid[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arsize[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arburst[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arburst[0] driven by constant 1
+WARNING: [Synth 8-3917] design dma_master has port arlock[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arlock[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arcache[3] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arcache[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arcache[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arcache[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arprot[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arprot[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port arprot[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port rready driven by constant 1
+WARNING: [Synth 8-3917] design dma_master has port awid[3] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awid[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awsize[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awburst[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awburst[0] driven by constant 1
+WARNING: [Synth 8-3917] design dma_master has port awlock[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awlock[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awcache[3] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awcache[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awcache[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awcache[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awprot[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awprot[1] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port awprot[0] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port wid[3] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port wid[2] driven by constant 0
+WARNING: [Synth 8-3917] design dma_master has port bready driven by constant 1
+WARNING: [Synth 8-3917] design dma_master has port apb_addr[31] driven by constant 0
+WARNING: [Synth 8-3331] design dma_master has unconnected port rid[3]
+WARNING: [Synth 8-3331] design dma_master has unconnected port rid[2]
+WARNING: [Synth 8-3331] design dma_master has unconnected port rid[1]
+WARNING: [Synth 8-3331] design dma_master has unconnected port rid[0]
+WARNING: [Synth 8-3331] design dma_master has unconnected port bid[3]
+WARNING: [Synth 8-3331] design dma_master has unconnected port bid[2]
+WARNING: [Synth 8-3331] design dma_master has unconnected port bid[1]
+WARNING: [Synth 8-3331] design dma_master has unconnected port bid[0]
+WARNING: [Synth 8-3331] design dma_master has unconnected port order_addr_in[1]
+WARNING: [Synth 8-3331] design dma_master has unconnected port order_addr_in[0]

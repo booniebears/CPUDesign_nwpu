@@ -1,0 +1,30 @@
+#-----------------------------------------------------------
+# Vivado v2019.2 (64-bit)
+# SW Build 2708876 on Wed Nov  6 21:40:23 MST 2019
+# IP Build 2700528 on Thu Nov  7 00:09:20 MST 2019
+# Start of session at: Sun Jul 31 15:18:00 2022
+# Process ID: 29316
+# Current directory: E:/学习/龙芯杯/代码/中科院/display/soc_up/vivado_xpr/project_1/project_1
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent29052 E:\学习\龙芯杯\代码\中科院\display\soc_up\vivado_xpr\project_1\project_1\project_1.xpr
+# Log file: E:/学习/龙芯杯/代码/中科院/display/soc_up/vivado_xpr/project_1/project_1/vivado.log
+# Journal file: E:/学习/龙芯杯/代码/中科院/display/soc_up/vivado_xpr/project_1/project_1\vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project E:/学习/龙芯杯/代码/中科院/display/soc_up/vivado_xpr/project_1/project_1/project_1.xpr
+INFO: [Project 1-313] Project file moved from 'D:/net/nscscc2019ucas-master/display/soc_up/vivado_xpr/project_1/project_1' since last save.
+CRITICAL WARNING: [Project 1-311] Could not find the file 'E:/学习/龙芯杯/代码/中科院/display/soc_up/vivado_xpr/project_1/project_1/godson_system_behav.wcfg', nor could it be found using path 'D:/net/nscscc2019ucas-master/display/soc_up/vivado_xpr/project_1/project_1/godson_system_behav.wcfg'.
+Scanning sources...
+Finished scanning sources
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1704] No user IP repositories specified
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/vivado/Vivado/2019.2/data/ip'.
+open_project: Time (s): cpu = 00:00:35 ; elapsed = 00:00:30 . Memory (MB): peak = 875.102 ; gain = 183.918
+update_compile_order -fileset sources_1
+update_compile_order -fileset sources_1
+WARNING: [IP_Flow 19-4067] Ignoring invalid widget type specified checkbox.Providing a default widget
+WARNING: [IP_Flow 19-4067] Ignoring invalid widget type specified checkbox.Providing a default widget
+WARNING: [IP_Flow 19-4067] Ignoring invalid widget type specified checkbox.Providing a default widget
+WARNING: [IP_Flow 19-4067] Ignoring invalid widget type specified checkbox.Providing a default widget
+open_hw_manager
+exit
+INFO: [Common 17-206] Exiting Vivado at Mon Aug  1 11:00:41 2022...

@@ -1,0 +1,2 @@
+soc_up_top: soc_up_top__GCB1, soc_up_top__GCB0, dma_master, mycpu_top__GB1, mycpu_top__GB0, 
+mycpu_top: mycpu_top__GB1, mycpu_top__GB0, 

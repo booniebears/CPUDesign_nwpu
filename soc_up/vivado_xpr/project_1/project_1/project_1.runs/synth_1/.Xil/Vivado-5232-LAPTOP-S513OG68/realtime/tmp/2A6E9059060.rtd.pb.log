@@ -1,0 +1,83 @@
+xilinx rtfpga
+INFO: [Synth 8-5544] ROM "APB_DEV/uart0/regs/receiver/toc_value" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "APB_DEV/uart0/regs/receiver/" won't be mapped to Block RAM because address size (2) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "APB_DEV/uart0/regs/block_value" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awid[3]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awid[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awid[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awid[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[31]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[30]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[29]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[28]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[27]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[26]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[25]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[24]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[23]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[22]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[21]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awaddr[20]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlen[3]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlen[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlen[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlen[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awsize[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awsize[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awsize[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awburst[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awburst[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlock[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awlock[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awcache[3]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awcache[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awcache[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awcache[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awprot[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awprot[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_awprot[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_wlast
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[31]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[30]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[29]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[28]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[27]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[26]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[25]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[24]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[23]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[22]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[21]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_araddr[20]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlen[3]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlen[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlen[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlen[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arburst[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arburst[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlock[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arlock[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arcache[3]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arcache[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arcache[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arcache[0]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arprot[2]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arprot[1]
+WARNING: [Synth 8-3331] design axi2apb_bridge has unconnected port axi_s_arprot[0]
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\APB_DEV/nand_module/NAND /\addr_in_die_reg[37] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\APB_DEV/nand_module/nand_type_r1_reg[0] )
+INFO: [Synth 8-3333] propagating constant 1 across sequential element (\APB_DEV/nand_module/nand_type_r1_reg[1] )
+INFO: [Synth 8-3886] merging instance 'APB_DEV/uart0/regs/delayed_modem_signals_reg[0]' (FDR) to 'APB_DEV/uart0/regs/delayed_modem_signals_reg[3]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/uart0/regs/delayed_modem_signals_reg[1]' (FDR) to 'APB_DEV/uart0/regs/delayed_modem_signals_reg[3]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/nand_type_r2_reg[0]' (FDE) to 'APB_DEV/nand_module/nand_type_r1_reg[0]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/nand_type_r2_reg[1]' (FDE) to 'APB_DEV/nand_module/nand_type_r1_reg[1]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/NAND/COMMAND_reg[1]' (FDRE) to 'APB_DEV/nand_module/NAND/COMMAND_reg[3]'
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\APB_DEV/AA_axi2apb_bridge_cpu/csr_rw_sm_reg[2] )
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/NAND/nand_command_reg[17]' (FDE) to 'APB_DEV/nand_module/NAND/nand_command_reg[18]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/NAND/nand_command_reg[18]' (FDE) to 'APB_DEV/nand_module/NAND/nand_command_reg[19]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/NAND/nand_command_reg[19]' (FDE) to 'APB_DEV/nand_module/NAND/nand_command_reg[29]'
+INFO: [Synth 8-3886] merging instance 'APB_DEV/nand_module/NAND/nand_command_reg[29]' (FDE) to 'APB_DEV/nand_module/NAND/nand_command_reg[30]'
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\APB_DEV/nand_module/NAND /\nand_command_reg[30] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\APB_DEV/nand_module/nand_type_r1_reg[0] )
+INFO: [Synth 8-3333] propagating constant 1 across sequential element (\APB_DEV/nand_module/nand_type_r1_reg[1] )
+INFO: [Synth 8-3886] merging instance 'APB_DEV/uart0/regs/delayed_modem_signals_reg[2]' (FDR) to 'APB_DEV/uart0/regs/delayed_modem_signals_reg[3]'
