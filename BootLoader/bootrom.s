@@ -6,8 +6,8 @@ Disassembly of section .text:
 
 bfc00000 <__start>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:5
-bfc00000:	3c10bfd0 	lui	s0,0xbfd0
-bfc00004:	36103000 	ori	s0,s0,0x3000
+bfc00000:	3c10bfe4 	lui	s0,0xbfe4
+bfc00004:	36101000 	ori	s0,s0,0x1000
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:6
 bfc00008:	ae000008 	sw	zero,8(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:7
@@ -305,8 +305,8 @@ bfc00218:	00000000 	nop
 
 bfc0021c <chk_rx>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:181
-bfc0021c:	3c08bfd0 	lui	t0,0xbfd0
-bfc00220:	35083000 	ori	t0,t0,0x3000
+bfc0021c:	3c08bfe4 	lui	t0,0xbfe4
+bfc00220:	35081000 	ori	t0,t0,0x1000
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:182
 bfc00224:	8d090014 	lw	t1,20(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:183
@@ -324,8 +324,8 @@ bfc0023c:	00000000 	nop
 
 bfc00240 <putbyte>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:192
-bfc00240:	3c08bfd0 	lui	t0,0xbfd0
-bfc00244:	35083000 	ori	t0,t0,0x3000
+bfc00240:	3c08bfe4 	lui	t0,0xbfe4
+bfc00244:	35081000 	ori	t0,t0,0x1000
 
 bfc00248 <chk_tx>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:194
@@ -345,8 +345,8 @@ bfc00260 <getword>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:202
 bfc00260:	240c0008 	li	t4,8
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:203
-bfc00264:	3c08bfd0 	lui	t0,0xbfd0
-bfc00268:	35083000 	ori	t0,t0,0x3000
+bfc00264:	3c08bfe4 	lui	t0,0xbfe4
+bfc00268:	35081000 	ori	t0,t0,0x1000
 
 bfc0026c <chk_rx_w>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:205
@@ -380,8 +380,8 @@ bfc002a0 <putword>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:224
 bfc002a0:	240c0008 	li	t4,8
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:225
-bfc002a4:	3c08bfd0 	lui	t0,0xbfd0
-bfc002a8:	35083000 	ori	t0,t0,0x3000
+bfc002a4:	3c08bfe4 	lui	t0,0xbfe4
+bfc002a8:	35081000 	ori	t0,t0,0x1000
 
 bfc002ac <chk_tx_w>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:227
@@ -649,5 +649,4 @@ Disassembly of section .debug_line:
  114:	4b4d4b4b 	c2	0x14d4b4b
  118:	01000402 	0x1000402
  11c:	Address 0x000000000000011c is out of bounds.
-
 

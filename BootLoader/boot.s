@@ -2,34 +2,29 @@
 .set noat
 .globl __start
 __start:
-  #首先是串口初始化
-  li $s0,0xbfd03000
-  sw $0,8($s0)       # Turn off FIFO
+  li $s0,0xbfe41000
+  sw $0,8($s0)       #Turn off FIFO
   li $t1,0x80
-  sw $t1,0xc($s0)    # LCR = 0x80 : DLAB=1,串口参数可设置
+  sw $t1,0xc($s0)      #DLAB=1
 
   li $t1,54
-  sw $t1,0($s0)      # (DLL设置)Fdiv = (Fpclk / 16) / UART_BPS = 54 = 100000000/(16*115200);
-  sw $0,4($s0)       # DLM=0
+  sw $t1,0($s0)      #DLL=54, 100000000/(16*115200)
+  sw $0,4($s0)       #DLM=0
 
   li $t1,3
-  # LCR = 0x03 : 8N1 Mode:每个数据传送采用10位，1位起始位，8位数据位，1位停止位,无奇偶校验位
-  # DLAB=0,串口参数不可设置
-  sw $t1,0xc($s0)     
+  sw $t1,0xc($s0)      #DLAB=0,8N1 Mode
 
-  sw $0,4($s0)       # IER=0
-  sw $0,0x10($s0)    # MCR=0
+  sw $0,4($s0)       #IER=0
+  sw $0,0x10($s0)       #MCR=0
 
   li $s0,0xbfd0f000
 
-  lw $t2,0x20($s0) #读拨码开关0的值; SWITCH_ADDR=0xbfd0f020
-  # 如果开关为1 时就从Flash 中加载系统的elf 并运行。
-  # 而当开关为0 时就进入调试模式，此时可以在电脑用上位机程序控制bootloader 进行各种操作。
+  lw $t2,0x20($s0) #read DIP switch; SWITCH_ADDR=0xbfd0f020
   li $t1,1
   and $t2,$t2,$t1
   li $t3, 0xff000001
-  beq $t1,$t2,flash2ram  #SW0 is high, FlashToRam mode;t2=1,直接从Flash加载系统ELF
-  sw $t3,0x10($s0) # ?
+  beq $t1,$t2,flash2ram  #SW0 is high, FlashToRam mode
+  sw $t3,0x10($s0)
 
 uart_cmd:
   li $t0,0x80000
@@ -183,7 +178,7 @@ flash2uart_next:
 
 getbyte:
 chk_rx:
-  li $t0,0xbfd03000
+  li $t0,0xbfe41000
   lw $t1,0x14($t0)  #LSR
   andi $t1,$t1,1
   beq $t1,$0,chk_rx
@@ -194,7 +189,7 @@ chk_rx:
   nop
 
 putbyte:
-  li $t0,0xbfd03000
+  li $t0,0xbfe41000
 chk_tx:
   lw $t1,0x14($t0)  #LSR
   andi $t1,$t1,0x20
@@ -205,7 +200,7 @@ chk_tx:
 
 getword:
   li $t4,8
-  li $t0,0xbfd03000
+  li $t0,0xbfe41000
 chk_rx_w:
   lw $t1,0x14($t0)  #LSR
   andi $t1,$t1,1
@@ -227,7 +222,7 @@ chk_rx_w:
 
 putword:
   li $t4,8
-  li $t0,0xbfd03000
+  li $t0,0xbfe41000
 chk_tx_w:
   lw $t1,0x14($t0)  #LSR
   andi $t1,$t1,0x20
