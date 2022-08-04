@@ -49,7 +49,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define TIMER_ADDR     16'he000   //32'hbfd0_e000
 `define LCD_CTRL_ADDR  16'hd000   //32'hbfd0_d000
 // `define TOUCH_SDA_ADDR 16'hd004   //32'hbfd0_d004
-// `define TOUCH_SCL_ADDR 16'hd008   //32'hbfd0_d008
+// `define TOUCH_SCL_ADDR 16'hd008   //32'hbfd0_d008 
 module confreg(
     aclk,
     aresetn,
@@ -194,7 +194,7 @@ module confreg(
     input      [3 :0] btn_key_row;
     input      [1 :0] btn_step;
 
-    // tft_lcd
+     // tft_lcd
     output            lcd_rst;
     output            lcd_cs;
     output            lcd_rs;
@@ -351,7 +351,7 @@ wire [31:0] rdata_d = buf_addr[15:2] == 14'd0 ? cr00 :
                     //   buf_addr[15:0] == `GPIO2_ADDR     ? gpio2_data     :
                     //   buf_addr[15:0] == `GPIO3_ADDR     ? gpio3_data     :
                     //   buf_addr[15:0] == `GPIO4_ADDR     ? gpio4_data     :
-                      32'd0;
+                    32'd0;
 
 always@(posedge aclk)
     if(~aresetn) begin
@@ -426,7 +426,7 @@ always @(posedge aclk)
 begin
     if(!aresetn)
     begin
-        led_data <= 32'hffffffff; // CHANGE LED STATUS
+        led_data <= 32'h0;
     end
     else if(write_led)
     begin
@@ -683,7 +683,7 @@ end
 //     end
 //     else
 //         num_data <= show;
-//     /*else if(write_num)
+//     /*else ifwrite_num)
 //     begin
 //         num_data <= s_wdata[31:0];
 //     end*/
@@ -767,20 +767,20 @@ begin
 end
 //----------------------------{digital number}end------------------------//
 //----------------------------{tft lcd ctrl}begin------------------------//
-wire write_tft_lcd_ctrl = w_enter & (buf_addr[15:0]==`LCD_CTRL_ADDR);
-always @(posedge aclk)
-begin
-    if(!aresetn)
-    begin
-        tft_lcd_ctrl <= 32'b0;
-    end
-    else if(write_tft_lcd_ctrl)
-    begin
-        tft_lcd_ctrl <= s_wdata;
-    end
-    else
-        tft_lcd_ctrl <= {1'b0, tft_lcd_ctrl[30:0]};
-end
+// wire write_tft_lcd_ctrl = w_enter & (buf_addr[15:0]==`LCD_CTRL_ADDR);
+// always @(posedge aclk)
+// begin
+//     if(!aresetn)
+//     begin
+//         tft_lcd_ctrl <= 32'b0;
+//     end
+//     else if(write_tft_lcd_ctrl)
+//     begin
+//         tft_lcd_ctrl <= s_wdata;
+//     end
+//     else
+//         tft_lcd_ctrl <= {1'b0, tft_lcd_ctrl[30:0]};
+// end
 lcd mylcd(
     .clk(aclk),
     .resetn(aresetn),
@@ -915,5 +915,6 @@ lcd mylcd(
 //     .pin(gpio4)
 // );
 // //----------------------------{gpio4_motor}end-------------------------//
+
 
 endmodule
