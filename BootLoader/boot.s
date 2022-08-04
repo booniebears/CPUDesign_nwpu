@@ -2,20 +2,31 @@
 .set noat
 .globl __start
 __start:
-  li $s0,0xbfe41000
-  sw $0,8($s0)       #Turn off FIFO
-  li $t1,0x80
-  sw $t1,0xc($s0)      #DLAB=1
+###################串口初始化###################
 
-  li $t1,54
-  sw $t1,0($s0)      #DLL=54, 100000000/(16*115200)
-  sw $0,4($s0)       #DLM=0
+	li	$t0, 0xbfe40000  #COM1_BASE_ADDR:0xbfe40000
+	        #FIFO_ENABLE|FIFO_RCV_RST|FIFO_XMT_RST|FIFO_TRIGGER_1
+	li	$t1, 0x1|0x2|0x4|0x0 
+	sb	$t1, 2($t0)   #FIFO
+  ########
+  ##set baud rate
+  ########
+	li	$t1, 0x80    #CFCR_DLAB, divisor latch
+	sb	$t1, 3($t0)   #CFCR
+ 	# li	$t1, 33000000HZ/(16*CONS_BAUD)
+	li	$t1, 0x23    #modify Baut 57600
+	sb	$t1, 0($t0)   #TLL
+	srl	$t1, 8
+	sb	$t1, 1($t0)   #IER = 0
+   
+	li	$t1, 0x3     #CFCR_8BITS
+	sb	$t1, 3($t0)   #CFCR
+	li	$t1, 0x1|0x2 #MCR_DTR|MCR_RTS 
+	sb	$t1, 4($t0)   #MCR
+	li	$t1, 0x1     #IRxE
+	sb	$t1, 1($t0)   #IER
 
-  li $t1,3
-  sw $t1,0xc($s0)      #DLAB=0,8N1 Mode
-
-  sw $0,4($s0)       #IER=0
-  sw $0,0x10($s0)       #MCR=0
+###################串口初始化###################
 
   li $s0,0xbfd0f000
 
@@ -34,7 +45,7 @@ uart_cmd:
   nop
 
   or $s1,$v0,$zero
-  #check cmd
+  #check cmd 30<=s1<=35
   slti $t1,$s1,0x30
   bne $t1,$zero,bad_cmd
   li $t1,0x35
@@ -177,44 +188,44 @@ flash2uart_next:
   nop
 
 getbyte:
-chk_rx:
-  li $t0,0xbfe41000
-  lw $t1,0x14($t0)  #LSR
-  andi $t1,$t1,1
-  beq $t1,$0,chk_rx
+check_rx:
+  li $t0,0xbfe40000
+  lb $t1,0x5($t0)  # 查看串口状态, LSR
+  andi $t1,$t1,1   # 截取接收FIFO控制位，若为1表明在FIFO中有数据
+  beq $t1,$0,check_rx
   nop
-  lw $v0,0x0($t0)
+  lb $v0,0x0($t0)  # 读出data
   jr $ra
-  # sw $t1,0xc($t0) #clear received
   nop
 
 putbyte:
-  li $t0,0xbfe41000
-chk_tx:
-  lw $t1,0x14($t0)  #LSR
-  andi $t1,$t1,0x20
-  beq $t1,$0,chk_tx
+  li $t0,0xbfe40000
+check_tx:
+  lb $t1,0x5($t0)   # 查看串口状态, LSR
+  andi $t1,$t1,0x20 # 截取传输FIFO控制位,若为1表示当前FIFO为空
+  beq $t1,$0,check_tx
   nop
+  sb $a0,0x0($t0)   # 写入data
   jr $ra
-  sw $a0,0x0($t0)
+  nop
 
 getword:
   li $t4,8
-  li $t0,0xbfe41000
-chk_rx_w:
-  lw $t1,0x14($t0)  #LSR
-  andi $t1,$t1,1
-  beq $t1,$0,chk_rx_w
+  li $t0,0xbfe40000
+check_rx_word:
+  lb $t1,0x5($t0)   # 查看串口状态, LSR
+  andi $t1,$t1,1    # 截取接收FIFO控制位，若为1表明在FIFO中有数据
+  beq $t1,$0,check_rx_word
   nop
-  lw $t2,0x0($t0)
-  # sw $t1,0xc($t0) #clear received
+  lb $t2,0x0($t0)
 
+### 下面这一段 将四个byte整合为一个word
   sll $t2,$t2,24
   srl $v0,$v0,8
-  or $v0,$v0,$t2
+  or $v0,$v0,$t2 # v0是最终的读出结果
 
-  srl $t4,$t4,1
-  bne $t4,$zero,chk_rx_w
+  srl $t4,$t4,1 # srl控制循环四次
+  bne $t4,$zero,check_rx_word
   nop
 
   jr $ra
@@ -222,16 +233,16 @@ chk_rx_w:
 
 putword:
   li $t4,8
-  li $t0,0xbfe41000
-chk_tx_w:
-  lw $t1,0x14($t0)  #LSR
-  andi $t1,$t1,0x20
-  beq $t1,$0,chk_tx_w
+  li $t0,0xbfe40000
+check_tx_word:
+  lb $t1,0x5($t0)   # 查看串口状态, LSR
+  andi $t1,$t1,0x20 # 截取传输FIFO控制位,若为1表示当前FIFO为空
+  beq $t1,$0,check_tx_word
   nop
-  sw $a0,0x0($t0)
-  srl $a0,$a0,8
-  srl $t4,$t4,1
-  bne $t4,$zero,chk_tx_w
+  sb $a0,0x0($t0)
+  srl $a0,$a0,8 # a0的四个byte依次存入UART_DAT寄存器
+  srl $t4,$t4,1 # srl控制循环四次
+  bne $t4,$zero,check_tx_word
   nop
 
   jr $ra

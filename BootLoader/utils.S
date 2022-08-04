@@ -55,8 +55,8 @@ READSERIAL:                         // 读串口：将读到的数据写入v0低
     bne t0, zero, .RSERIAL
     nop
 #ifdef ENABLE_INT
-    // donghy's debug
-    // if interrupt is not enabled, shell will always check COM STATUS
+    # // donghy's debug
+    # // if interrupt is not enabled, shell will always check COM STATUS
     ori v0, zero, SYS_wait
     syscall SYSCALL_BASE
 #endif
