@@ -130,9 +130,12 @@ def go_ram(start):
 
 
 def uart_loopback_test():
+    print("ser.name = " + ser.name)
+    print("ser.port = " + ser.port)
     time.sleep(0.01)
-    write_uart('5')
+    write_uart('5'.encode())
     x = ser.read(1)
+    print(x)
     if not x:
         print("ack timed out")
         raise IOError

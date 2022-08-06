@@ -1,6 +1,6 @@
 
-boot.rom.elf:     file format elf32-tradlittlemips
-boot.rom.elf
+boot.elf:     file format elf32-tradlittlemips
+boot.elf
 
 Disassembly of section .text:
 
@@ -414,7 +414,7 @@ bfc002d4:	00000000 	nop
 
 bfc002d8 <load_elf>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:30
-bfc002d8:	3c10ba80 	lui	s0,0xba80
+bfc002d8:	3c10bfa0 	lui	s0,0xbfa0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:31
 bfc002dc:	240f0000 	li	t7,0
 bfc002e0:	020f7821 	addu	t7,s0,t7

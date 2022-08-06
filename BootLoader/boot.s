@@ -11,19 +11,19 @@ __start:
   ########
   ##set baud rate
   ########
-	li	$t1, 0x80    #CFCR_DLAB, divisor latch
-	sb	$t1, 3($t0)   #CFCR
+	li	$t1, 0x80     #LCR_DLAB = 1, divisor latch
+	sb	$t1, 3($t0)   #LCR
  	# li	$t1, 33000000HZ/(16*CONS_BAUD)
-	li	$t1, 0x23    #modify Baut 57600
+	li	$t1, 0x23     #modify Baut 57600
 	sb	$t1, 0($t0)   #TLL
 	srl	$t1, 8
 	sb	$t1, 1($t0)   #IER = 0
    
-	li	$t1, 0x3     #CFCR_8BITS
-	sb	$t1, 3($t0)   #CFCR
-	li	$t1, 0x1|0x2 #MCR_DTR|MCR_RTS 
+	li	$t1, 0x3      #LCR_DLAB = 0, LCR_8BITS
+	sb	$t1, 3($t0)   #LCR
+	li	$t1, 0x1|0x2  #MCR_DTR|MCR_RTS 
 	sb	$t1, 4($t0)   #MCR
-	li	$t1, 0x1     #IRxE
+	li	$t1, 0x1      #IRxE
 	sb	$t1, 1($t0)   #IER
 
 ###################串口初始化###################
@@ -45,7 +45,7 @@ uart_cmd:
   nop
 
   or $s1,$v0,$zero
-  #check cmd 30<=s1<=35
+  #check cmd 0x30<=s1<=0x35 对应于数字0-5
   slti $t1,$s1,0x30
   bne $t1,$zero,bad_cmd
   li $t1,0x35

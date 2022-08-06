@@ -5,7 +5,7 @@
  */
 
 /* start address of program payload in spi flash */
-#define FLASH_START 0xBA800000
+#define FLASH_START 0xBFA00000
 #define ELF_MAGIC 0x464C457F
 
 /* off = offset from s0 */
