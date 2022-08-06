@@ -7,7 +7,7 @@
     // `define OPEN_VA_PERF        //verilator仿真需要 注释
     `define use_crossbar_ip   //vivado仿真需要 解注释
     // `define PMON_debug   
-    `define ILA_debug
+     `define ILA_debug
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
     `define DS_TO_ES_NOALU_WD   318

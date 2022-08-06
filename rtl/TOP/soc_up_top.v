@@ -109,7 +109,7 @@ module soc_up_top(
     inout         SPI_MISO,
     inout         SPI_MOSI,
 
-        //------LCD------
+    //------LCD------
     output        lcd_rst,
     output        lcd_cs,
     output        lcd_rs,
@@ -574,13 +574,11 @@ assign int_out = {1'b0,dma_int,nand_int,spi_inta_o,uart0_int,mac_int};
 assign int_n_i = ~int_out;
 
 // cpu
-mycpu_top mycpu(
-//   .coreclock        (aclk),
-//   .interrupt_i      (int_n_i[4:0]),  //232 only 5bit
-//   .nmi              (1'b1),
-  .ext_int      (~int_n_i[5:0]),
-  .aclk         (aclk         ),
-  .aresetn      (aresetn      ),
+mycpu_top cpu_mid(
+  .ext_int      (~int_n_i[5:0]),  //5 -> 6 bit
+  .aclk        (aclk),
+  .aresetn         (aresetn      ),
+  //  .nmi              (1'b1),
   .arid         (m0_arid[3:0] ),
   .araddr       (m0_araddr    ),
   .arlen        (m0_arlen     ),
@@ -618,17 +616,17 @@ mycpu_top mycpu(
   .bvalid       (m0_bvalid    ),
   .bready       (m0_bready    )
 
-//   .EJTAG_TCK         (EJTAG_TCK   ),
-//   .EJTAG_TDI         (EJTAG_TDI   ),
-//   .EJTAG_TMS         (EJTAG_TMS   ),
-//   .EJTAG_TRST        (EJTAG_TRST  ),
-//   .EJTAG_TDO         (EJTAG_TDO   ),
-//   .prrst_to_core     (            ),
+//  .EJTAG_TCK         (EJTAG_TCK   ),
+//  .EJTAG_TDI         (EJTAG_TDI   ),
+//  .EJTAG_TMS         (EJTAG_TMS   ),
+//  .EJTAG_TRST        (EJTAG_TRST  ),
+//  .EJTAG_TDO         (EJTAG_TDO   ),
+//  .prrst_to_core     (            ),
 
-//   .testmode          (1'b0        )
+//  .testmode          (1'b0        )
 );
-
 // AXI_MUX 
+
 axi_slave_mux AXI_SLAVE_MUX
 (
 .axi_s_aresetn     (aresetn        ),

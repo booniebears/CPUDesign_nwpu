@@ -14,7 +14,7 @@ module lcd(
     input          resetn, 
     input  [31: 0] lcd_confreg_i,
     output [31: 0] lcd_confreg_o,
- 
+
     output         lcd_hw_rst,
     output         lcd_hw_cs,
     output         lcd_hw_rs,
@@ -54,7 +54,7 @@ module lcd(
         else
             init_rdata_valid <= 1'b1;
     wire [31:0] init_rdata;
-    lcd_init_data reset_ram_module(//2KB
+    lcd_init_data1 reset_ram_module(//2KB
         .clka  (clk),
         .addra (init_addr),
         .douta (init_rdata),
@@ -88,7 +88,7 @@ module lcd(
         else if (~init2_rdata[`LCD_BITS_VALID])
             init_img_end <= 1'b1;
     end
-    init_img_rom init_image_module(
+    init_img_rom1 init_image_module(
             .clka  (clk),
             .addra (init2_addr),
             .douta (init2_rdata),
@@ -141,14 +141,4 @@ module lcd(
     assign mask_gen = clk_gen0 ^ clk_gen1;
     assign lcd_hw_wr = mask_gen & valid_o;
 
-lcd_ila U_lcd_ila(
-    .clk(clk),
-    .probe0 (init_addr),
-    .probe1 (init2_addr),
-    .probe2 (init_data),
-    .probe3 (init2_rdata),
-    .probe4 (init_rdata),
-    .probe5 (lcd_out)
-);
-
- endmodule
+endmodule
