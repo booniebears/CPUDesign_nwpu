@@ -27,13 +27,13 @@
 
 load_elf:
   #addr of elfheader, s0
-  la $s0, FLASH_START
+  la $s0, FLASH_START #SPI FLASH地址空间的起始位置
   LOAD_WORD_I($t1, 0) #dummy read
   LOAD_WORD_I($t1, 0) #dummy read
   LOAD_WORD_I($t1, 0) #dummy read
   #e_magic
   LOAD_WORD_I($t1, 0)
-  la $t0, ELF_MAGIC
+  la $t0, ELF_MAGIC   # 检查是不是ELF格式的文件
   beq $t0, $t1, 1f
   nop
   b bad
@@ -66,7 +66,7 @@ next_sec:
   lui  $t0, 0xa000
   or   $s4, $s4, $t0
 
-#copy from file_base+p_offset to p_va
+#copy from file_base+p_offset to p_va next_sec和copy_sec用一个二重循环将ELF的每一段Load进内存中
 copy_sec:
   LOAD_WORD_R($t0, 0, $s6)
   sw $t0, 0($s4)
