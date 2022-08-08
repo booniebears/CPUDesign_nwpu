@@ -39,22 +39,22 @@ load_elf:
   b bad
   nop
 1:
-  #e_phoff
+  #e_phoff 文件中程序头表的偏移（bytes）
   LOAD_WORD_I($s1, 28)
-  #e_phnum
+  #e_phnum 程序头表中的项数
   LOAD_WORD_I($s2, 44)
   andi $s2, $s2, 0xFFFF
 
-  #e_entry
+  #e_entry 程序的虚拟入口地址
   LOAD_WORD_I($s3, 24)
 
 next_sec:
   #s1, addr proghdr
-  #s4, p_va
+  #s4, p_va 段的第一个字节将被映射到到内存中的虚拟地址；
   LOAD_WORD_R($s4, 8, $s1)
-  #s5, p_filesz
+  #s5, p_filesz 段在文件映像中所占的字节数
   LOAD_WORD_R($s5, 16, $s1)
-  #s6, p_offset
+  #s6, p_offset 当前段相对于文件起始位置的偏移量
   LOAD_WORD_R($s6, 4, $s1)
 
   srl  $t0, $s4, 31

@@ -200,6 +200,7 @@ wire  [31:0] es_pc;
 //wire  [31:0] m1s_pc;
 wire  [31:0] ms_pc;
 wire  [31:0] ws_pc;
+wire  [31:0] m1s_alu_result;
 wire  [31:0] ws_final_result;
 wire  [31:0] dcache_addr;
 wire  [31:0] fs_inst;
@@ -218,22 +219,22 @@ assign es_pc    = es_to_m1s_bus[31:0];
 assign ms_pc    = ms_to_ws_bus[31:0];
 assign fs_inst  = fs_to_ds_bus[63:32];
 //ds_inst临时送出
-ex_ila U_ex_ila(
-    .clk(aclk),
-    .probe0 (ds_pc),
-    .probe1 (es_pc),
-    .probe2 (m1s_pc),
-    .probe3 (debug_wb_pc),
-    .probe4 (m1s_ex),
-    .probe5 (CP0_Cause_IP_out),
-    .probe6 (CP0_Status_IM_out),
-    .probe7 (CP0_Status_EXL_out),
-    .probe8 (CP0_Status_IE_out),
-    .probe9 (ds_ex),
-    .probe10 (m1s_Exctype),
-    .probe11 (prefs_pc),
-    .probe12 (ext_int)
-);
+// ex_ila U_ex_ila(
+//     .clk(aclk),
+//     .probe0 (ds_pc),
+//     .probe1 (es_pc),
+//     .probe2 (m1s_pc),
+//     .probe3 (debug_wb_pc),
+//     .probe4 (m1s_ex),
+//     .probe5 (CP0_Cause_IP_out),
+//     .probe6 (CP0_Status_IM_out),
+//     .probe7 (CP0_Status_EXL_out),
+//     .probe8 (CP0_Status_IE_out),
+//     .probe9 (ds_ex),
+//     .probe10 (m1s_Exctype),
+//     .probe11 (prefs_pc),
+//     .probe12 (ext_int)
+// );
 
 pc_ila U_pc_ila(
     .clk(aclk),
@@ -245,8 +246,8 @@ pc_ila U_pc_ila(
     .probe5 (ms_pc),
     .probe6 (ws_pc),
     .probe7 (ws_final_result),
-    .probe8 (debug_wb_rf_wen),
-    .probe9 (debug_wb_rf_wnum),
+    .probe8 (data_valid),
+    .probe9 (m1s_alu_result),
     .probe10 (fs_inst),
     .probe11 (ds_inst)
 );
@@ -258,20 +259,18 @@ complex_ila U_complex_ila(
     .probe1 (data_op),
     .probe2 (dcache_addr),
     .probe3 (data_wstrb),
-    .probe4 (load_size),
+    .probe4 (ds_inst),
     .probe5 (data_wdata),
-    .probe6 (dcache_busy),
+    .probe6 (ds_pc),
     .probe7 (data_rdata),
-    .probe8 (isUncache),
+    .probe8 (m1s_Exctype),
     .probe9 (m1s_pc),
     .probe10 (ms_pc),
     .probe11 (ext_int),
     .probe12 (ds_ex),
     .probe13 (m1s_ex),
-    .probe14 (inst_beql),
-    .probe15 (inst_bnel),
-    .probe16 (ws_pc),
-    .probe17 (ws_final_result)
+    .probe14 (ws_pc),
+    .probe15 (ws_final_result)
 );
 
 `endif
@@ -308,7 +307,9 @@ wire           cp0_to_tlb_v1    ;
 wire           cp0_to_tlb_g1    ;
 wire  [3:0]    cp0_to_tlb_index ; //tlbwi指令的索引值
 wire  [3:0]    cp0_to_tlb_random; //tlbwr指令的索引值
+`ifndef ILA_debug
 wire  [31:0]   m1s_alu_result   ;
+`endif
 /********************TLB-CP0交互信号如上********************/
 wire           TLB_Buffer_Flush;
 

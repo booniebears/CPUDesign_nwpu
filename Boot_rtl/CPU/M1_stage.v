@@ -117,7 +117,7 @@ wire [ 4:0]  m1s_mtc0_rd;
 wire         m1s_inst_mtc0;
 wire         m1s_bd;
 wire         temp_m1s_ex;
-wire         has_int; //判定是否接收到中断 需要满足下面的条件
+// wire         has_int; //判定是否接收到中断 需要满足下面的条件
 wire         DTLB_ex;
 wire [ 4:0]  temp_m1s_Exctype;
 `ifndef ILA_debug
@@ -347,17 +347,18 @@ assign load_size   = (m1s_mem_inst[2] | m1s_mem_inst[3]) ? 3'b000 : //lb,lbu: ar
 
 /******************例外处理部分********************/
 //中断:
-assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && 
-                   CP0_Status_IE_out && !CP0_Status_EXL_out;
+// assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && 
+//                    CP0_Status_IE_out && !CP0_Status_EXL_out;
 //TLBWI修改TLB;TLBR修改CP0中EntryHi的asid;mtc0修改CP0中EntryHi的asid.这三者导致TLB和DTLB/ITLB不相对应
 //另外要等tlbr正确执行后再flush
 assign TLB_Buffer_Flush = m1s_inst_tlbwi | (m1s_inst_tlbr & TLBInst_flow) | 
                          (m1s_inst_mtc0 && m1s_mtc0_rd == `EntryHI_RegNum);
 //Attention:认为refetch也是一种例外,需要清空流水级
 assign flush        = eret_flush | m1s_ex | m1s_refetch; 
-assign m1s_ex       = temp_m1s_ex | DTLB_ex | has_int;
+// assign m1s_ex       = temp_m1s_ex | DTLB_ex | has_int;
+assign m1s_ex       = temp_m1s_ex | DTLB_ex;
 assign m1s_Exctype  = temp_m1s_ex ? temp_m1s_Exctype :
-                          has_int ? `Int             :
+                        //   has_int ? `Int             :
                           DTLB_ex ? DTLB_Exctype     : `NO_EX;    
 /******************例外处理部分********************/
 

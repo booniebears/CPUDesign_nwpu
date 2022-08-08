@@ -593,13 +593,13 @@ assign     uart0_ri_i  = UART_RI ;
 //interrupt
 wire mac_int;
 wire [5:0] int_out;
-wire [5:0] int_n_i;
+// wire [5:0] int_n_i;
 assign int_out = {1'b0,dma_int,nand_int,spi_inta_o,uart0_int,mac_int};
-assign int_n_i = ~int_out;
+// assign int_n_i = ~int_out;
 
 // cpu
 mycpu_top mycpu(
-  .ext_int      (~int_n_i[5:0]),  //5 -> 6 bit
+  .ext_int      (int_out      ),  //5 -> 6 bit
   .aclk         (aclk         ),
   .aresetn      (aresetn      ),
   .arid         (m0_arid[3:0] ),

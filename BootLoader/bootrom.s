@@ -445,31 +445,32 @@ bfc00320:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:43
 bfc00324:	240f001c 	li	t7,28
 bfc00328:	020f7821 	addu	t7,s0,t7
-bfc0032c:	8df10000 	lw	s1,0(t7)
+# ucore : e_phoff = 0x34;e_phnum = 0x280001;e_entry = 0x80000000
+bfc0032c:	8df10000 	lw	s1,0(t7) # e_phoff 文件中程序头表的偏移（bytes）
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:45
 bfc00330:	240f002c 	li	t7,44
 bfc00334:	020f7821 	addu	t7,s0,t7
-bfc00338:	8df20000 	lw	s2,0(t7)
+bfc00338:	8df20000 	lw	s2,0(t7) # e_phnum 程序头表中的项数
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:46
 bfc0033c:	3252ffff 	andi	s2,s2,0xffff
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:49
 bfc00340:	240f0018 	li	t7,24
 bfc00344:	020f7821 	addu	t7,s0,t7
-bfc00348:	8df30000 	lw	s3,0(t7)
+bfc00348:	8df30000 	lw	s3,0(t7) # e_entry 程序的虚拟入口地址
 
 bfc0034c <next_sec>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:54
-bfc0034c:	262f0008 	addiu	t7,s1,8
+bfc0034c:	262f0008 	addiu	t7,s1,8 #s1, addr proghdr
 bfc00350:	020f7821 	addu	t7,s0,t7
-bfc00354:	8df40000 	lw	s4,0(t7)
+bfc00354:	8df40000 	lw	s4,0(t7)  #s4, p_va 段的第一个字节将被映射到到内存中的虚拟地址；
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:56
 bfc00358:	262f0010 	addiu	t7,s1,16
 bfc0035c:	020f7821 	addu	t7,s0,t7
-bfc00360:	8df50000 	lw	s5,0(t7)
+bfc00360:	8df50000 	lw	s5,0(t7)  #s5, p_filesz 段在文件映像中所占的字节数
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:58
 bfc00364:	262f0004 	addiu	t7,s1,4
 bfc00368:	020f7821 	addu	t7,s0,t7
-bfc0036c:	8df60000 	lw	s6,0(t7)
+bfc0036c:	8df60000 	lw	s6,0(t7)  #s6, p_offset 当前段相对于文件起始位置的偏移量
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:60
 bfc00370:	001447c2 	srl	t0,s4,0x1f
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:61
