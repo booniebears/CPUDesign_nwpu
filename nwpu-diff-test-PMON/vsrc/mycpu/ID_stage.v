@@ -593,125 +593,125 @@ inst_beql | inst_bnel;
     assign is_DCacheInst = 1'b0;
 `endif 
 
-// //lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
-// wire has_int; //判定是否接收到中断 需要满足下面的条件
-// assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
+//lab8添加 这里总共处理三种例外以及中断(定时中断,软件中断)
+wire has_int; //判定是否接收到中断 需要满足下面的条件
+assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && CP0_Status_IE_out && !CP0_Status_EXL_out;
 
-// reg Time_int; //定时中断信号
-// reg Soft_int; //中断信号
+reg Time_int; //定时中断信号
+reg Soft_int; //中断信号
 
-// //处理定时中断
-// parameter Time_Idle     = 2'd0,
-//           Time_Start    = 2'd1,
-//           Time_Rollback = 2'd2; 
-// reg [1:0] Time_state,Time_nextstate;
-// always @(*) begin //该状态机同时处理next_state和Time_int
-//     case (Time_state)
-//         Time_Idle: 
-//             if(has_int && CP0_Cause_TI_out && ds_valid) begin
-//                 Time_nextstate = Time_Start;
-//                 Time_int       = 1'b1;
-//             end
-//             else begin
-//                 Time_nextstate = Time_Idle;
-//                 Time_int       = 1'b0;
-//             end
-//         Time_Start:
-//             if(ds_to_es_valid && es_allowin) begin
-//                 Time_nextstate = Time_Rollback;
-//                 Time_int       = 1'b1;
-//             end
-//             else begin
-//                 Time_nextstate = Time_Start;
-//                 Time_int       = 1'b1;
-//             end
-//         Time_Rollback:
-//             if(~CP0_Cause_TI_out && ~has_int) begin
-//                 Time_nextstate = Time_Idle;
-//                 Time_int       = 1'b0;
-//             end
-//             else begin
-//                 Time_nextstate = Time_Rollback;
-//                 Time_int       = 1'b0;
-//             end
-//         default: begin
-//             Time_nextstate = Time_Idle;
-//             Time_int       = 1'b0;
-//         end
-//     endcase
-// end
+//处理定时中断
+parameter Time_Idle     = 2'd0,
+          Time_Start    = 2'd1,
+          Time_Rollback = 2'd2; 
+reg [1:0] Time_state,Time_nextstate;
+always @(*) begin //该状态机同时处理next_state和Time_int
+    case (Time_state)
+        Time_Idle: 
+            if(has_int && CP0_Cause_TI_out && ds_valid) begin
+                Time_nextstate = Time_Start;
+                Time_int       = 1'b1;
+            end
+            else begin
+                Time_nextstate = Time_Idle;
+                Time_int       = 1'b0;
+            end
+        Time_Start:
+            if(ds_to_es_valid && es_allowin) begin
+                Time_nextstate = Time_Rollback;
+                Time_int       = 1'b1;
+            end
+            else begin
+                Time_nextstate = Time_Start;
+                Time_int       = 1'b1;
+            end
+        Time_Rollback:
+            if(~CP0_Cause_TI_out && ~has_int) begin
+                Time_nextstate = Time_Idle;
+                Time_int       = 1'b0;
+            end
+            else begin
+                Time_nextstate = Time_Rollback;
+                Time_int       = 1'b0;
+            end
+        default: begin
+            Time_nextstate = Time_Idle;
+            Time_int       = 1'b0;
+        end
+    endcase
+end
 
 
-// always @(posedge clk) begin
-//     if(reset) 
-//         Time_state <= Time_Idle;
-//     else 
-//         Time_state <= Time_nextstate;
-// end
+always @(posedge clk) begin
+    if(reset) 
+        Time_state <= Time_Idle;
+    else 
+        Time_state <= Time_nextstate;
+end
 
-// //处理软件中断
-// parameter Soft_Idle     = 2'd0,
-//           Soft_Start    = 2'd1,
-//           Soft_Rollback = 2'd2; 
-// reg [1:0] Soft_state,Soft_nextstate;
+//处理软件中断
+parameter Soft_Idle     = 2'd0,
+          Soft_Start    = 2'd1,
+          Soft_Rollback = 2'd2; 
+reg [1:0] Soft_state,Soft_nextstate;
 
-// always @(*) begin //该状态机同时处理next_state和Soft_int
-//     case (Soft_state)
-//         Soft_Idle: 
-//             if(has_int && ds_valid && ~CP0_Cause_TI_out) begin
-//                 Soft_nextstate = Soft_Start;
-//                 Soft_int       = 1'b1;
-//             end
-//             else begin
-//                 Soft_nextstate = Soft_Idle;
-//                 Soft_int       = 1'b0;
-//             end
-//         Soft_Start:
-//             if(ds_to_es_valid && es_allowin) begin
-//                 Soft_nextstate = Soft_Rollback;
-//                 Soft_int       = 1'b1;
-//             end
-//             else begin
-//                 Soft_nextstate = Soft_Start;
-//                 Soft_int       = 1'b1;
-//             end
-//         Soft_Rollback:
-//             if(~has_int) begin
-//                 Soft_nextstate = Soft_Idle;
-//                 Soft_int       = 1'b0;
-//             end
-//             else begin
-//                 Soft_nextstate = Soft_Rollback;
-//                 Soft_int       = 1'b0;
-//             end
-//         default: begin
-//             Soft_nextstate = Soft_Idle;
-//             Soft_int       = 1'b0;
-//         end
-//     endcase
-// end
+always @(*) begin //该状态机同时处理next_state和Soft_int
+    case (Soft_state)
+        Soft_Idle: 
+            if(has_int && ds_valid && ~CP0_Cause_TI_out) begin
+                Soft_nextstate = Soft_Start;
+                Soft_int       = 1'b1;
+            end
+            else begin
+                Soft_nextstate = Soft_Idle;
+                Soft_int       = 1'b0;
+            end
+        Soft_Start:
+            if(ds_to_es_valid && es_allowin) begin
+                Soft_nextstate = Soft_Rollback;
+                Soft_int       = 1'b1;
+            end
+            else begin
+                Soft_nextstate = Soft_Start;
+                Soft_int       = 1'b1;
+            end
+        Soft_Rollback:
+            if(~has_int) begin
+                Soft_nextstate = Soft_Idle;
+                Soft_int       = 1'b0;
+            end
+            else begin
+                Soft_nextstate = Soft_Rollback;
+                Soft_int       = 1'b0;
+            end
+        default: begin
+            Soft_nextstate = Soft_Idle;
+            Soft_int       = 1'b0;
+        end
+    endcase
+end
 
-// always @(posedge clk) begin
-//     if(reset) 
-//         Soft_state <= Soft_Idle;
-//     else 
-//         Soft_state <= Soft_nextstate;
-// end
+always @(posedge clk) begin
+    if(reset) 
+        Soft_state <= Soft_Idle;
+    else 
+        Soft_state <= Soft_nextstate;
+end
 
 `ifdef FPU_EX_Valid
-    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | (Soft_int | Time_int )|
                   (FPU_inst_type == `FPU_RESERVED) |
                   (FPU_inst_type == `FPU_INST);
     assign ds_Exctype = temp_ex                      ? temp_Exctype :
-                        // Soft_int | Time_int          ?         `Int :
+                        Soft_int | Time_int          ?         `Int :
                         inst_syscall                 ?         `Sys : 
                         inst_break                   ?          `Bp : 
                         (FPU_inst_type == `FPU_INST) ?          `CpU:
                         ~inst_defined | (FPU_inst_type == `FPU_RESERVED)? `RI : `NO_EX; 
 `else
-    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break;
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | (Soft_int | Time_int );
     assign ds_Exctype = temp_ex             ? temp_Exctype :
-                        // Soft_int | Time_int ?         `Int :
+                        Soft_int | Time_int ?         `Int :
                         ~inst_defined       ?          `RI : 
                         inst_syscall        ?         `Sys : 
                         inst_break          ?          `Bp : `NO_EX; 

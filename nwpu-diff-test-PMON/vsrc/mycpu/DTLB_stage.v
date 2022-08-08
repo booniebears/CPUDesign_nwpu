@@ -4,8 +4,8 @@ module DTLB_stage(
     input              clk              ,
     input              reset            ,
     input              DTLB_found       ,
-    input      [31:12] DTLB_VPN         , //虚地址
-    output reg [31:12] DTLB_PFN         , //实地址
+    input      [31:12] DTLB_VPN         , //虚地址?
+    output reg [31:12] DTLB_PFN         , //实地址?
     input      [19:0]  DTLB_pfn0        ,
     input      [ 2:0]  DTLB_c0          ,
     input              DTLB_d0          ,
@@ -45,9 +45,9 @@ reg  [18:0]  DTLB_Buffer_vpn2 ;
 wire         DTLB_Buffer_Wr   ;
  
 always @(*) begin //虚实地址转换
-    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //实地址把最高三位清零
+    if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB) //实地址 把最高三位清零
         DTLB_PFN = {3'b000, DTLB_VPN[28:12]};
-    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //实地址把最高位清零
+    else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) //实地址 把最高位清零
         DTLB_PFN = {1'b0  , DTLB_VPN[30:12]};
     else begin
         if(DTLB_VPN[12]) 
@@ -57,25 +57,25 @@ always @(*) begin //虚实地址转换
     end
 end
 
-always @(*) begin //TODO:目前比较简化,没有考虑Config寄存器.kseg1固定为uncache,kseg0先认为是cache属性
+always @(*) begin
     if(DTLB_VPN[31:28] == 4'hA || DTLB_VPN[31:28] == 4'hB)
         isUncache = 1'b1;
     else if(DTLB_VPN[31:28] == 4'h8 || DTLB_VPN[31:28] == 4'h9) begin
         if(CP0_Config_K0_out == 3'b011)
-            isUncache = 1'b1;
+            isUncache = 1'b0;
         else
             isUncache = 1'b1;
     end
     else begin //考虑TLB控制Cache属性
         if(DTLB_VPN[12]) begin
             if(DTLB_Buffer_c1 == 3'b011)
-                isUncache = 1'b1;
+                isUncache = 1'b0;
             else
                 isUncache = 1'b1;
         end
         else begin
             if(DTLB_Buffer_c0 == 3'b011)
-                isUncache = 1'b1;
+                isUncache = 1'b0;
             else
                 isUncache = 1'b1;
         end

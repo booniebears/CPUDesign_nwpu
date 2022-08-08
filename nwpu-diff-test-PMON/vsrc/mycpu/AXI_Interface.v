@@ -761,6 +761,13 @@ module AXI_Interface(
     input clk,
     input resetn,
 
+`ifdef ILA_debug
+    input  [31: 0] prefs_pc,
+    input  [31: 0] fs_pc,
+    input  [31: 0] m1s_pc,
+    input  [31: 0] ms_pc,
+`endif
+
     output [ 3: 0] arid,
     output [31: 0] araddr,
     output [ 3: 0] arlen,
@@ -970,6 +977,26 @@ module AXI_Interface(
     reg   [ 31:0] U_WR_Addr;
     reg   [ 31:0] AXI_U_WData;
     reg   [  3:0] AXI_U_WStrb;
+
+`ifdef ILA_debug
+AXI_ila U_AXI_ila(
+    .clk(clk),
+    .probe0 (inst_araddr),
+    .probe1 (inst_arready),
+    .probe2 (inst_rvalid),
+    .probe3 (inst_rdata),
+    .probe4 (data_araddr),
+    .probe5 (data_awaddr),
+    .probe6 (data_wdata),
+    .probe7 (data_bvalid),
+    .probe8 (data_rdata),
+    .probe9 (data_rvalid),
+    .probe10 (prefs_pc),
+    .probe11 (fs_pc),
+    .probe12 (m1s_pc),
+    .probe13 (ms_pc)
+);
+`endif
 
     always @(posedge clk) begin
         if (~resetn) begin

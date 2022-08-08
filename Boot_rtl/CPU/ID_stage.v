@@ -699,7 +699,7 @@ always @(posedge clk) begin
 end
 
 `ifdef FPU_EX_Valid
-    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | 
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | (Soft_int | Time_int )|
                   (FPU_inst_type == `FPU_RESERVED) |
                   (FPU_inst_type == `FPU_INST);
     assign ds_Exctype = temp_ex                      ? temp_Exctype :
@@ -709,7 +709,7 @@ end
                         (FPU_inst_type == `FPU_INST) ?          `CpU:
                         ~inst_defined | (FPU_inst_type == `FPU_RESERVED)? `RI : `NO_EX; 
 `else
-    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break;
+    assign ds_ex = temp_ex | !inst_defined | inst_syscall | inst_break | (Soft_int | Time_int );
     assign ds_Exctype = temp_ex             ? temp_Exctype :
                         Soft_int | Time_int ?         `Int :
                         ~inst_defined       ?          `RI : 
