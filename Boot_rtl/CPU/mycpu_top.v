@@ -558,6 +558,7 @@ id_stage id_stage(
     .CP0_Status_IM_out  (CP0_Status_IM_out  ),
     .CP0_Cause_IP_out   (CP0_Cause_IP_out   ),
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
+    .CP0_EPC_out        (CP0_EPC_out        ),
     .icache_busy        (icache_busy        ),
     .dcache_busy        (dcache_busy        )
 );

@@ -46,6 +46,7 @@ module id_stage(
     input [ 7:0] CP0_Status_IM_out, //IM对应各个中断源屏蔽位
     input [ 7:0] CP0_Cause_IP_out, //待处理中断标识
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
+    input [31:0] CP0_EPC_out,      
     input        icache_busy,
     input        dcache_busy
 );
@@ -336,8 +337,13 @@ end
 always @(posedge clk) begin
     if (reset)
         fs_to_ds_bus_r <= 0;
-    else if (flush) //清除流水线
-        fs_to_ds_bus_r <= 0;
+    else if (flush) begin
+        //为防止ERET之后触发一个中断,将EPC送到ID阶段，ERET作用的同时,将ds_pc赋值为EPC,
+        //确保中断处理之后返回地址不为0
+        //当flush=eret_flush,要将ds_pc置为EPC;其他情况下都ok。所以偷个懒,这里不把eret_flush送过来了 
+        fs_to_ds_bus_r[`FS_TO_DS_BUS_WD-1:32] <= 0;           //其余照样清零
+        fs_to_ds_bus_r[31:0]                  <= CP0_EPC_out; //[31:0]对应ds_pc
+    end
     else if (fs_to_ds_valid & ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
     end
