@@ -5,6 +5,10 @@ module tlb
 (
     input                             clk,
     input                             reset,
+`ifdef ILA_debug
+    input        [31:0]               prefs_pc,
+    input        [31:0]               m1s_pc,
+`endif
     //ITLB port
     input        [18:0]               ITLB_vpn2,
     output                            ITLB_found,
@@ -31,23 +35,23 @@ module tlb
 
     //TLB_TO_CP0 port
     output                            tlb_to_cp0_found,//tlbp查找是否成功
-    output       [18:0]               tlb_to_cp0_vpn2, //以下为tlb写入的数据
+    output       [18:0]               tlb_to_cp0_vpn2, //以下为tlb写入的数�?
     output       [ 7:0]               tlb_to_cp0_asid ,
     output       [ 3:0]               tlb_to_cp0_index, 
-    output       [19:0]               tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数据
+    output       [19:0]               tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数�?
     output       [ 2:0]               tlb_to_cp0_c0 ,
     output                            tlb_to_cp0_d0 ,
     output                            tlb_to_cp0_v0 ,
     output                            tlb_to_cp0_g0 ,
-    output       [19:0]               tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数据
+    output       [19:0]               tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数�?
     output       [ 2:0]               tlb_to_cp0_c1 ,
     output                            tlb_to_cp0_d1 ,
     output                            tlb_to_cp0_v1 ,
     output                            tlb_to_cp0_g1 , 
     
     //CP0_TO_TLB port
-    input                             inst_tlbwi, //TLB写使能:对应inst_tlbwi
-    input                             inst_tlbwr, //TLB写使能:对应inst_tlbwr
+    input                             inst_tlbwi, //TLB写使�?:对应inst_tlbwi
+    input                             inst_tlbwr, //TLB写使�?:对应inst_tlbwr
     input                             inst_tlbp , //TLB查询:对应inst_tlbp
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_index,
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_random,
@@ -148,7 +152,7 @@ generate
     end
 endgenerate
     
-    //TLB -> ITLB 返回一项TLB
+    //TLB -> ITLB 返回�?项TLB
     assign ITLB_found = (ITLB_match != 16'b0);
     assign ITLB_pfn0  = tlb_pfn0[ITLB_index];
     assign ITLB_c0    = tlb_c0[ITLB_index];
@@ -191,7 +195,7 @@ generate
     end
 endgenerate
 
-    //TLB -> DTLB 返回一项TLB
+    //TLB -> DTLB 返回�?项TLB
     assign DTLB_found = |common_match;
     assign DTLB_pfn0  = tlb_pfn0[common_index];
     assign DTLB_c0    = tlb_c0[common_index];
@@ -239,5 +243,25 @@ endgenerate
             default:common_index = 4'd0;
         endcase
     end
-        
+
+    TLB_ila U_TLB_ila(
+        .clk(clk),
+        .probe0 (prefs_pc),
+        .probe1 (m1s_pc),
+        .probe2 (latched_index),
+        .probe3 (latched_ITLB_vpn2),
+        .probe4 (latched_common_vpn2),
+        .probe5 (ITLB_pfn0),
+        .probe6 (ITLB_pfn1),
+        .probe7 (DTLB_pfn0),
+        .probe8 (DTLB_pfn1),
+        .probe9 (common_index),
+        .probe10 (ITLB_index),
+        .probe11 (cp0_to_tlb_pfn0),
+        .probe12 (cp0_to_tlb_pfn1),
+        .probe13 (write_index),
+        .probe14 (inst_tlbwi),
+        .probe15 (inst_tlbwr)
+    );
+     
 endmodule

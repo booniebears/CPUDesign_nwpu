@@ -33,9 +33,9 @@ reg [31:0] BPU_br_target;
 always @(posedge clk) begin
     {   BPU_es_pc,      //跳转指令的PC
         BPU_old_Count,  //跳转指令PC跳转次数的历史记录，2位饱和计数器，需更新后再写入PHT
-        BPU_is_branch,  //PC是否是跳转指令
+        BPU_is_branch,  //PC是否是跳转指�?
         BPU_br_taken,   //是否成功跳转
-        BPU_br_target   //跳转的目标地址
+        BPU_br_target   //跳转的目标地�?
                         } <=  BResult;
 end
 
@@ -64,16 +64,16 @@ assign PHT_wr_data = {BPU_new_Count, PHT_wr_tag, BPU_br_target};
 
 /*****************************读PHT***********************************/
 
-wire [7:0] PHT_rd_index;      //读地址
+wire [7:0] PHT_rd_index;      //读地�?
 wire [21:0] PHT_rout_tag;      //读出的tag
-wire [31:0] PHT_rout_target;   //读出的目标地址
+wire [31:0] PHT_rout_target;   //读出的目标地�?
 wire [1:0] PHT_rout_Count;    //读出的饱和计数器
 wire PHT_hit;
 wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
 
 assign PHT_rd_index = pre_pc[9:2];
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
-assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]); // 写的时候返回数据不是想要读的
+assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]); // 写的时�?�返回数据不是想要读�?
 
 wire [21:0] debug_fs_pc_tag;
 assign debug_fs_pc_tag = fs_pc[31:10];
@@ -128,6 +128,7 @@ end
 assign target = BPU_ret_addr;
 // assign BPU_valid = PHT_hit | inst_is_ja | inst_is_jr;
 assign BPU_valid = PHT_hit | inst_is_ja ;
+// assign BPU_valid = 0 ;
 // assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;
@@ -142,13 +143,13 @@ simple_port_ram #(
     .clk(clk),
     .rst(reset),
 
-    //写端口
+    //写端�?
     .ena(1'b1),
     .wea(PHT_we),
     .addra(PHT_wr_index),
     .dina(PHT_wr_data),
 
-    //读端口
+    //读端�?
     .enb(data_read_en),
     .addrb(PHT_rd_index),
     .doutb(PHT_rd_data)

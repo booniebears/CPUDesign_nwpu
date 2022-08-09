@@ -3,6 +3,9 @@
 module pre_if_stage(
     input                          clk,
     input                          reset,
+`ifdef ILA_debug
+    output                         ps_ready_go,
+`endif
     //allowin                  
     input                          fs_allowin, 
     //brbus
@@ -45,7 +48,9 @@ module pre_if_stage(
 
 wire         inst_valid_end;
 
+`ifndef ILA_debug
 wire         ps_ready_go;
+`endif
 wire         ps_allowin;
 
 wire [31:12] ITLB_PFN; //实地址
@@ -198,8 +203,9 @@ ITLB_stage ITLB(
 );
 
 assign ADEL_ex    = (prefs_pc[1:0] != 2'b00) & ~br_flush; 
-assign ps_ex      = ADEL_ex | ITLB_ex;
-assign ps_Exctype = ADEL_ex ? `AdEL         :
+assign ps_ex      = (ADEL_ex | ITLB_ex) & ~br_flush;
+assign ps_Exctype = br_flush? `NO_EX        :
+                    ADEL_ex ? `AdEL         :
                     ITLB_ex ?  ITLB_Exctype : 
                               `NO_EX;
 

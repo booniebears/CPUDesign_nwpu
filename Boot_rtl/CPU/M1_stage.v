@@ -6,6 +6,7 @@ module m1_stage(
     input           reset,
 `ifdef ILA_debug
     output [ 4:0]   m1s_Exctype,
+    output          m1s_ready_go,
 `endif
     //allowin  
     input           ms_allowin,
@@ -103,7 +104,9 @@ module m1_stage(
 
 wire [31:12] DTLB_PFN;
 reg          m1s_valid;
+`ifndef ILA_debug
 wire         m1s_ready_go;
+`endif
   
 reg [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus_r;
 wire         m1s_gr_we;

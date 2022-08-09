@@ -63,10 +63,10 @@ void Emulator::step()
         if(nowclock>traceclockdown && nowclock <traceclockup){//大于Traceclock则开始记录波形
             dut_ptr->clock = 0;
             dut_ptr->eval();
-            tfp->dump(vcdstep++);
+            // tfp->dump(vcdstep++);
             dut_ptr->clock = 1;
             dut_ptr->eval();
-            tfp->dump(vcdstep++);
+            // tfp->dump(vcdstep++);
         }else{
             dut_ptr->clock = 0;
             dut_ptr->eval();

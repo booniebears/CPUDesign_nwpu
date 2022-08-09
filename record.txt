@@ -1,0 +1,26 @@
+ls:
+出错地址10001d24,对应lb指令
+第一次 addr: 1000394c -> 01edc94c，取出数为0x69645b20,最终结果为0x20;
+前一条指令 PC:10001d1c 对应lw指令
+addr:7fffff04 -> 01ed0f04,
+
+最后一次 addr: 00000002 -> 00000002? 报出TLB Miss例外
+前一条指令 PC:10001d1c 对应lw指令 
+addr:7ffffecc -> 01ed0ecc,取出数为0x2，并作为之后取指的地址，导致报出例外。
+但是由上可知，TLB虚实地址转换并没有问题。所以只能是Cache取指出错。
+
+开始后回车: 直接报出Reserved Instruction，并panic
+有一次取指，araddr = 01fd4f80,取回了四个数据，然而仿佛应该是给DCache准备的，因为之前有取到过这些数（而且是多次）
+
+
+Translation（假设正确）
+7ffff -> 01fd4
+10000 -> 01ff8(wrong!) 01fe8(right!) 01eda(wrong!) 01fd5(wrong!)
+10001 -> 01fca
+
+
+
+
+
+
+
