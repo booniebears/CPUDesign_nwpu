@@ -35,9 +35,7 @@ wire         inst_is_jr;
 assign       pre_inst_op = inst_rdata[31:26]; 
 assign       pre_inst_rt = inst_rdata[20:16];  
 assign       pre_inst_last = inst_rdata[10: 0] ;
-assign       inst_is_ja = ( pre_inst_op[5:1] == 5'b00001); /*   J指令 和 JAL指令 的op段前五位都是00001，
-                                                                    最后一位分别是0和1，所以我们只对前五位进行
-                                                                    提前译码，判断是否是 J指令 或者是 JAL指令*/
+assign       inst_is_ja = ( pre_inst_op[5:1] == 5'b00001); 
 assign       ja_target  = { prefs_pc[31:28] , inst_rdata[25:0] , 2'b0};
 
 // assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
@@ -103,21 +101,38 @@ assign fs_to_ds_bus = {
                        fs_pc       //31:0
                       };
 
+
 /******************fs_to_ds_bus Total: 33bits******************/
+wire final_br_flush;
 assign BPU_to_ps_bus = {
                         BPU_target  , //32:1
                         predict_valid //0:0
                        };
 
-assign fs_ex      = (ps_ex & ~br_flush);
-assign fs_Exctype = br_flush ? `NO_EX : ps_Exctype;
+assign fs_ex      = (ps_ex & ~final_br_flush);
+assign fs_Exctype = final_br_flush ? `NO_EX : ps_Exctype;
 
-assign fs_inst    = (br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
+assign fs_inst    = (final_br_flush | ~fs_inst_valid) ? 32'b0 : inst_rdata; 
 //在ID阶段有一条确实有效的跳转指令时,将fs_pc复位为跳转指令本身(依旧作nop指令处理),保证EPC写入正确
-assign fs_pc      = br_flush ? temp_fs_pc - 8 : temp_fs_pc;
+assign fs_pc      = final_br_flush ? temp_fs_pc - 8 : temp_fs_pc;
 
 wire to_BPU_pc_valid;
 assign to_BPU_pc_valid = ps_to_fs_valid & fs_allowin;
+
+reg br_flush_r;
+always @(posedge clk) begin
+    if(reset)begin
+        br_flush_r <= 1'b0;
+    end
+    else if(ps_to_fs_valid & fs_allowin)begin
+        br_flush_r <= 1'b0;
+    end
+    else if(br_flush) begin
+        br_flush_r <= 1'b1;
+    end
+end
+
+assign final_br_flush = br_flush | br_flush_r;
 
 BPU u_BPU(
     .clk                (clk),

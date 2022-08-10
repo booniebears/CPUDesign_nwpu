@@ -26,7 +26,6 @@ module pre_if_stage(
     output     [19:0]              inst_tag,
     output     [ 3:0]              inst_offset,
     input                          icache_busy, //
-    //由于跳转指令在ID阶段时，其延迟槽下面的一条指令已经来到prefs_pc上了,在遇到中断时需要校正
     output reg [31:0]              prefs_pc,
     input                          ITLB_found,
     input      [19:0]              ITLB_pfn0,
@@ -98,7 +97,7 @@ assign {
         } = br_bus; 
 
 `ifdef OPEN_VA_PERF
-    //计数使用，可以注掉//
+    //计数使用，可以注释//
     reg [31:0] br_ds_pc_buffer;
     reg [31:0] branch_count;
     reg [31:0] right_count;
@@ -141,10 +140,26 @@ assign {
 
 ////////////////////
 
+reg br_flush_r;
+always @(posedge clk) begin
+    if(reset)begin
+        br_flush_r <= 1'b0;
+    end
+    else if((~icache_busy & ps_allowin) | flush)begin
+        br_flush_r <= 1'b0;
+    end
+    else if(br_flush) begin
+        br_flush_r <= 1'b1;
+    end
+end
+
+wire final_br_flush;
+assign final_br_flush = br_flush | br_flush_r;
+
 assign ps_ready_go    = ~icache_busy & ~ITLB_Buffer_Stall;
 assign ps_allowin     = flush ? 1'b1 : fs_allowin & ps_ready_go;
 assign ps_to_fs_valid = ps_ready_go;
-assign inst_valid_end = inst_valid & ~br_flush;
+assign inst_valid_end = inst_valid & ~final_br_flush;
 /******************ps_to_fs_bus Total: 39bits******************/
 assign ps_to_fs_bus   = {
                           inst_valid_end, //38:38
@@ -203,9 +218,10 @@ ITLB_stage ITLB(
         .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
 );
 
+
 assign ADEL_ex    = (prefs_pc[1:0] != 2'b00); 
 assign temp_ex    = (ADEL_ex | ITLB_ex);
-assign ps_ex      =  temp_ex & ~br_flush; //br_flush的情况下 即使发现例外也不应该报出来
+assign ps_ex      =  temp_ex & ~final_br_flush; //br_flush的情况下 即使发现例外也不应该报出例外
 assign ps_Exctype =  ADEL_ex ? `AdEL         : //这个可以不管
                      ITLB_ex ?  ITLB_Exctype : 
                                `NO_EX;
