@@ -56,6 +56,7 @@ wire         ps_allowin;
 wire [31:12] ITLB_PFN; //实地址
 wire         ADEL_ex;//处理取指令地址错例外ADEL
 wire         ITLB_ex;//处理取指令地址错例外ADEL
+wire         temp_ex;
 wire         ps_ex;
 wire [4:0]   ps_Exctype;
 wire [4:0]   ITLB_Exctype;
@@ -202,12 +203,12 @@ ITLB_stage ITLB(
         .TLB_Buffer_Flush     (TLB_Buffer_Flush    )
 );
 
-assign ADEL_ex    = (prefs_pc[1:0] != 2'b00) & ~br_flush; 
-assign ps_ex      = (ADEL_ex | ITLB_ex) & ~br_flush;
-assign ps_Exctype = br_flush? `NO_EX        :
-                    ADEL_ex ? `AdEL         :
-                    ITLB_ex ?  ITLB_Exctype : 
-                              `NO_EX;
+assign ADEL_ex    = (prefs_pc[1:0] != 2'b00); 
+assign temp_ex    = (ADEL_ex | ITLB_ex);
+assign ps_ex      =  temp_ex & ~br_flush; //br_flush的情况下 即使发现例外也不应该报出来
+assign ps_Exctype =  ADEL_ex ? `AdEL         : //这个可以不管
+                     ITLB_ex ?  ITLB_Exctype : 
+                               `NO_EX;
 
 /*******************CPU与ICache的交互信号赋值如下******************/
 always @(posedge clk) begin
@@ -248,7 +249,7 @@ end
 always @(*) begin
     if(flush_delayed & ~icache_busy & ~refetch_delayed)
         inst_valid = 1'b1;
-    else if(ps_ex | ITLB_Buffer_Stall)
+    else if(temp_ex | ITLB_Buffer_Stall)
         inst_valid = 1'b0;
     else if(~icache_busy & ps_allowin & ~refetch_delayed) 
         inst_valid = 1'b1;
