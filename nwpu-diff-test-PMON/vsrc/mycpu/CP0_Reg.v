@@ -73,7 +73,7 @@ assign CP0_Addr   = {m1s_mtc0_rd,m1s_sel}; //按照指令要求,CP0 Reg 8位读�
 assign mtc0_we    = m1s_valid && m1s_inst_mtc0 && ~m1s_ex; //指令为mtc0,且MEM阶段没有报出例外,则写使能生效
 assign eret_flush = m1s_valid && m1s_inst_eret && ~m1s_ex; //指令为eret,且MEM阶段没有报出例外,则清空流水线使能有效
 
-/*************************以下为Status寄存器部分?*************************/
+/*************************以下为Status寄存器部分*************************/
 reg        CP0_Status_CU0; //28 R/W
 reg        CP0_Status_Bev; //22 R/W
 reg [ 7:0] CP0_Status_IM; //15-8 R/W
@@ -540,4 +540,24 @@ assign Exception_Base   = CP0_Status_Bev ? `GENERAL_EX_BASE : CP0_EBase; //例�
 assign Exception_Offset = (Exctype == `ITLB_EX_Refill || Exctype == `DTLB_EX_RD_Refill
                         || Exctype == `DTLB_EX_WR_Refill) ? 0: `GENERAL_EX_OFFSET; //例外偏移量
 assign Exception_Addr   = Exception_Base + Exception_Offset;
+
+`ifdef ILA_debug
+wire has_int; //判定是否接收到中断 需要满足下面的条件
+assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) && 
+                   CP0_Status_IE_out && !CP0_Status_EXL_out;
+    CP0_ila U_CP0_ila(
+        .clk(clk),
+        .probe0 (mtc0_we),
+        .probe1 (CP0_EPC),
+        .probe2 (CP0_BadVAddr),
+        .probe3 (Exception_Addr),
+        .probe4 (m1s_alu_result),
+        .probe5 (m1s_pc),
+        .probe6 (ext_int),
+        .probe7 (has_int),
+        .probe8 (CP0_data),
+        .probe9 (m1s_ex),
+        .probe10(Exctype)
+    );
+`endif
 endmodule //CP0_Reg

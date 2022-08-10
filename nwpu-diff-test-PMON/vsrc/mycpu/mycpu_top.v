@@ -203,6 +203,7 @@ wire  [31:0] ws_pc;
 wire  [31:0] m1s_alu_result;
 wire  [31:0] ws_final_result;
 wire  [31:0] dcache_addr;
+wire  [31:0] icache_addr;
 wire  [31:0] fs_inst;
 //wire  [31:0] ds_inst;
 wire         ds_ex;
@@ -211,6 +212,8 @@ wire  [31:0] ra;
 wire  [31:0] sp;
 wire         inst_beql;
 wire         inst_bnel;
+wire         ps_ready_go;
+wire         m1s_ready_go;
 // assign prefs_pc = ps_to_fs_bus[37:6]; //no need
 assign fs_pc    = fs_to_ds_bus[31:0];
 assign ds_pc    = ds_to_es_bus[31:0];
@@ -253,18 +256,20 @@ assign fs_inst  = fs_to_ds_bus[63:32];
 // );
 
 assign dcache_addr = {data_tag,data_index,data_offset};
+assign icache_addr = {inst_tag,inst_index,inst_offset};
+
 complex_ila U_complex_ila(
-    .clk(aclk),
-    .probe0 (data_valid),
-    .probe1 (data_op),
-    .probe2 (dcache_addr),
-    .probe3 (m1s_alu_result),
-    .probe4 (ds_inst),
-    .probe5 (data_wdata),
-    .probe6 (ds_pc),
-    .probe7 (data_rdata),
-    .probe8 (m1s_Exctype),
-    .probe9 (m1s_pc),
+    .clk     (aclk),
+    .probe0  (data_valid),
+    .probe1  (data_op),
+    .probe2  (dcache_addr),
+    .probe3  (m1s_alu_result),
+    .probe4  (ds_inst),
+    .probe5  (data_wdata),
+    .probe6  (ds_pc),
+    .probe7  (data_rdata),
+    .probe8  (m1s_Exctype),
+    .probe9  (m1s_pc),
     .probe10 (ms_pc),
     .probe11 (ext_int),
     .probe12 (prefs_pc),
@@ -272,8 +277,9 @@ complex_ila U_complex_ila(
     .probe14 (ws_pc),
     .probe15 (ws_final_result),
     .probe16 (isUncache),
-    .probe17 (inst_beql),
-    .probe18 (inst_bnel)
+    .probe17 (icache_addr),
+    .probe18 (ps_ready_go),
+    .probe19 (m1s_ready_go)
 );
 
 `endif
@@ -458,6 +464,9 @@ DCache U_DCache(
 pre_if_stage pre_if_stage(
     .clk                 (aclk                 ),
     .reset               (reset                ),
+`ifdef ILA_debug
+    .ps_ready_go         (ps_ready_go          ),
+`endif
     .fs_allowin          (fs_allowin           ),
     .br_bus              (br_bus               ),
     .BPU_to_ps_bus       (BPU_to_ps_bus        ),
@@ -601,6 +610,7 @@ m1_stage m1_stage(
     .reset              (reset              ),
 `ifdef ILA_debug
     .m1s_Exctype        (m1s_Exctype        ),
+    .m1s_ready_go       (m1s_ready_go       ),
 `endif
     //allowin        
     .ms_allowin         (ms_allowin         ),
@@ -746,11 +756,13 @@ wb_stage wb_stage(
 );
 
 tlb U_tlb(
-    //TODO: add more signals
     .clk               (aclk             ),
     .reset             (reset            ),
+`ifdef ILA_debug
+    .prefs_pc          (prefs_pc         ),
+    .m1s_pc            (m1s_pc           ),
+`endif
     .ITLB_vpn2         (prefs_pc[31:13]  ),
-    // .ITLB_asid         (cp0_to_tlb_asid  ),
     .ITLB_found        (ITLB_found       ),
     .ITLB_pfn0         (ITLB_pfn0        ),   
     .ITLB_c0           (ITLB_c0          ),
@@ -762,7 +774,6 @@ tlb U_tlb(
     .ITLB_v1           (ITLB_v1          ),
  
     .DTLB_vpn2         (m1s_alu_result[31:13]),
-    // .DTLB_asid         (cp0_to_tlb_asid  ),
     .DTLB_found        (DTLB_found       ),
     .DTLB_pfn0         (DTLB_pfn0        ), 
     .DTLB_c0           (DTLB_c0          ),

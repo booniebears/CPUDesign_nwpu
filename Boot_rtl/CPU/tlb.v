@@ -35,23 +35,23 @@ module tlb
 
     //TLB_TO_CP0 port
     output                            tlb_to_cp0_found,//tlbp查找是否成功
-    output       [18:0]               tlb_to_cp0_vpn2, //以下为tlb写入的数�?
+    output       [18:0]               tlb_to_cp0_vpn2, //以下为tlb写入的数�?
     output       [ 7:0]               tlb_to_cp0_asid ,
     output       [ 3:0]               tlb_to_cp0_index, 
-    output       [19:0]               tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数�?
+    output       [19:0]               tlb_to_cp0_pfn0 ,//以下为entrylo0寄存器写入tlb的数�?
     output       [ 2:0]               tlb_to_cp0_c0 ,
     output                            tlb_to_cp0_d0 ,
     output                            tlb_to_cp0_v0 ,
     output                            tlb_to_cp0_g0 ,
-    output       [19:0]               tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数�?
+    output       [19:0]               tlb_to_cp0_pfn1 ,//以下为entrylo1寄存器写入tlb的数�?
     output       [ 2:0]               tlb_to_cp0_c1 ,
     output                            tlb_to_cp0_d1 ,
     output                            tlb_to_cp0_v1 ,
     output                            tlb_to_cp0_g1 , 
     
     //CP0_TO_TLB port
-    input                             inst_tlbwi, //TLB写使�?:对应inst_tlbwi
-    input                             inst_tlbwr, //TLB写使�?:对应inst_tlbwr
+    input                             inst_tlbwi, //TLB写使�?:对应inst_tlbwi
+    input                             inst_tlbwr, //TLB写使�?:对应inst_tlbwr
     input                             inst_tlbp , //TLB查询:对应inst_tlbp
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_index,
     input        [$clog2(TLBNUM)-1:0] cp0_to_tlb_random,
@@ -152,7 +152,7 @@ generate
     end
 endgenerate
     
-    //TLB -> ITLB 返回�?项TLB
+    //TLB -> ITLB 返回�?项TLB
     assign ITLB_found = (ITLB_match != 16'b0);
     assign ITLB_pfn0  = tlb_pfn0[ITLB_index];
     assign ITLB_c0    = tlb_c0[ITLB_index];
@@ -195,7 +195,7 @@ generate
     end
 endgenerate
 
-    //TLB -> DTLB 返回�?项TLB
+    //TLB -> DTLB 返回�?项TLB
     assign DTLB_found = |common_match;
     assign DTLB_pfn0  = tlb_pfn0[common_index];
     assign DTLB_c0    = tlb_c0[common_index];
@@ -243,7 +243,7 @@ endgenerate
             default:common_index = 4'd0;
         endcase
     end
-
+`ifdef ILA_debug
     TLB_ila U_TLB_ila(
         .clk(clk),
         .probe0 (prefs_pc),
@@ -263,5 +263,6 @@ endgenerate
         .probe14 (inst_tlbwi),
         .probe15 (inst_tlbwr)
     );
+`endif
      
 endmodule
