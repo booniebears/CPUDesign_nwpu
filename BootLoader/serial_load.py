@@ -133,7 +133,7 @@ def uart_loopback_test():
     print("ser.name = " + ser.name)
     print("ser.port = " + ser.port)
     time.sleep(0.01)
-    write_uart('5'.encode())
+    write_uart('5'.encode()) # 没写进去？看一下
     x = ser.read(1)
     print(x)
     if not x:
@@ -463,7 +463,9 @@ if __name__ == "__main__":
 
         if tests:
             if tests == 'uart':
-                uart_loopback_test()
+                print(ser.write("\x65".encode()))
+                # uart_loopback_test()
+                print(ser.read(1))
             elif tests == 'ram':
                 ram_test()
             elif tests == 'flash':

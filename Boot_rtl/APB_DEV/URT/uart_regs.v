@@ -214,7 +214,7 @@ wire 	  ms_int;
 
 wire tf_push;
 reg  rf_pop;
-wire [`UART_FIFO_REC_WIDTH-1:0] 	rf_data_out;
+wire [10:0] 	rf_data_out;
 wire rf_error_bit; 
 wire [`UART_FIFO_COUNTER_W-1:0] 	rf_count;
 wire [`UART_FIFO_COUNTER_W-1:0] 	tf_count;
@@ -707,5 +707,22 @@ begin
     iir[`UART_II_IP] <= 1'b1;
   end
 end
+
+wire [7:0] uart_data;
+assign uart_data = rf_data_out[10:3];
+UART_ila U_UART_ila(
+    .clk(clk),
+    .probe0 (dat_i),
+    .probe1 (dat_o),
+    .probe2 (lsr),
+    .probe3 (lcr),
+    .probe4 (dlab),
+    .probe5 (uart_data),
+    .probe6 (we),
+    .probe7 (re),
+    .probe8 (dl),
+    .probe9 (TXD_i),
+    .probe10(RXD_o)
+);
 
 endmodule

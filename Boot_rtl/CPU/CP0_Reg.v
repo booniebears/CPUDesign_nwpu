@@ -549,7 +549,7 @@ assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) &&
         .clk(clk),
         .probe0 (mtc0_we),
         .probe1 (CP0_EPC),
-        .probe2 (CP0_BadVAddr),
+        .probe2 (CP0_Status_Bev),
         .probe3 (Exception_Addr),
         .probe4 (m1s_alu_result),
         .probe5 (m1s_pc),
@@ -557,7 +557,8 @@ assign has_int = ((CP0_Cause_IP_out & CP0_Status_IM_out) != 0) &&
         .probe7 (has_int),
         .probe8 (CP0_data),
         .probe9 (m1s_ex),
-        .probe10(Exctype)
+        .probe10(Exctype),
+        .probe11(CP0_EBase)
     );
 `endif
 endmodule //CP0_Reg

@@ -278,8 +278,7 @@ complex_ila U_complex_ila(
     .probe15 (ws_final_result),
     .probe16 (isUncache),
     .probe17 (icache_addr),
-    .probe18 (ps_ready_go),
-    .probe19 (m1s_ready_go)
+    .probe18 (debug_wb_rf_wnum)
 );
 
 `endif
