@@ -29,8 +29,9 @@ __start:
 ###################串口初始化###################
 
 ###################CP0初始化###################
-	mtc0 $zero,c0_cause
-	mtc0 $zero,c0_status
+	mtc0 $zero,c0_cause  # Cause初始化为0
+	mtc0 $zero,c0_status # Status初始化为0
+						 # EBase据说就是0x8000_0000
 ###################CP0初始化###################
 
 	li $s0, 0xbfd0f000

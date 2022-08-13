@@ -48,7 +48,13 @@ module id_stage(
     input        CP0_Cause_TI_out,  //TI为1,触发定时中断;我们将该中断标记在ID阶段
     input [31:0] CP0_EPC_out,      
     input        icache_busy,
-    input        dcache_busy
+    input        dcache_busy,
+    input        ITLB_Buffer_Stall,
+    output       load_stall,
+    output       mfc0_stall,
+
+    output [31:0]v0,
+    output [31:0]v1
 );
 
 reg         ds_valid   ;
@@ -277,8 +283,8 @@ wire        rt_wait;
 wire        inst_no_dest; //指令用不着写RF时为1,否则为0
 wire        src1_no_rs;    //指令 rs 域非 0，且不是从寄存器堆读 rs 的数据
 wire        src2_no_rt;    //指令 rt 域非 0，且不是从寄存器堆读 rt 的数据
-wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
-wire        mfc0_stall;
+// wire        load_stall;    //因为EXE阶段的load指令引发的流水线暂停 
+// wire        mfc0_stall;
 wire        br_stall;      //ID阶段检测到branch指令,由于load指令在EXE阶段,无法使用forward,必须暂停
 
 /******************ds_to_es_bus Total: 318 + 29 bits******************/
@@ -804,12 +810,13 @@ assign dst_is_r31   = inst_jal | inst_bgezal | inst_bltzal;
 assign dst_is_rt    = inst_addiu | inst_lui | inst_lw | inst_addi | inst_slti | inst_sltiu |
                       inst_andi | inst_ori | inst_xori | inst_lb | inst_lbu | inst_lh | inst_lhu |
                       inst_lwl | inst_lwr | inst_mfc0;
-assign gr_we        = ~inst_sw & ~inst_beq & ~inst_bne &  ~inst_jr & ~inst_bgez & ~inst_bgtz &
-                      ~inst_blez & ~inst_bltz & ~inst_j & ~inst_mthi & ~inst_mtlo & ~inst_sb &
-                      ~inst_sh & ~inst_swl & ~inst_swr & ~inst_mtc0 & ~inst_eret & ~inst_syscall &
-                      ~inst_teq & ~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu &
-                      ~inst_tlt & ~inst_tlti & ~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei &
-                      ~inst_cache & ~inst_pref & ~inst_sync & ~inst_wait & ~inst_beql & ~inst_bnel;
+assign gr_we        = ~inst_bltz & ~inst_bgez & ~inst_beq & ~inst_bne &
+~inst_blez & ~inst_bgtz & ~inst_jr & ~inst_j & ~inst_bnel & ~inst_beql & ~inst_sb & ~inst_sh &
+~inst_sw & ~inst_swl & ~inst_swr & ~inst_syscall & ~inst_break & ~inst_tlbp & ~inst_eret &
+~inst_mtc0 & ~inst_tlbwi & ~inst_tlbwr & ~inst_tlbr & ~inst_mthi & ~inst_mtlo & ~inst_teq & 
+~inst_teqi & ~inst_tge & ~inst_tgei & ~inst_tgeu & ~inst_tgeiu & ~inst_tlt & ~inst_tlti & 
+~inst_tltu & ~inst_tltiu & ~inst_tne & ~inst_tnei & ~inst_sync & ~inst_cache & ~inst_pref;
+
 assign mem_we       = inst_sw | inst_sb | inst_sh | inst_swl | inst_swr;
 
 regfile u_regfile(
@@ -825,7 +832,9 @@ regfile u_regfile(
     .we             (rf_we      ),
     .waddr          (rf_waddr   ),
     .wdata          (rf_wdata   ),
-    .reset          (reset      )
+    .reset          (reset      ),
+    .v0             (v0         ),   
+    .v1             (v1         )
     );
 
 assign rs_value = rs_wait ? (rs == EXE_dest ?  EXE_result :
@@ -873,10 +882,12 @@ assign rs_wait = ~src1_no_rs & (rs!=5'd0) & ds_valid
 assign rt_wait = ~src2_no_rt & (rt!=5'd0) & ds_valid
                  & ( (rt==EXE_dest) | (rt==M1s_dest) | (rt==MEM_dest) | (rt==WB_dest) );
 
-//TODO:inst_no_dest列的不全,有漏洞!是否能与gr_we进行类比??
-assign inst_no_dest = inst_beq | inst_bne | inst_jr | inst_sw | inst_bgez | inst_bgtz | inst_blez 
-| inst_bltz | inst_j | inst_sb | inst_sh | inst_swl | inst_swr | inst_syscall | inst_eret | inst_cache
-| inst_pref | inst_sync | inst_wait | inst_beql | inst_bnel;
+//Attention:inst_no_dest列的不全,可能有漏洞。不过,考虑到大部分没有列入的指令,其rd段为0,对应dest=0,故无影响
+//Attention:要和gr_we配合
+assign inst_no_dest = inst_bltz | inst_bgez | inst_beq | inst_bne | inst_blez | inst_bgtz | inst_jr | inst_j | inst_bnel | inst_beql | inst_sb |
+inst_sh | inst_sw | inst_swl | inst_swr | inst_syscall | inst_break | inst_mtc0 | inst_cache | 
+inst_pref | inst_teq | inst_teqi | inst_tge | inst_tgei | inst_tgeiu | inst_tgeu | inst_tlt |
+inst_tlti | inst_tltiu | inst_tltu | inst_tne | inst_tnei;
 
 assign dest         = dst_is_r31   ? 5'd31 :
                       dst_is_rt    ? rt    : 
@@ -892,6 +903,6 @@ assign mfc0_stall = ((rs_wait & (rs == EXE_dest) & es_inst_mfc0) ||
                      (rt_wait & (rt == EXE_dest) & es_inst_mfc0));
 
 //采取forward的方法处理冒险 Attention:删掉ds_valid
-assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy; 
+assign ds_ready_go    = ~load_stall & ~mfc0_stall & ~icache_busy & ~dcache_busy & ~ITLB_Buffer_Stall; 
 
 endmodule

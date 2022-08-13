@@ -11,9 +11,11 @@ module pre_if_stage(
     //brbus
     input  [`BR_BUS_WD       -1:0] br_bus, 
     input  [`BPU_TO_PS_BUS_WD-1:0] BPU_to_ps_bus,
-    //to ds
+    //to fs
     output [`PS_TO_FS_BUS_WD -1:0] ps_to_fs_bus,
     output                         ps_to_fs_valid,
+
+    output                         ITLB_Buffer_Stall,
 
     input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
@@ -43,7 +45,17 @@ module pre_if_stage(
     input                          m1s_is_ICacheInst,
     input      [11:4]              cache_index, //M1阶段传回 Cache指令使用的index
     output reg                     ICacheInst_delayed
+
+    // /////debug////
+    // output                         m1s_inst_eret_to_if,
+    // output     [31:0]              CP0_EPC_out_to_if,
+    // output                         m1s_refetch_to_if
 );
+
+// assign m1s_inst_eret_to_if = m1s_inst_eret;
+// assign CP0_EPC_out_to_if  =  CP0_EPC_out;
+// assign m1s_refetch_to_if  =  m1s_refetch;
+
 
 wire         inst_valid_end;
 
@@ -59,7 +71,7 @@ wire         temp_ex;
 wire         ps_ex;
 wire [4:0]   ps_Exctype;
 wire [4:0]   ITLB_Exctype;
-wire         ITLB_Buffer_Stall;
+// wire         ITLB_Buffer_Stall;
 
 //PC_reg
 reg   [31:0] nextpc;

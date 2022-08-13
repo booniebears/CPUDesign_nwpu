@@ -68,11 +68,11 @@ int main(int argc, char **argv)
       check++;
     else if (winstr != 0)
       check = 0;
-    if (check == 10 || exec > 2000)
+    if (check == 100 || exec > 2000)
     {
-      if (check == 10)
+      if (check == 100)
       {
-        printf("\n fail!! , with 10 times instr = 0\n");
+        printf("\n fail!! , with 100 times instr = 0\n");
         printf("current pc 0x%08x", pc - 40);
       }
       else if (exec > 2000)

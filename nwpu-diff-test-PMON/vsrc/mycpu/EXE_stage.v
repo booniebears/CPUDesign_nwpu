@@ -27,7 +27,11 @@ module exe_stage(
     input                          flush, //flush=1时表明需要处理异常
     input                          m1s_ex,
     output                         es_inst_mfc0, //EXE阶段指令为mfc0 前递到ID阶段
-    input                          m1s_inst_eret
+    input                          ITLB_Buffer_Stall, 
+    input                          icache_busy, 
+    input                          dcache_busy,
+    input                          load_stall, 
+    input                          mfc0_stall  //
 );
 
 wire [31:0] ds_pc;
@@ -309,9 +313,10 @@ assign es_to_m1s_bus = {
                        es_pc             //31:0 --EXE阶段 PC值
                       };
 
-assign es_ready_go     = (~isMul & ~isDiv) | (isDiv & (m_axis_dout_tvalid | m_axis_dout_tvalidu))
+assign es_ready_go     = (ITLB_Buffer_Stall | icache_busy) ? 1'b0 :
+                          (~isMul & ~isDiv) | (isDiv & (m_axis_dout_tvalid | m_axis_dout_tvalidu))
                          | (isMul & mul_finished);
-                         
+
 assign es_allowin      = !es_valid || es_ready_go && m1s_allowin;
 assign es_to_m1s_valid =  es_valid && es_ready_go;
 

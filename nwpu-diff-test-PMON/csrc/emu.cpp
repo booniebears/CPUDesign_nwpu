@@ -10,7 +10,7 @@ const char *reg_name[32] = {
 int vcdstep = 0;
 int nowclock = 0;
 long long traceclockup   = 2000000000;//小于Traceclockup则开始记录波形
-long long traceclockdown = 233500000;//大于Traceclockdown则开始记录波形
+long long traceclockdown = 0;//大于Traceclockdown则开始记录波形
 Emulator:: Emulator()
 {
     dut_ptr = new VSocLite;
@@ -63,10 +63,10 @@ void Emulator::step()
         if(nowclock>traceclockdown && nowclock <traceclockup){//大于Traceclock则开始记录波形
             dut_ptr->clock = 0;
             dut_ptr->eval();
-            // tfp->dump(vcdstep++);
+            tfp->dump(vcdstep++);
             dut_ptr->clock = 1;
             dut_ptr->eval();
-            // tfp->dump(vcdstep++);
+            tfp->dump(vcdstep++);
         }else{
             dut_ptr->clock = 0;
             dut_ptr->eval();

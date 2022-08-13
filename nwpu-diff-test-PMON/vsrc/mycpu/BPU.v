@@ -18,9 +18,11 @@ module BPU#(
     input [`BRESULT_WD - 1 :0] BResult,
     input [31:0] ja_target ,
     input inst_is_ja,
+    input inst_is_jr,
     output [31:0] target,
     output BPU_valid,
-    output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus
+    output [`BPU_TO_DS_BUS_WD-1:0] BPU_to_ds_bus,
+    input flush //
 );
 
 /*************************写入PHT*************************************/
@@ -33,9 +35,9 @@ reg [31:0] BPU_br_target;
 always @(posedge clk) begin
     {   BPU_es_pc,      //跳转指令的PC
         BPU_old_Count,  //跳转指令PC跳转次数的历史记录，2位饱和计数器，需更新后再写入PHT
-        BPU_is_branch,  //PC是否是跳转指�?
+        BPU_is_branch,  //PC是否是跳转指令
         BPU_br_taken,   //是否成功跳转
-        BPU_br_target   //跳转的目标地�?
+        BPU_br_target   //跳转的目标地址
                         } <=  BResult;
 end
 
@@ -64,16 +66,16 @@ assign PHT_wr_data = {BPU_new_Count, PHT_wr_tag, BPU_br_target};
 
 /*****************************读PHT***********************************/
 
-wire [7:0] PHT_rd_index;      //读地�?
+wire [7:0] PHT_rd_index;      //读地址
 wire [21:0] PHT_rout_tag;      //读出的tag
-wire [31:0] PHT_rout_target;   //读出的目标地�?
+wire [31:0] PHT_rout_target;   //读出的目标地址
 wire [1:0] PHT_rout_Count;    //读出的饱和计数器
 wire PHT_hit;
 wire [DATA_WIDTH-1 : 0] PHT_rd_data;//读出的PHT
 
 assign PHT_rd_index = pre_pc[9:2];
 assign {PHT_rout_Count,PHT_rout_tag,PHT_rout_target} = PHT_rd_data;
-assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]); // 写的时�?�返回数据不是想要读�?
+assign PHT_hit  = (PHT_rout_tag == fs_pc[31:10]);
 
 wire [21:0] debug_fs_pc_tag;
 assign debug_fs_pc_tag = fs_pc[31:10];
@@ -92,11 +94,12 @@ assign BPU_to_ds_bus = {
                             BPU_valid_reg,
                             BPU_ret_addr_reg
                             };
-assign BPU_ret_addr =   inst_is_ja        ? ja_target :
-                        PHT_rout_Count[1] ? fs_pc + 8 : PHT_rout_target;
+assign BPU_ret_addr =   inst_is_ja                      ? ja_target :
+                        PHT_rout_Count[1] | inst_is_jr  ? fs_pc + 8 : PHT_rout_target;
 
 // assign BPU_is_taken =   (inst_is_ja | inst_is_jr)  ?   1   :   ~PHT_rout_Count[1];
-assign BPU_is_taken =   inst_is_ja   ?   1   :   ~PHT_rout_Count[1];
+assign BPU_is_taken =   inst_is_jr   ?   0   :
+                        inst_is_ja   ?   1   :   ~PHT_rout_Count[1];
 
 always @(posedge clk) begin
     if(reset)begin
@@ -106,7 +109,13 @@ always @(posedge clk) begin
         BPU_is_taken_reg <= 0;
     end
 
-    if(ds_allowin)begin
+    if(flush)begin
+        BPU_valid_reg <= 0;
+        BPU_Count_reg <= 0;
+        BPU_ret_addr_reg <= 0;
+        BPU_is_taken_reg <= 0;
+    end
+    else if(ds_allowin)begin
         if(BPU_valid)begin
             BPU_valid_reg <= 1;
             BPU_Count_reg <= PHT_rout_Count;
@@ -120,15 +129,13 @@ always @(posedge clk) begin
             BPU_is_taken_reg <= 0;
         end
     end
-    
 end
 
 /*************************************************************************/
 
 assign target = BPU_ret_addr;
-// assign BPU_valid = PHT_hit | inst_is_ja | inst_is_jr;
-assign BPU_valid = PHT_hit | inst_is_ja ;
-// assign BPU_valid = 0 ;
+// assign BPU_valid = PHT_hit | inst_is_ja ;
+assign BPU_valid = 0 ;
 // assign Count = BPU_Count_reg;
 
 wire [7:0] index_addr;
@@ -143,13 +150,13 @@ simple_port_ram #(
     .clk(clk),
     .rst(reset),
 
-    //写端�?
+    //写端口
     .ena(1'b1),
     .wea(PHT_we),
     .addra(PHT_wr_index),
     .dina(PHT_wr_data),
 
-    //读端�?
+    //读端口
     .enb(data_read_en),
     .addrb(PHT_rd_index),
     .doutb(PHT_rd_data)
