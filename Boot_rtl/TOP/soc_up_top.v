@@ -107,7 +107,16 @@ module soc_up_top(
     output        SPI_CLK,
     output        SPI_CS,
     inout         SPI_MISO,
-    inout         SPI_MOSI
+    inout         SPI_MOSI,
+
+    //------LCD------
+    output        lcd_rst,
+    output        lcd_cs,
+    output        lcd_rs,
+    output        lcd_wr,
+    output        lcd_rd,
+    inout  [15:0] lcd_data,
+    output        lcd_bl_ctr
 );
 wire        aclk;
 wire        aresetn;
@@ -1072,7 +1081,16 @@ confreg CONFREG(
 .switch            (switch      ),
 .btn_key_col       (btn_key_col ),
 .btn_key_row       (btn_key_row ),
-.btn_step          (btn_step    )
+.btn_step          (btn_step    ),
+
+//lcd
+.lcd_rst           (lcd_rst     ),
+.lcd_cs            (lcd_cs      ),
+.lcd_rs            (lcd_rs      ),
+.lcd_wr            (lcd_wr      ),
+.lcd_rd            (lcd_rd      ),
+.lcd_data          (lcd_data    ),
+.lcd_bl_ctr        (lcd_bl_ctr  )
 );
 
 //MAC top
