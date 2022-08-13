@@ -61,7 +61,7 @@
     `define BRANCH_TYPE_BLTZAL  4'b1110
     `define BRANCH_TYPE_ERROR   4'b1111
     //ExcCode编码及其对应例外类型 Attention:尚未映射，有误!
-    `define Int                 5'b00000 //中断
+    `define Int                 5'b00001 //中断
     `define ITLB_EX_Refill      5'b00010 
     `define ITLB_EX_Invalid     5'b00011 
     `define DTLB_EX_RD_Refill   5'b00100 

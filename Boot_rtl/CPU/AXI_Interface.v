@@ -978,28 +978,25 @@ module AXI_Interface(
     reg   [ 31:0] AXI_U_WData;
     reg   [  3:0] AXI_U_WStrb;
 
-// `ifdef ILA_debug
-// AXI_ila U_AXI_ila(
-//     .clk     (clk),
-//     .probe0  (udata_awready),
-//     .probe1  (udata_wready),
-//     .probe2  (wvalid),
-//     .probe3  (wready),
-//     .probe4  (udata_araddr),
-//     .probe5  (udata_awaddr),
-//     .probe6  (udata_wdata),
-//     .probe7  (udata_bvalid),
-//     .probe8  (udata_rdata),
-//     .probe9  (udata_rvalid),
-//     .probe10 (prefs_pc),
-//     .probe11 (fs_pc),
-//     .probe12 (m1s_pc),
-//     .probe13 (ms_pc),
-//     .probe14 (awaddr),
-//     .probe15 (wdata),
-//     .probe16 (bvalid)
-// );
-// `endif
+`ifdef ILA_debug
+AXI_ila U_AXI_ila(
+    .clk     (clk),
+    .probe0  (inst_araddr),
+    .probe1  (inst_arready),
+    .probe2  (inst_rvalid),
+    .probe3  (inst_rdata),
+    .probe4  (udata_araddr),
+    .probe5  (udata_awaddr),
+    .probe6  (udata_wdata),
+    .probe7  (udata_bvalid),
+    .probe8  (udata_rdata),
+    .probe9  (udata_rvalid),
+    .probe10 (prefs_pc),
+    .probe11 (fs_pc),
+    .probe12 (m1s_pc),
+    .probe13 (ms_pc)
+);
+`endif
 
     always @(posedge clk) begin
         if (~resetn) begin

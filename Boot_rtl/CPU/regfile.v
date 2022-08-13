@@ -14,9 +14,19 @@ module regfile(
     // WRITE PORT
     input         we,       //write enable, HIGH valid
     input  [ 4:0] waddr,
-    input  [31:0] wdata
+    input  [31:0] wdata,
+
+    /////debug/////
+    output [31:0] v0,
+    output [31:0] v1
 );
+
 reg [31:0] rf[31:0];
+
+assign v0 = rf[2];
+assign v1 = rf[3];
+
+
 
 integer i;
 //WRITE
@@ -26,7 +36,7 @@ always @(posedge clk) begin
             rf[i] <= 32'b0;
         end
     end
-    else if (we) rf[waddr]<= wdata;
+    else if (we && (waddr != 0)) rf[waddr]<= wdata;
 end
 
 //READ OUT 1

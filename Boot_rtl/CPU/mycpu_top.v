@@ -120,6 +120,9 @@ wire  [19:0] ITLB_pfn1;
 wire  [ 2:0] ITLB_c1;
 wire         ITLB_d1;
 wire         ITLB_v1;
+wire         ITLB_Buffer_Stall;
+wire         load_stall;
+wire         mfc0_stall;
 
 wire         DTLB_found;
 wire  [19:0] DTLB_pfn0;
@@ -460,6 +463,7 @@ DCache U_DCache(
     .isUncache           (isUncache          ) 
 );
 //pre_if stage
+
 pre_if_stage pre_if_stage(
     .clk                 (aclk                 ),
     .reset               (reset                ),
@@ -471,6 +475,7 @@ pre_if_stage pre_if_stage(
     .BPU_to_ps_bus       (BPU_to_ps_bus        ),
     .ps_to_fs_bus        (ps_to_fs_bus         ),
     .ps_to_fs_valid      (ps_to_fs_valid       ),
+    .ITLB_Buffer_Stall   (ITLB_Buffer_Stall    ),
     .br_flush            (br_flush             ),
     .flush               (flush                ),
     .Exception_Addr      (Exception_Addr       ),
@@ -499,6 +504,10 @@ pre_if_stage pre_if_stage(
     .ICacheInst_delayed  (ICacheInst_delayed   )
 );
 
+wire [31:0] v0;
+wire [31:0] v1;
+
+
 // IF stage
 if_stage if_stage(
     .clk            (aclk           ),
@@ -519,7 +528,11 @@ if_stage if_stage(
     .br_flush       (br_flush       ),
     .flush          (flush          ),
     .icache_busy    (icache_busy    ),
-    .inst_rdata     (inst_rdata     )
+    .inst_rdata     (inst_rdata     ),
+    .ITLB_Buffer_Stall   (ITLB_Buffer_Stall    ),
+
+    .v0             (v0             ),   
+    .v1             (v1             )
 );
 
 // ID stage
@@ -568,7 +581,13 @@ id_stage id_stage(
     .CP0_Cause_TI_out   (CP0_Cause_TI_out   ),
     .CP0_EPC_out        (CP0_EPC_out        ),
     .icache_busy        (icache_busy        ),
-    .dcache_busy        (dcache_busy        )
+    .dcache_busy        (dcache_busy        ),
+    .ITLB_Buffer_Stall  (ITLB_Buffer_Stall  ),
+    .load_stall         (load_stall         ),
+    .mfc0_stall         (mfc0_stall         ),
+
+    .v0                 (v0                 ),   
+    .v1                 (v1                 )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -599,7 +618,11 @@ exe_stage exe_stage(
     .flush           (flush           ),
     .m1s_ex          (m1s_ex          ),
     .es_inst_mfc0    (es_inst_mfc0    ),
-    .m1s_inst_eret   (m1s_inst_eret   )
+    .ITLB_Buffer_Stall  (ITLB_Buffer_Stall  ),
+    .icache_busy        (icache_busy        ),
+    .dcache_busy        (dcache_busy        ),
+    .load_stall         (load_stall         ),
+    .mfc0_stall         (mfc0_stall         )
 );
 
 // M1 stage

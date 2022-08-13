@@ -94,8 +94,8 @@ void difftest_init(){
     //make sure all work normal
     const char* command[2];
     command[0]="-b";
-    command[1]="-i";
-    command[2]="./ceo/gzrom.bin";  
+    command[1]="-e";
+    command[2]="./ceo/gzrom";  
     ref_napi_init(3,command);
     printf("Initial NEMU Finish\n");
     // for (int i=0;i<20000;i++){

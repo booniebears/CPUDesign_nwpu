@@ -20,7 +20,12 @@ module if_stage(
     input                          br_flush,
     input                          flush, //flush=1时表明需要处理异常
     input                          icache_busy,
-    input  [31:0]                  inst_rdata
+    input  [31:0]                  inst_rdata,
+    input                          ITLB_Buffer_Stall,
+
+
+    input [31:0]                   v0,
+    input [31:0]                   v1
 );
 wire [31:0] prefs_pc;
 
@@ -38,8 +43,7 @@ assign       pre_inst_last = inst_rdata[10: 0] ;
 assign       inst_is_ja = ( pre_inst_op[5:1] == 5'b00001); 
 assign       ja_target  = { prefs_pc[31:28] , inst_rdata[25:0] , 2'b0};
 
-// assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
-
+assign       inst_is_jr = (pre_inst_op == 6'b0) & (pre_inst_rt == 5'b0) & (pre_inst_last[10:1] == 10'b0000000100);
 
 
 reg          fs_valid;
@@ -65,7 +69,7 @@ assign {
 
 assign prefs_pc = ps_to_fs_bus[37:6];
 
-assign fs_ready_go    = ~icache_busy;
+assign fs_ready_go    = ~icache_busy & ~ITLB_Buffer_Stall;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
 assign fs_to_ds_valid = fs_valid && fs_ready_go;
 
@@ -145,11 +149,13 @@ BPU u_BPU(
     .ja_target          (ja_target ),
     // .stack_addr         (stack_addr),
     .inst_is_ja         (inst_is_ja),    
-    // .inst_is_jr         (inst_is_jr),    
+    .inst_is_jr         (inst_is_jr),    
     //***********output************//
     .target             (BPU_target),
     .BPU_valid          (BPU_valid),
-    .BPU_to_ds_bus      (BPU_to_ds_bus)
+    .BPU_to_ds_bus      (BPU_to_ds_bus),
+    .flush              (flush | final_br_flush | ~fs_inst_valid)
 );
+
 
 endmodule
