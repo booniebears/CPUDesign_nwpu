@@ -1,6 +1,7 @@
 
-boot.elf:     file format elf32-tradlittlemips
-boot.elf
+boot.rom.elf:     file format elf32-tradlittlemips
+boot.rom.elf
+
 
 Disassembly of section .text:
 
@@ -44,505 +45,500 @@ bfc00044:	8e0a0020 	lw	t2,32(s0)
 bfc00048:	24090001 	li	t1,1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:35
 bfc0004c:	01495024 	and	t2,t2,t1
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:36
-bfc00050:	3c0bff00 	lui	t3,0xff00
-bfc00054:	356b0001 	ori	t3,t3,0x1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:37
-bfc00058:	112a002e 	beq	t1,t2,bfc00114 <flash2ram>
+bfc00050:	112a002c 	beq	t1,t2,bfc00104 <flash2ram>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:38
-bfc0005c:	ae0b0010 	sw	t3,16(s0)
+bfc00054:	00000000 	nop
 
-bfc00060 <uart_cmd>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:41
-bfc00060:	3c080008 	lui	t0,0x8
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:42
-bfc00064:	ae080010 	sw	t0,16(s0)
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:44
-bfc00068:	0ff0008a 	jal	bfc00228 <check_rx>
+bfc00058 <uart_cmd>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:45
-bfc0006c:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:47
-bfc00070:	00408825 	move	s1,v0
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:49
-bfc00074:	2a290030 	slti	t1,s1,48
+bfc00058:	0ff00086 	jal	bfc00218 <check_rx>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:46
+bfc0005c:	00000000 	nop
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:48
+bfc00060:	00408825 	move	s1,v0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:50
-bfc00078:	15200020 	bnez	t1,bfc000fc <bad_cmd>
+bfc00064:	2a290030 	slti	t1,s1,48
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:51
-bfc0007c:	24090035 	li	t1,53
+bfc00068:	15200020 	bnez	t1,bfc000ec <bad_cmd>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:52
-bfc00080:	0131482a 	slt	t1,t1,s1
+bfc0006c:	24090035 	li	t1,53
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:53
-bfc00084:	1520001d 	bnez	t1,bfc000fc <bad_cmd>
+bfc00070:	0131482a 	slt	t1,t1,s1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:54
-bfc00088:	00000000 	nop
+bfc00074:	1520001d 	bnez	t1,bfc000ec <bad_cmd>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:55
-bfc0008c:	2404007e 	li	a0,126
+bfc00078:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:56
-bfc00090:	0ff00092 	jal	bfc00248 <putbyte>
+bfc0007c:	2404007e 	li	a0,126
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:57
-bfc00094:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:59
-bfc00098:	24080035 	li	t0,53
+bfc00080:	0ff0008e 	jal	bfc00238 <putbyte>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:58
+bfc00084:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:60
-bfc0009c:	1228001f 	beq	s1,t0,bfc0011c <uart2uart>
+bfc00088:	24080035 	li	t0,53
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:61
-bfc000a0:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:64
-bfc000a4:	0ff0009a 	jal	bfc00268 <getword>
+bfc0008c:	1228001f 	beq	s1,t0,bfc0010c <uart2uart>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:62
+bfc00090:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:65
-bfc000a8:	00000000 	nop
+bfc00094:	0ff00096 	jal	bfc00258 <getword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:66
-bfc000ac:	00409025 	move	s2,v0
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:69
-bfc000b0:	24080034 	li	t0,52
+bfc00098:	00000000 	nop
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:67
+bfc0009c:	00409025 	move	s2,v0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:70
-bfc000b4:	12280015 	beq	s1,t0,bfc0010c <run>
+bfc000a0:	24080034 	li	t0,52
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:71
-bfc000b8:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:74
-bfc000bc:	0ff0009a 	jal	bfc00268 <getword>
+bfc000a4:	12280015 	beq	s1,t0,bfc000fc <run>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:72
+bfc000a8:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:75
-bfc000c0:	00000000 	nop
+bfc000ac:	0ff00096 	jal	bfc00258 <getword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:76
-bfc000c4:	1040ffe6 	beqz	v0,bfc00060 <uart_cmd>
+bfc000b0:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:77
-bfc000c8:	00409825 	move	s3,v0
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:79
-bfc000cc:	24080030 	li	t0,48
+bfc000b4:	1040ffe8 	beqz	v0,bfc00058 <uart_cmd>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:78
+bfc000b8:	00409825 	move	s3,v0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:80
-bfc000d0:	1228001a 	beq	s1,t0,bfc0013c <uart2ram>
+bfc000bc:	24080030 	li	t0,48
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:81
-bfc000d4:	00000000 	nop
+bfc000c0:	1228001a 	beq	s1,t0,bfc0012c <uart2ram>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:82
-bfc000d8:	24080031 	li	t0,49
+bfc000c4:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:83
-bfc000dc:	12280022 	beq	s1,t0,bfc00168 <ram2uart>
+bfc000c8:	24080031 	li	t0,49
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:84
-bfc000e0:	00000000 	nop
+bfc000cc:	12280022 	beq	s1,t0,bfc00158 <ram2uart>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:85
-bfc000e4:	24080032 	li	t0,50
+bfc000d0:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:86
-bfc000e8:	1228002a 	beq	s1,t0,bfc00194 <uart2flash>
+bfc000d4:	24080032 	li	t0,50
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:87
-bfc000ec:	00000000 	nop
+bfc000d8:	1228002a 	beq	s1,t0,bfc00184 <uart2flash>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:88
-bfc000f0:	24080033 	li	t0,51
+bfc000dc:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:89
-bfc000f4:	1228003c 	beq	s1,t0,bfc001e8 <flash2uart>
+bfc000e0:	24080033 	li	t0,51
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:90
+bfc000e4:	1228003c 	beq	s1,t0,bfc001d8 <flash2uart>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:91
+bfc000e8:	00000000 	nop
+
+bfc000ec <bad_cmd>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:93
+bfc000ec:	3c088000 	lui	t0,0x8000
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:94
+bfc000f0:	ae080010 	sw	t0,16(s0)
+
+bfc000f4 <stop>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:96
+bfc000f4:	1000ffff 	b	bfc000f4 <stop>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:97
 bfc000f8:	00000000 	nop
 
-bfc000fc <bad_cmd>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:92
-bfc000fc:	3c088000 	lui	t0,0x8000
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:93
-bfc00100:	ae080010 	sw	t0,16(s0)
+bfc000fc <run>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:100
+bfc000fc:	02400008 	jr	s2
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:101
+bfc00100:	00000000 	nop
 
-bfc00104 <stop>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:95
-bfc00104:	1000ffff 	b	bfc00104 <stop>
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:96
+bfc00104 <flash2ram>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:104
+bfc00104:	10000070 	b	bfc002c8 <load_elf>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:105
 bfc00108:	00000000 	nop
 
-bfc0010c <run>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:99
-bfc0010c:	02400008 	jr	s2
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:100
-bfc00110:	00000000 	nop
-
-bfc00114 <flash2ram>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:103
-bfc00114:	10000070 	b	bfc002d8 <load_elf>
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:104
-bfc00118:	00000000 	nop
-
-bfc0011c <uart2uart>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:107
-bfc0011c:	0ff0009a 	jal	bfc00268 <getword>
+bfc0010c <uart2uart>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:108
-bfc00120:	00000000 	nop
+bfc0010c:	0ff00096 	jal	bfc00258 <getword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:109
-bfc00124:	00022025 	or	a0,zero,v0
+bfc00110:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:110
-bfc00128:	ae020010 	sw	v0,16(s0)
+bfc00114:	00022025 	or	a0,zero,v0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:111
-bfc0012c:	0ff000a9 	jal	bfc002a4 <putword>
+bfc00118:	ae020010 	sw	v0,16(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:112
-bfc00130:	00000000 	nop
+bfc0011c:	0ff000a5 	jal	bfc00294 <putword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:113
-bfc00134:	1000fff9 	b	bfc0011c <uart2uart>
+bfc00120:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:114
-bfc00138:	00000000 	nop
+bfc00124:	1000fff9 	b	bfc0010c <uart2uart>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:115
+bfc00128:	00000000 	nop
 
-bfc0013c <uart2ram>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:117
-bfc0013c:	00139880 	sll	s3,s3,0x2
+bfc0012c <uart2ram>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:118
-bfc00140:	02729821 	addu	s3,s3,s2
+bfc0012c:	00139880 	sll	s3,s3,0x2
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:119
+bfc00130:	02729821 	addu	s3,s3,s2
 
-bfc00144 <uart2ram_next>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:120
-bfc00144:	ae120010 	sw	s2,16(s0)
+bfc00134 <uart2ram_next>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:121
-bfc00148:	0ff0009a 	jal	bfc00268 <getword>
+bfc00134:	ae120010 	sw	s2,16(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:122
-bfc0014c:	00000000 	nop
+bfc00138:	0ff00096 	jal	bfc00258 <getword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:123
-bfc00150:	ae420000 	sw	v0,0(s2)
+bfc0013c:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:124
-bfc00154:	26520004 	addiu	s2,s2,4
+bfc00140:	ae420000 	sw	v0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:125
-bfc00158:	1672fffa 	bne	s3,s2,bfc00144 <uart2ram_next>
+bfc00144:	26520004 	addiu	s2,s2,4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:126
-bfc0015c:	00000000 	nop
+bfc00148:	1672fffa 	bne	s3,s2,bfc00134 <uart2ram_next>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:127
-bfc00160:	1000ffbf 	b	bfc00060 <uart_cmd>
+bfc0014c:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:128
-bfc00164:	00000000 	nop
+bfc00150:	1000ffc1 	b	bfc00058 <uart_cmd>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:129
+bfc00154:	00000000 	nop
 
-bfc00168 <ram2uart>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:131
-bfc00168:	00139880 	sll	s3,s3,0x2
+bfc00158 <ram2uart>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:132
-bfc0016c:	02729821 	addu	s3,s3,s2
+bfc00158:	00139880 	sll	s3,s3,0x2
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:133
+bfc0015c:	02729821 	addu	s3,s3,s2
 
-bfc00170 <ram2uart_next>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:134
-bfc00170:	ae120010 	sw	s2,16(s0)
+bfc00160 <ram2uart_next>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:135
-bfc00174:	8e440000 	lw	a0,0(s2)
+bfc00160:	ae120010 	sw	s2,16(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:136
-bfc00178:	0ff000a9 	jal	bfc002a4 <putword>
+bfc00164:	8e440000 	lw	a0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:137
-bfc0017c:	00000000 	nop
+bfc00168:	0ff000a5 	jal	bfc00294 <putword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:138
-bfc00180:	26520004 	addiu	s2,s2,4
+bfc0016c:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:139
-bfc00184:	1672fffa 	bne	s3,s2,bfc00170 <ram2uart_next>
+bfc00170:	26520004 	addiu	s2,s2,4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:140
-bfc00188:	00000000 	nop
+bfc00174:	1672fffa 	bne	s3,s2,bfc00160 <ram2uart_next>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:141
-bfc0018c:	1000ffb4 	b	bfc00060 <uart_cmd>
+bfc00178:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:142
-bfc00190:	00000000 	nop
+bfc0017c:	1000ffb6 	b	bfc00058 <uart_cmd>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:143
+bfc00180:	00000000 	nop
 
-bfc00194 <uart2flash>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:145
-bfc00194:	00139840 	sll	s3,s3,0x1
+bfc00184 <uart2flash>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:146
-bfc00198:	02729821 	addu	s3,s3,s2
+bfc00184:	00139840 	sll	s3,s3,0x1
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:147
+bfc00188:	02729821 	addu	s3,s3,s2
 
-bfc0019c <uart2flash_next>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:148
-bfc0019c:	ae120010 	sw	s2,16(s0)
+bfc0018c <uart2flash_next>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:149
-bfc001a0:	0ff0009a 	jal	bfc00268 <getword>
+bfc0018c:	ae120010 	sw	s2,16(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:150
-bfc001a4:	00000000 	nop
+bfc00190:	0ff00096 	jal	bfc00258 <getword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:151
-bfc001a8:	24080040 	li	t0,64
+bfc00194:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:152
-bfc001ac:	a6480000 	sh	t0,0(s2)
+bfc00198:	24080040 	li	t0,64
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:153
-bfc001b0:	00000000 	nop
+bfc0019c:	a6480000 	sh	t0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:154
-bfc001b4:	a6420000 	sh	v0,0(s2)
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:156
-bfc001b8:	24080070 	li	t0,112
+bfc001a0:	00000000 	nop
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:155
+bfc001a4:	a6420000 	sh	v0,0(s2)
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:157
+bfc001a8:	24080070 	li	t0,112
 
-bfc001bc <wait_write>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:158
-bfc001bc:	a6480000 	sh	t0,0(s2)
+bfc001ac <wait_write>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:159
-bfc001c0:	00000000 	nop
+bfc001ac:	a6480000 	sh	t0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:160
-bfc001c4:	96490000 	lhu	t1,0(s2)
+bfc001b0:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:161
-bfc001c8:	31290080 	andi	t1,t1,0x80
+bfc001b4:	96490000 	lhu	t1,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:162
-bfc001cc:	1120fffb 	beqz	t1,bfc001bc <wait_write>
+bfc001b8:	31290080 	andi	t1,t1,0x80
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:163
-bfc001d0:	00000000 	nop
+bfc001bc:	1120fffb 	beqz	t1,bfc001ac <wait_write>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:164
-bfc001d4:	26520002 	addiu	s2,s2,2
+bfc001c0:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:165
-bfc001d8:	1672fff0 	bne	s3,s2,bfc0019c <uart2flash_next>
+bfc001c4:	26520002 	addiu	s2,s2,2
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:166
-bfc001dc:	00000000 	nop
+bfc001c8:	1672fff0 	bne	s3,s2,bfc0018c <uart2flash_next>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:167
-bfc001e0:	1000ff9f 	b	bfc00060 <uart_cmd>
+bfc001cc:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:168
-bfc001e4:	00000000 	nop
+bfc001d0:	1000ffa1 	b	bfc00058 <uart_cmd>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:169
+bfc001d4:	00000000 	nop
 
-bfc001e8 <flash2uart>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:172
-bfc001e8:	240800ff 	li	t0,255
+bfc001d8 <flash2uart>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:173
-bfc001ec:	a6480000 	sh	t0,0(s2)
+bfc001d8:	240800ff 	li	t0,255
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:174
-bfc001f0:	00139880 	sll	s3,s3,0x2
+bfc001dc:	a6480000 	sh	t0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:175
-bfc001f4:	02729821 	addu	s3,s3,s2
+bfc001e0:	00139880 	sll	s3,s3,0x2
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:176
+bfc001e4:	02729821 	addu	s3,s3,s2
 
-bfc001f8 <flash2uart_next>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:177
-bfc001f8:	ae120010 	sw	s2,16(s0)
+bfc001e8 <flash2uart_next>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:178
-bfc001fc:	96440000 	lhu	a0,0(s2)
+bfc001e8:	ae120010 	sw	s2,16(s0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:179
-bfc00200:	96480002 	lhu	t0,2(s2)
+bfc001ec:	96440000 	lhu	a0,0(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:180
-bfc00204:	00084400 	sll	t0,t0,0x10
+bfc001f0:	96480002 	lhu	t0,2(s2)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:181
-bfc00208:	00882025 	or	a0,a0,t0
+bfc001f4:	00084400 	sll	t0,t0,0x10
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:182
-bfc0020c:	0ff000a9 	jal	bfc002a4 <putword>
+bfc001f8:	00882025 	or	a0,a0,t0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:183
-bfc00210:	00000000 	nop
+bfc001fc:	0ff000a5 	jal	bfc00294 <putword>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:184
-bfc00214:	26520004 	addiu	s2,s2,4
+bfc00200:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:185
-bfc00218:	1672fff7 	bne	s3,s2,bfc001f8 <flash2uart_next>
+bfc00204:	26520004 	addiu	s2,s2,4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:186
-bfc0021c:	00000000 	nop
+bfc00208:	1672fff7 	bne	s3,s2,bfc001e8 <flash2uart_next>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:187
-bfc00220:	1000ff8f 	b	bfc00060 <uart_cmd>
+bfc0020c:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:188
-bfc00224:	00000000 	nop
+bfc00210:	1000ff91 	b	bfc00058 <uart_cmd>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:189
+bfc00214:	00000000 	nop
 
-bfc00228 <check_rx>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:192
-bfc00228:	3c08bfe4 	lui	t0,0xbfe4
+bfc00218 <check_rx>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:193
-bfc0022c:	81090005 	lb	t1,5(t0)
+bfc00218:	3c08bfe4 	lui	t0,0xbfe4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:194
-bfc00230:	31290001 	andi	t1,t1,0x1
+bfc0021c:	81090005 	lb	t1,5(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:195
-bfc00234:	1120fffc 	beqz	t1,bfc00228 <check_rx>
+bfc00220:	31290001 	andi	t1,t1,0x1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:196
-bfc00238:	00000000 	nop
+bfc00224:	1120fffc 	beqz	t1,bfc00218 <check_rx>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:197
-bfc0023c:	81020000 	lb	v0,0(t0)
+bfc00228:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:198
-bfc00240:	03e00008 	jr	ra
+bfc0022c:	81020000 	lb	v0,0(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:199
-bfc00244:	00000000 	nop
+bfc00230:	03e00008 	jr	ra
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:200
+bfc00234:	00000000 	nop
 
-bfc00248 <putbyte>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:202
-bfc00248:	3c08bfe4 	lui	t0,0xbfe4
+bfc00238 <putbyte>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:203
+bfc00238:	3c08bfe4 	lui	t0,0xbfe4
 
-bfc0024c <check_tx>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:204
-bfc0024c:	81090005 	lb	t1,5(t0)
+bfc0023c <check_tx>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:205
-bfc00250:	31290020 	andi	t1,t1,0x20
+bfc0023c:	81090005 	lb	t1,5(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:206
-bfc00254:	1120fffd 	beqz	t1,bfc0024c <check_tx>
+bfc00240:	31290020 	andi	t1,t1,0x20
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:207
-bfc00258:	00000000 	nop
+bfc00244:	1120fffd 	beqz	t1,bfc0023c <check_tx>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:208
-bfc0025c:	a1040000 	sb	a0,0(t0)
+bfc00248:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:209
-bfc00260:	03e00008 	jr	ra
+bfc0024c:	a1040000 	sb	a0,0(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:210
-bfc00264:	00000000 	nop
+bfc00250:	03e00008 	jr	ra
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:211
+bfc00254:	00000000 	nop
 
-bfc00268 <getword>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:213
-bfc00268:	240c0008 	li	t4,8
+bfc00258 <getword>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:214
-bfc0026c:	3c08bfe4 	lui	t0,0xbfe4
+bfc00258:	240c0008 	li	t4,8
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:215
+bfc0025c:	3c08bfe4 	lui	t0,0xbfe4
 
-bfc00270 <check_rx_word>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:216
-bfc00270:	81090005 	lb	t1,5(t0)
+bfc00260 <check_rx_word>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:217
-bfc00274:	31290001 	andi	t1,t1,0x1
+bfc00260:	81090005 	lb	t1,5(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:218
-bfc00278:	1120fffd 	beqz	t1,bfc00270 <check_rx_word>
+bfc00264:	31290001 	andi	t1,t1,0x1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:219
-bfc0027c:	00000000 	nop
+bfc00268:	1120fffd 	beqz	t1,bfc00260 <check_rx_word>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:220
-bfc00280:	810a0000 	lb	t2,0(t0)
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:223
-bfc00284:	000a5600 	sll	t2,t2,0x18
+bfc0026c:	00000000 	nop
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:221
+bfc00270:	810a0000 	lb	t2,0(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:224
-bfc00288:	00021202 	srl	v0,v0,0x8
+bfc00274:	000a5600 	sll	t2,t2,0x18
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:225
-bfc0028c:	004a1025 	or	v0,v0,t2
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:227
-bfc00290:	000c6042 	srl	t4,t4,0x1
+bfc00278:	00021202 	srl	v0,v0,0x8
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:226
+bfc0027c:	004a1025 	or	v0,v0,t2
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:228
-bfc00294:	1580fff6 	bnez	t4,bfc00270 <check_rx_word>
+bfc00280:	000c6042 	srl	t4,t4,0x1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:229
-bfc00298:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:231
-bfc0029c:	03e00008 	jr	ra
+bfc00284:	1580fff6 	bnez	t4,bfc00260 <check_rx_word>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:230
+bfc00288:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:232
-bfc002a0:	00000000 	nop
+bfc0028c:	03e00008 	jr	ra
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:233
+bfc00290:	00000000 	nop
 
-bfc002a4 <putword>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:235
-bfc002a4:	240c0008 	li	t4,8
+bfc00294 <putword>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:236
-bfc002a8:	3c08bfe4 	lui	t0,0xbfe4
+bfc00294:	240c0008 	li	t4,8
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:237
+bfc00298:	3c08bfe4 	lui	t0,0xbfe4
 
-bfc002ac <check_tx_word>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:238
-bfc002ac:	81090005 	lb	t1,5(t0)
+bfc0029c <check_tx_word>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:239
-bfc002b0:	31290020 	andi	t1,t1,0x20
+bfc0029c:	81090005 	lb	t1,5(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:240
-bfc002b4:	1120fffd 	beqz	t1,bfc002ac <check_tx_word>
+bfc002a0:	31290020 	andi	t1,t1,0x20
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:241
-bfc002b8:	00000000 	nop
+bfc002a4:	1120fffd 	beqz	t1,bfc0029c <check_tx_word>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:242
-bfc002bc:	a1040000 	sb	a0,0(t0)
+bfc002a8:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:243
-bfc002c0:	00042202 	srl	a0,a0,0x8
+bfc002ac:	a1040000 	sb	a0,0(t0)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:244
-bfc002c4:	000c6042 	srl	t4,t4,0x1
+bfc002b0:	00042202 	srl	a0,a0,0x8
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:245
-bfc002c8:	1580fff8 	bnez	t4,bfc002ac <check_tx_word>
+bfc002b4:	000c6042 	srl	t4,t4,0x1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:246
-bfc002cc:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:248
-bfc002d0:	03e00008 	jr	ra
+bfc002b8:	1580fff8 	bnez	t4,bfc0029c <check_tx_word>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:247
+bfc002bc:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:249
-bfc002d4:	00000000 	nop
+bfc002c0:	03e00008 	jr	ra
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/boot.s:250
+bfc002c4:	00000000 	nop
 
-bfc002d8 <load_elf>:
+bfc002c8 <load_elf>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:30
-bfc002d8:	3c10bfa0 	lui	s0,0xbfa0
+bfc002c8:	3c10bfa0 	lui	s0,0xbfa0
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:31
-bfc002dc:	240f0000 	li	t7,0
-bfc002e0:	020f7821 	addu	t7,s0,t7
-bfc002e4:	8de90000 	lw	t1,0(t7)
+bfc002cc:	240f0000 	li	t7,0
+bfc002d0:	020f7821 	addu	t7,s0,t7
+bfc002d4:	8de90000 	lw	t1,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:32
-bfc002e8:	240f0000 	li	t7,0
-bfc002ec:	020f7821 	addu	t7,s0,t7
-bfc002f0:	8de90000 	lw	t1,0(t7)
+bfc002d8:	240f0000 	li	t7,0
+bfc002dc:	020f7821 	addu	t7,s0,t7
+bfc002e0:	8de90000 	lw	t1,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:33
-bfc002f4:	240f0000 	li	t7,0
-bfc002f8:	020f7821 	addu	t7,s0,t7
-bfc002fc:	8de90000 	lw	t1,0(t7)
+bfc002e4:	240f0000 	li	t7,0
+bfc002e8:	020f7821 	addu	t7,s0,t7
+bfc002ec:	8de90000 	lw	t1,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:35
-bfc00300:	240f0000 	li	t7,0
-bfc00304:	020f7821 	addu	t7,s0,t7
-bfc00308:	8de90000 	lw	t1,0(t7)
+bfc002f0:	240f0000 	li	t7,0
+bfc002f4:	020f7821 	addu	t7,s0,t7
+bfc002f8:	8de90000 	lw	t1,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:36
-bfc0030c:	3c08464c 	lui	t0,0x464c
-bfc00310:	3508457f 	ori	t0,t0,0x457f
+bfc002fc:	3c08464c 	lui	t0,0x464c
+bfc00300:	3508457f 	ori	t0,t0,0x457f
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:37
-bfc00314:	11090003 	beq	t0,t1,bfc00324 <load_elf+0x4c>
+bfc00304:	11090003 	beq	t0,t1,bfc00314 <load_elf+0x4c>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:38
-bfc00318:	00000000 	nop
+bfc00308:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:39
-bfc0031c:	1000002c 	b	bfc003d0 <bad>
+bfc0030c:	1000002c 	b	bfc003c0 <bad>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:40
-bfc00320:	00000000 	nop
+bfc00310:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:43
-bfc00324:	240f001c 	li	t7,28
-bfc00328:	020f7821 	addu	t7,s0,t7
-# ucore : e_phoff = 0x34;e_phnum = 0x280001;e_entry = 0x80000000
-bfc0032c:	8df10000 	lw	s1,0(t7) # e_phoff 文件中程序头表的偏移（bytes）
+bfc00314:	240f001c 	li	t7,28
+bfc00318:	020f7821 	addu	t7,s0,t7
+bfc0031c:	8df10000 	lw	s1,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:45
-bfc00330:	240f002c 	li	t7,44
-bfc00334:	020f7821 	addu	t7,s0,t7
-bfc00338:	8df20000 	lw	s2,0(t7) # e_phnum 程序头表中的项数
+bfc00320:	240f002c 	li	t7,44
+bfc00324:	020f7821 	addu	t7,s0,t7
+bfc00328:	8df20000 	lw	s2,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:46
-bfc0033c:	3252ffff 	andi	s2,s2,0xffff
+bfc0032c:	3252ffff 	andi	s2,s2,0xffff
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:49
-bfc00340:	240f0018 	li	t7,24
-bfc00344:	020f7821 	addu	t7,s0,t7
-bfc00348:	8df30000 	lw	s3,0(t7) # e_entry 程序的虚拟入口地址
+bfc00330:	240f0018 	li	t7,24
+bfc00334:	020f7821 	addu	t7,s0,t7
+bfc00338:	8df30000 	lw	s3,0(t7)
 
-bfc0034c <next_sec>:
+bfc0033c <next_sec>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:54
-bfc0034c:	262f0008 	addiu	t7,s1,8 #s1, addr proghdr
-bfc00350:	020f7821 	addu	t7,s0,t7
-bfc00354:	8df40000 	lw	s4,0(t7)  #s4, p_va 段的第一个字节将被映射到到内存中的虚拟地址；
+bfc0033c:	262f0008 	addiu	t7,s1,8
+bfc00340:	020f7821 	addu	t7,s0,t7
+bfc00344:	8df40000 	lw	s4,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:56
-bfc00358:	262f0010 	addiu	t7,s1,16
-bfc0035c:	020f7821 	addu	t7,s0,t7
-bfc00360:	8df50000 	lw	s5,0(t7)  #s5, p_filesz 段在文件映像中所占的字节数
+bfc00348:	262f0010 	addiu	t7,s1,16
+bfc0034c:	020f7821 	addu	t7,s0,t7
+bfc00350:	8df50000 	lw	s5,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:58
-bfc00364:	262f0004 	addiu	t7,s1,4
-bfc00368:	020f7821 	addu	t7,s0,t7
-bfc0036c:	8df60000 	lw	s6,0(t7)  #s6, p_offset 当前段相对于文件起始位置的偏移量
+bfc00354:	262f0004 	addiu	t7,s1,4
+bfc00358:	020f7821 	addu	t7,s0,t7
+bfc0035c:	8df60000 	lw	s6,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:60
-bfc00370:	001447c2 	srl	t0,s4,0x1f
+bfc00360:	001447c2 	srl	t0,s4,0x1f
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:61
-bfc00374:	1100000e 	beqz	t0,bfc003b0 <copy_sec+0x24>
+bfc00364:	1100000e 	beqz	t0,bfc003a0 <copy_sec+0x24>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:62
-bfc00378:	00000000 	nop
+bfc00368:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:63
-bfc0037c:	12a0000c 	beqz	s5,bfc003b0 <copy_sec+0x24>
+bfc0036c:	12a0000c 	beqz	s5,bfc003a0 <copy_sec+0x24>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:64
-bfc00380:	00000000 	nop
+bfc00370:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:66
-bfc00384:	3c08a000 	lui	t0,0xa000
+bfc00374:	3c08a000 	lui	t0,0xa000
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:67
-bfc00388:	0288a025 	or	s4,s4,t0
+bfc00378:	0288a025 	or	s4,s4,t0
 
-bfc0038c <copy_sec>:
+bfc0037c <copy_sec>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:71
-bfc0038c:	26cf0000 	addiu	t7,s6,0
-bfc00390:	020f7821 	addu	t7,s0,t7
-bfc00394:	8de80000 	lw	t0,0(t7)
+bfc0037c:	26cf0000 	addiu	t7,s6,0
+bfc00380:	020f7821 	addu	t7,s0,t7
+bfc00384:	8de80000 	lw	t0,0(t7)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:72
-bfc00398:	ae880000 	sw	t0,0(s4)
+bfc00388:	ae880000 	sw	t0,0(s4)
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:73
-bfc0039c:	26d60004 	addiu	s6,s6,4
+bfc0038c:	26d60004 	addiu	s6,s6,4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:74
-bfc003a0:	26940004 	addiu	s4,s4,4
+bfc00390:	26940004 	addiu	s4,s4,4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:75
-bfc003a4:	26b5fffc 	addiu	s5,s5,-4
+bfc00394:	26b5fffc 	addiu	s5,s5,-4
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:76
-bfc003a8:	1ea0fff8 	bgtz	s5,bfc0038c <copy_sec>
+bfc00398:	1ea0fff8 	bgtz	s5,bfc0037c <copy_sec>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:77
-bfc003ac:	00000000 	nop
+bfc0039c:	00000000 	nop
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:80
-bfc003b0:	26310020 	addiu	s1,s1,32
+bfc003a0:	26310020 	addiu	s1,s1,32
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:81
-bfc003b4:	2652ffff 	addiu	s2,s2,-1
+bfc003a4:	2652ffff 	addiu	s2,s2,-1
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:82
-bfc003b8:	1e40ffe4 	bgtz	s2,bfc0034c <next_sec>
+bfc003a8:	1e40ffe4 	bgtz	s2,bfc0033c <next_sec>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:83
+bfc003ac:	00000000 	nop
+
+bfc003b0 <done>:
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:87
+bfc003b0:	02600008 	jr	s3
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:88
+bfc003b4:	00000000 	nop
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:89
+bfc003b8:	1000ffff 	b	bfc003b8 <done+0x8>
+/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:90
 bfc003bc:	00000000 	nop
 
-bfc003c0 <done>:
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:87
-bfc003c0:	02600008 	jr	s3
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:88
-bfc003c4:	00000000 	nop
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:89
-bfc003c8:	1000ffff 	b	bfc003c8 <done+0x8>
-/home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:90
-bfc003cc:	00000000 	nop
-
-bfc003d0 <bad>:
+bfc003c0 <bad>:
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:93
-bfc003d0:	1000ffff 	b	bfc003d0 <bad>
+bfc003c0:	1000ffff 	b	bfc003c0 <bad>
 /home/csy/BootLoader/assembly-naivemips-brd-NSCSCC/bootasm.S:94
-bfc003d4:	00000000 	nop
+bfc003c4:	00000000 	nop
+
 Disassembly of section .reginfo:
 
 00400054 <.reginfo>:
-  400054:	807f9f14 	lb	ra,-24812(v1)
+  400054:	807f9714 	lb	ra,-26860(v1)
 	...
-  400068:	bfc183d0 	cache	0x1,-31792(s8)
+  400068:	bfc183c0 	cache	0x1,-31808(s8)
+
 Disassembly of section .debug_aranges:
 
-00000000 <_fdata-0xbfc103d8>:
+00000000 <_fdata-0xbfc103c8>:
    0:	0000001c 	0x1c
    4:	00000002 	srl	zero,zero,0x0
    8:	00040000 	sll	zero,a0,0x0
    c:	00000000 	nop
   10:	bfc00000 	cache	0x0,0(s8)
-  14:	000003d8 	0x3d8
+  14:	000003c8 	0x3c8
 	...
+
 Disassembly of section .debug_info:
 
 00000000 <.debug_info>:
@@ -551,7 +547,7 @@ Disassembly of section .debug_info:
    8:	01040000 	0x1040000
    c:	00000000 	nop
   10:	bfc00000 	cache	0x0,0(s8)
-  14:	bfc003d8 	cache	0x0,984(s8)
+  14:	bfc003c8 	cache	0x0,968(s8)
   18:	746f6f62 	jalx	1bdbd88 <__start-0xbe024278>
   1c:	2f00732e 	sltiu	zero,t8,29486
   20:	656d6f68 	0x656d6f68
@@ -572,6 +568,7 @@ Disassembly of section .debug_info:
   5c:	30352e38 	andi	s5,at,0x2e38
   60:	Address 0x0000000000000060 is out of bounds.
 
+
 Disassembly of section .debug_abbrev:
 
 00000000 <.debug_abbrev>:
@@ -580,10 +577,11 @@ Disassembly of section .debug_abbrev:
    8:	1b080301 	0x1b080301
    c:	13082508 	beq	t8,t0,9430 <__start-0xbfbf6bd0>
   10:	00000005 	0x5
+
 Disassembly of section .debug_line:
 
 00000000 <.debug_line>:
-   0:	0000011e 	0x11e
+   0:	0000011b 	0x11b
    4:	002a0002 	ror	zero,t2,0x0
    8:	01010000 	0x1010000
    c:	000d0efb 	0xd0efb
@@ -602,58 +600,57 @@ Disassembly of section .debug_line:
   40:	4b4b4b4c 	c2	0x14b4b4c
   44:	4b4b4b4c 	c2	0x14b4b4c
   48:	844e4b4b 	lh	t6,19275(v0)
-  4c:	834b4b4b 	lb	t3,19275(k0)
-  50:	4c4b4d4b 	0x4c4b4d4b
-  54:	4b4c4c4b 	c2	0x14c4c4b
+  4c:	4b4c4b4b 	c2	0x14c4b4b
+  50:	4c4c4b51 	0x4c4c4b51
+  54:	4b4b4b4b 	c2	0x14b4b4b
   58:	4b4b4b4b 	c2	0x14b4b4b
-  5c:	4c4b4b4b 	0x4c4b4b4b
+  5c:	4d4b4b4c 	0x4d4b4b4c
   60:	4b4d4b4b 	c2	0x14d4b4b
   64:	4b4b4d4b 	c2	0x14b4d4b
-  68:	4b4b4b4d 	c2	0x14b4b4d
-  6c:	4b4b4b4c 	c2	0x14b4b4c
+  68:	4b4b4c4b 	c2	0x14b4c4b
+  6c:	4b4b4b4b 	c2	0x14b4b4b
   70:	4b4b4b4b 	c2	0x14b4b4b
-  74:	4b4b4b4b 	c2	0x14b4b4b
-  78:	4b4c4b4c 	c2	0x14c4b4c
-  7c:	4b4d4b4d 	c2	0x14d4b4d
-  80:	4b4b4b4d 	c2	0x14b4b4d
-  84:	4b4b4b4b 	c2	0x14b4b4b
-  88:	4b4c4b4d 	c2	0x14c4b4d
+  74:	4c4b4c4b 	0x4c4b4c4b
+  78:	4d4b4d4b 	0x4d4b4d4b
+  7c:	4b4b4d4b 	c2	0x14b4d4b
+  80:	4b4b4b4b 	c2	0x14b4b4b
+  84:	4c4b4d4b 	0x4c4b4d4b
+  88:	4b4b4b4b 	c2	0x14b4b4b
   8c:	4b4b4b4b 	c2	0x14b4b4b
-  90:	4d4b4b4b 	0x4d4b4b4b
-  94:	4b4b4c4b 	c2	0x14b4c4b
-  98:	4b4b4b4b 	c2	0x14b4b4b
-  9c:	4b4d4b4b 	c2	0x14d4b4b
-  a0:	4b4b4b4c 	c2	0x14b4b4c
-  a4:	4c4b4b4b 	0x4c4b4b4b
-  a8:	4b4b4b4c 	c2	0x14b4b4c
+  90:	4b4c4b4d 	c2	0x14c4b4d
+  94:	4b4b4b4b 	c2	0x14b4b4b
+  98:	4d4b4b4b 	0x4d4b4b4b
+  9c:	4b4b4c4b 	c2	0x14b4c4b
+  a0:	4b4b4b4b 	c2	0x14b4b4b
+  a4:	4b4b4c4c 	c2	0x14b4c4c
+  a8:	4b4b4b4b 	c2	0x14b4b4b
   ac:	4b4b4b4b 	c2	0x14b4b4b
-  b0:	4e4b4b4b 	c3	0x4b4b4b
-  b4:	4c4b4b4b 	0x4c4b4b4b
+  b0:	4b4b4b4e 	c2	0x14b4b4e
+  b4:	4b4b4b4c 	c2	0x14b4b4c
   b8:	4b4b4b4b 	c2	0x14b4b4b
   bc:	4b4b4b4b 	c2	0x14b4b4b
-  c0:	4e4b4b4b 	c3	0x4b4b4b
+  c0:	4b4b4b4e 	c2	0x14b4b4e
   c4:	4b4b4b4b 	c2	0x14b4b4b
-  c8:	4d4b4b4b 	0x4d4b4b4b
-  cc:	4b4b4b4c 	c2	0x14b4b4c
-  d0:	4d4b4b4b 	0x4d4b4b4b
-  d4:	4b4b4c4b 	c2	0x14b4c4b
-  d8:	4b4d4b4b 	c2	0x14d4b4b
-  dc:	4b4b4c4b 	c2	0x14b4c4b
-  e0:	4b4d4b4c 	c2	0x14d4b4c
-  e4:	4b4b4b4c 	c2	0x14b4b4c
-  e8:	4b4b4b4b 	c2	0x14b4b4b
-  ec:	044b4c4b 	tltiu	v0,19531
-  f0:	7ea50302 	0x7ea50302
-  f4:	bbbb4b4a 	swr	k1,19274(sp)
-  f8:	4b83bbbc 	c2	0x183bbbc
-  fc:	bc4d4b4b 	cache	0xd,19275(v0)
- 100:	bcbf4dbb 	cache	0x1f,19899(a1)
- 104:	4b4bbcbc 	c2	0x14bbcbc
- 108:	4b4c4b4b 	c2	0x14c4b4b
- 10c:	4b4bbb4e 	c2	0x14bbb4e
- 110:	4d4b4b4b 	0x4d4b4b4b
- 114:	4e4b4b4b 	c3	0x4b4b4b
- 118:	4d4b4b4b 	0x4d4b4b4b
- 11c:	0004024b 	0x4024b
- 120:	Address 0x0000000000000120 is out of bounds.
+  c8:	4b4b4c4d 	c2	0x14b4c4d
+  cc:	4b4b4b4b 	c2	0x14b4b4b
+  d0:	4b4c4b4d 	c2	0x14c4b4d
+  d4:	4d4b4b4b 	0x4d4b4b4b
+  d8:	4b4c4b4b 	c2	0x14c4b4b
+  dc:	4d4b4c4b 	0x4d4b4c4b
+  e0:	4b4b4c4b 	c2	0x14b4c4b
+  e4:	4b4b4b4b 	c2	0x14b4b4b
+  e8:	4b4c4b4b 	c2	0x14c4b4b
+  ec:	a4030204 	sh	v1,516(zero)
+  f0:	bb4b4a7e 	swr	t3,19070(k0)
+  f4:	83bbbcbb 	lb	k1,-17221(sp)
+  f8:	4d4b4b4b 	0x4d4b4b4b
+  fc:	bf4dbbbc 	cache	0xd,-17476(k0)
+ 100:	4bbcbcbc 	c2	0x1bcbcbc
+ 104:	4c4b4b4b 	0x4c4b4b4b
+ 108:	4bbb4e4b 	c2	0x1bb4e4b
+ 10c:	4b4b4b4b 	c2	0x14b4b4b
+ 110:	4b4b4b4d 	c2	0x14b4b4d
+ 114:	4b4b4b4e 	c2	0x14b4b4e
+ 118:	04024b4d 	bltzl	zero,12e50 <__start-0xbfbed1b0>
+ 11c:	Address 0x000000000000011c is out of bounds.
 

@@ -1410,7 +1410,7 @@
 
 `include "global_defines.vh"
 `include "AXICache_defines.vh"
-module AXIInteract (
+module AXI_Interface (
     input clk,
     input resetn,
 `ifdef ILA_debug
@@ -1600,31 +1600,14 @@ module AXIInteract (
     wire          udata_bvalid;
     wire          udata_bready;
     
-    reg   [  2:0] I_RD_state;
-    reg   [  2:0] I_RD_nextstate;
-    wire  [  2:0] I_RD_DataReady;
     reg   [ 31:0] I_RD_Addr;
-    reg   [127:0] AXI_I_RData;
-
-    reg   [  2:0] D_RD_state;
-    reg   [  2:0] D_RD_nextstate;
-    wire  [  2:0] D_RD_DataReady;
     reg   [ 31:0] D_RD_Addr;
-    reg   [127:0] AXI_D_RData;
-
-    reg   [  2:0] D_WR_state;
-    reg   [  2:0] D_WR_nextstate;
     reg   [ 31:0] D_WR_Addr;
-    reg   [127:0] AXI_D_WData;
 
-    reg   [  1:0] U_RD_state;
-    reg   [  1:0] U_RD_nextstate;
     reg   [ 31:0] U_RD_Addr;
-    reg   [  2:0] U_RD_load_size; //TODO:这个没实现?
+    reg   [  2:0] U_RD_load_size;
     reg   [ 31:0] AXI_U_RData;
 
-    reg   [  2:0] U_WR_state;
-    reg   [  2:0] U_WR_nextstate;
     reg   [ 31:0] U_WR_Addr;
     reg   [ 31:0] AXI_U_WData;
     reg   [  3:0] AXI_U_WStrb;
@@ -2162,88 +2145,576 @@ module AXIInteract (
         end        
     end
 
-    axi_crossbar_cache biu (//TODO: ICACHE 的UNCACHE尚未实现
+`ifndef use_crossbar_ip
+    //AXI crossbar impl
+    // AXI Arbiter: IValid logic
+    wire u_valid;
+    wire d_valid;
+    wire i_valid;
+    assign u_valid = (dstate_uncache != UNCACHE_IDLE) ? 1'b1 : 1'b0;
+    assign d_valid = (dstate != IDLE || dstate_wb != WB_IDLE) ? 1'b1 : 1'b0;
+    assign i_valid = (istate != IDLE) ? 1'b1 : 1'b0;
+
+    //i_bus_req
+    wire [31: 0] i_bus_req_axi_araddr  ;
+    wire [ 3: 0] i_bus_req_axi_arid    ;
+    wire [ 3: 0] i_bus_req_axi_arlen   ;
+    wire [ 2: 0] i_bus_req_axi_arsize  ;
+    wire [ 1: 0] i_bus_req_axi_arburst ;
+    wire [ 1: 0] i_bus_req_axi_arlock  ;
+    wire [ 3: 0] i_bus_req_axi_arcache ;
+    wire [ 2: 0] i_bus_req_axi_arprot  ;
+    wire         i_bus_req_axi_arvalid ;
+    wire         i_bus_req_axi_rready  ;
+    wire [ 3: 0] i_bus_req_axi_awid    ;
+    wire [31: 0] i_bus_req_axi_awaddr  ;
+    wire [ 3: 0] i_bus_req_axi_awlen   ;
+    wire [ 2: 0] i_bus_req_axi_awsize  ;
+    wire [ 1: 0] i_bus_req_axi_awburst ;
+    wire [ 1: 0] i_bus_req_axi_awlock  ;
+    wire [ 3: 0] i_bus_req_axi_awcache ;
+    wire [ 2: 0] i_bus_req_axi_awprot  ;
+    wire         i_bus_req_axi_awvalid ;
+    wire [ 3: 0] i_bus_req_axi_wid     ;
+    wire [31: 0] i_bus_req_axi_wdata   ;
+    wire [ 3: 0] i_bus_req_axi_wstrb   ;
+    wire         i_bus_req_axi_wlast   ;
+    wire         i_bus_req_axi_wvalid  ;
+    wire         i_bus_req_axi_bready  ;
+    
+    assign i_bus_req_axi_araddr   = inst_araddr;
+    assign i_bus_req_axi_arid     = inst_arid;
+    assign i_bus_req_axi_arlen    = inst_arlen;
+    assign i_bus_req_axi_arsize   = inst_arsize;
+    assign i_bus_req_axi_arburst  = inst_arburst;
+    assign i_bus_req_axi_arlock   = inst_arlock;
+    assign i_bus_req_axi_arcache  = inst_arcache;
+    assign i_bus_req_axi_arprot   = inst_arprot;
+    assign i_bus_req_axi_arvalid  = inst_arvalid;
+    assign i_bus_req_axi_rready   = inst_rready;
+    assign i_bus_req_axi_awid     = inst_awid;
+    assign i_bus_req_axi_awaddr   = inst_awaddr;
+    assign i_bus_req_axi_awlen    = inst_awlen;
+    assign i_bus_req_axi_awsize   = inst_awsize;
+    assign i_bus_req_axi_awburst  = inst_awburst;
+    assign i_bus_req_axi_awlock   = inst_awlock;
+    assign i_bus_req_axi_awcache  = inst_awcache;
+    assign i_bus_req_axi_awprot   = inst_awprot;
+    assign i_bus_req_axi_awvalid  = inst_awvalid;
+    assign i_bus_req_axi_wid      = inst_wid;
+    assign i_bus_req_axi_wdata    = inst_wdata;
+    assign i_bus_req_axi_wstrb    = inst_wstrb;
+    assign i_bus_req_axi_wlast    = inst_wlast;
+    assign i_bus_req_axi_wvalid   = inst_wvalid;
+    assign i_bus_req_axi_bready   = inst_bready;
+
+    //d_bus_req
+    wire [31: 0] d_bus_req_axi_araddr  ;
+    wire [ 3: 0] d_bus_req_axi_arid    ;
+    wire [ 3: 0] d_bus_req_axi_arlen   ;
+    wire [ 2: 0] d_bus_req_axi_arsize  ;
+    wire [ 1: 0] d_bus_req_axi_arburst ;
+    wire [ 1: 0] d_bus_req_axi_arlock  ;
+    wire [ 3: 0] d_bus_req_axi_arcache ;
+    wire [ 2: 0] d_bus_req_axi_arprot  ;
+    wire         d_bus_req_axi_arvalid ;
+    wire         d_bus_req_axi_rready  ;
+    wire [ 3: 0] d_bus_req_axi_awid    ;
+    wire [31: 0] d_bus_req_axi_awaddr  ;
+    wire [ 3: 0] d_bus_req_axi_awlen   ;
+    wire [ 2: 0] d_bus_req_axi_awsize  ;
+    wire [ 1: 0] d_bus_req_axi_awburst ;
+    wire [ 1: 0] d_bus_req_axi_awlock  ;
+    wire [ 3: 0] d_bus_req_axi_awcache ;
+    wire [ 2: 0] d_bus_req_axi_awprot  ;
+    wire         d_bus_req_axi_awvalid ;
+    wire [ 3: 0] d_bus_req_axi_wid     ;
+    wire [31: 0] d_bus_req_axi_wdata   ;
+    wire [ 3: 0] d_bus_req_axi_wstrb   ;
+    wire         d_bus_req_axi_wlast   ;
+    wire         d_bus_req_axi_wvalid  ;
+    wire         d_bus_req_axi_bready  ;
+
+    assign d_bus_req_axi_araddr   = data_araddr;
+    assign d_bus_req_axi_arid     = data_arid;
+    assign d_bus_req_axi_arlen    = data_arlen;
+    assign d_bus_req_axi_arsize   = data_arsize;
+    assign d_bus_req_axi_arburst  = data_arburst;
+    assign d_bus_req_axi_arlock   = data_arlock;
+    assign d_bus_req_axi_arcache  = data_arcache;
+    assign d_bus_req_axi_arprot   = data_arprot;
+    assign d_bus_req_axi_arvalid  = data_arvalid;
+    assign d_bus_req_axi_rready   = data_rready;
+    assign d_bus_req_axi_awid     = data_awid;
+    assign d_bus_req_axi_awaddr   = data_awaddr;
+    assign d_bus_req_axi_awlen    = data_awlen;
+    assign d_bus_req_axi_awsize   = data_awsize;
+    assign d_bus_req_axi_awburst  = data_awburst;
+    assign d_bus_req_axi_awlock   = data_awlock;
+    assign d_bus_req_axi_awcache  = data_awcache;
+    assign d_bus_req_axi_awprot   = data_awprot;
+    assign d_bus_req_axi_awvalid  = data_awvalid;
+    assign d_bus_req_axi_wid      = data_wid;
+    assign d_bus_req_axi_wdata    = data_wdata;
+    assign d_bus_req_axi_wstrb    = data_wstrb;
+    assign d_bus_req_axi_wlast    = data_wlast;
+    assign d_bus_req_axi_wvalid   = data_wvalid;
+    assign d_bus_req_axi_bready   = data_bready;
+
+    //u_bus_req
+    wire [31: 0] u_bus_req_axi_araddr  ;
+    wire [ 3: 0] u_bus_req_axi_arid    ;
+    wire [ 3: 0] u_bus_req_axi_arlen   ;
+    wire [ 2: 0] u_bus_req_axi_arsize  ;
+    wire [ 1: 0] u_bus_req_axi_arburst ;
+    wire [ 1: 0] u_bus_req_axi_arlock  ;
+    wire [ 3: 0] u_bus_req_axi_arcache ;
+    wire [ 2: 0] u_bus_req_axi_arprot  ;
+    wire         u_bus_req_axi_arvalid ;
+    wire         u_bus_req_axi_rready  ;
+    wire [ 3: 0] u_bus_req_axi_awid    ;
+    wire [31: 0] u_bus_req_axi_awaddr  ;
+    wire [ 3: 0] u_bus_req_axi_awlen   ;
+    wire [ 2: 0] u_bus_req_axi_awsize  ;
+    wire [ 1: 0] u_bus_req_axi_awburst ;
+    wire [ 1: 0] u_bus_req_axi_awlock  ;
+    wire [ 3: 0] u_bus_req_axi_awcache ;
+    wire [ 2: 0] u_bus_req_axi_awprot  ;
+    wire         u_bus_req_axi_awvalid ;
+    wire [ 3: 0] u_bus_req_axi_wid     ;
+    wire [31: 0] u_bus_req_axi_wdata   ;
+    wire [ 3: 0] u_bus_req_axi_wstrb   ;
+    wire         u_bus_req_axi_wlast   ;
+    wire         u_bus_req_axi_wvalid  ;
+    wire         u_bus_req_axi_bready  ;
+    assign u_bus_req_axi_araddr   = udata_araddr;
+    assign u_bus_req_axi_arid     = udata_arid;
+    assign u_bus_req_axi_arlen    = udata_arlen;
+    assign u_bus_req_axi_arsize   = udata_arsize;
+    assign u_bus_req_axi_arburst  = udata_arburst;
+    assign u_bus_req_axi_arlock   = udata_arlock;
+    assign u_bus_req_axi_arcache  = udata_arcache;
+    assign u_bus_req_axi_arprot   = udata_arprot;
+    assign u_bus_req_axi_arvalid  = udata_arvalid;
+    assign u_bus_req_axi_rready   = udata_rready;
+    assign u_bus_req_axi_awid     = udata_awid;
+    assign u_bus_req_axi_awaddr   = udata_awaddr;
+    assign u_bus_req_axi_awlen    = udata_awlen;
+    assign u_bus_req_axi_awsize   = udata_awsize;
+    assign u_bus_req_axi_awburst  = udata_awburst;
+    assign u_bus_req_axi_awlock   = udata_awlock;
+    assign u_bus_req_axi_awcache  = udata_awcache;
+    assign u_bus_req_axi_awprot   = udata_awprot;
+    assign u_bus_req_axi_awvalid  = udata_awvalid;
+    assign u_bus_req_axi_wid      = udata_wid;
+    assign u_bus_req_axi_wdata    = udata_wdata;
+    assign u_bus_req_axi_wstrb    = udata_wstrb;
+    assign u_bus_req_axi_wlast    = udata_wlast;
+    assign u_bus_req_axi_wvalid   = udata_wvalid;
+    assign u_bus_req_axi_bready   = udata_bready;
+
+    //i_bus_resp
+    wire         i_bus_resp_axi_arready; 
+    wire [ 3: 0] i_bus_resp_axi_rid    ;
+    wire [31: 0] i_bus_resp_axi_rdata  ; 
+    wire [ 1: 0] i_bus_resp_axi_rresp  ; 
+    wire         i_bus_resp_axi_rlast  ; 
+    wire         i_bus_resp_axi_rvalid ; 
+    wire         i_bus_resp_axi_awready; 
+    wire         i_bus_resp_axi_wready ; 
+    wire [ 3: 0] i_bus_resp_axi_bid    ;
+    wire [ 1: 0] i_bus_resp_axi_bresp  ; 
+    wire         i_bus_resp_axi_bvalid ;
+
+    assign   inst_arready =  i_bus_resp_axi_arready;     
+    assign   inst_rid     =  i_bus_resp_axi_rid    ;
+    assign   inst_rdata   =  i_bus_resp_axi_rdata  ; 
+    assign   inst_rresp   =  i_bus_resp_axi_rresp  ; 
+    assign   inst_rlast   =  i_bus_resp_axi_rlast  ; 
+    assign   inst_rvalid  =  i_bus_resp_axi_rvalid ;   
+    assign   inst_awready =  i_bus_resp_axi_awready;     
+    assign   inst_wready  =  i_bus_resp_axi_wready ;   
+    assign   inst_bid     =  i_bus_resp_axi_bid    ;
+    assign   inst_bresp   =  i_bus_resp_axi_bresp  ; 
+    assign   inst_bvalid  =  i_bus_resp_axi_bvalid ;
+
+    //d_bus_resp
+    wire         d_bus_resp_axi_arready; 
+    wire [ 3: 0] d_bus_resp_axi_rid    ;
+    wire [31: 0] d_bus_resp_axi_rdata  ; 
+    wire [ 1: 0] d_bus_resp_axi_rresp  ; 
+    wire         d_bus_resp_axi_rlast  ; 
+    wire         d_bus_resp_axi_rvalid ; 
+    wire         d_bus_resp_axi_awready; 
+    wire         d_bus_resp_axi_wready ; 
+    wire [ 3: 0] d_bus_resp_axi_bid    ;
+    wire [ 1: 0] d_bus_resp_axi_bresp  ; 
+    wire         d_bus_resp_axi_bvalid ;
+
+    assign   data_arready =  d_bus_resp_axi_arready;     
+    assign   data_rid     =  d_bus_resp_axi_rid    ;
+    assign   data_rdata   =  d_bus_resp_axi_rdata  ; 
+    assign   data_rresp   =  d_bus_resp_axi_rresp  ; 
+    assign   data_rlast   =  d_bus_resp_axi_rlast  ; 
+    assign   data_rvalid  =  d_bus_resp_axi_rvalid ;   
+    assign   data_awready =  d_bus_resp_axi_awready;     
+    assign   data_wready  =  d_bus_resp_axi_wready ;   
+    assign   data_bid     =  d_bus_resp_axi_bid    ;
+    assign   data_bresp   =  d_bus_resp_axi_bresp  ; 
+    assign   data_bvalid  =  d_bus_resp_axi_bvalid ;
+
+    //u_bus_resp
+    wire         u_bus_resp_axi_arready; 
+    wire [ 3: 0] u_bus_resp_axi_rid    ;
+    wire [31: 0] u_bus_resp_axi_rdata  ; 
+    wire [ 1: 0] u_bus_resp_axi_rresp  ; 
+    wire         u_bus_resp_axi_rlast  ; 
+    wire         u_bus_resp_axi_rvalid ; 
+    wire         u_bus_resp_axi_awready; 
+    wire         u_bus_resp_axi_wready ; 
+    wire [ 3: 0] u_bus_resp_axi_bid    ;
+    wire [ 1: 0] u_bus_resp_axi_bresp  ; 
+    wire         u_bus_resp_axi_bvalid ;
+
+    assign   udata_arready =  u_bus_resp_axi_arready;     
+    assign   udata_rid     =  u_bus_resp_axi_rid    ;
+    assign   udata_rdata   =  u_bus_resp_axi_rdata  ; 
+    assign   udata_rresp   =  u_bus_resp_axi_rresp  ; 
+    assign   udata_rlast   =  u_bus_resp_axi_rlast  ; 
+    assign   udata_rvalid  =  u_bus_resp_axi_rvalid ;   
+    assign   udata_awready =  u_bus_resp_axi_awready;     
+    assign   udata_wready  =  u_bus_resp_axi_wready ;   
+    assign   udata_bid     =  u_bus_resp_axi_bid    ;
+    assign   udata_bresp   =  u_bus_resp_axi_bresp  ; 
+    assign   udata_bvalid  =  u_bus_resp_axi_bvalid ;
+
+    //master_req,master_resp
+    wire [31: 0] master_req_axi_araddr   ;
+    wire [ 3: 0] master_req_axi_arid     ;
+    wire [ 3: 0] master_req_axi_arlen    ;
+    wire [ 2: 0] master_req_axi_arsize   ;
+    wire [ 1: 0] master_req_axi_arburst  ;
+    wire [ 1: 0] master_req_axi_arlock   ;
+    wire [ 3: 0] master_req_axi_arcache  ;
+    wire [ 2: 0] master_req_axi_arprot   ;
+    wire         master_req_axi_arvalid  ;
+    wire         master_req_axi_rready   ;
+    wire [ 3: 0] master_req_axi_awid     ;
+    wire [31: 0] master_req_axi_awaddr   ;
+    wire [ 3: 0] master_req_axi_awlen    ;
+    wire [ 2: 0] master_req_axi_awsize   ;
+    wire [ 1: 0] master_req_axi_awburst  ;
+    wire [ 1: 0] master_req_axi_awlock   ;
+    wire [ 3: 0] master_req_axi_awcache  ;
+    wire [ 2: 0] master_req_axi_awprot   ;
+    wire         master_req_axi_awvalid  ;
+    wire [ 3: 0] master_req_axi_wid      ;
+    wire [31: 0] master_req_axi_wdata    ;
+    wire [ 3: 0] master_req_axi_wstrb    ;
+    wire         master_req_axi_wlast    ;
+    wire         master_req_axi_wvalid   ;
+    wire         master_req_axi_bready   ;
+
+    assign  araddr    =  master_req_axi_araddr   ;
+    assign  arid      =  master_req_axi_arid     ;
+    assign  arlen     =  master_req_axi_arlen    ;
+    assign  arsize    =  master_req_axi_arsize   ;
+    assign  arburst   =  master_req_axi_arburst  ;
+    assign  arlock    =  master_req_axi_arlock   ;
+    assign  arcache   =  master_req_axi_arcache  ;
+    assign  arprot    =  master_req_axi_arprot   ;
+    assign  arvalid   =  master_req_axi_arvalid  ;
+    assign  rready    =  master_req_axi_rready   ;
+    assign  awid      =  master_req_axi_awid     ;
+    assign  awaddr    =  master_req_axi_awaddr   ;
+    assign  awlen     =  master_req_axi_awlen    ;
+    assign  awsize    =  master_req_axi_awsize   ;
+    assign  awburst   =  master_req_axi_awburst  ;
+    assign  awlock    =  master_req_axi_awlock   ;
+    assign  awcache   =  master_req_axi_awcache  ;
+    assign  awprot    =  master_req_axi_awprot   ;
+    assign  awvalid   =  master_req_axi_awvalid  ;
+    assign  wid       =  master_req_axi_wid      ;
+    assign  wdata     =  master_req_axi_wdata    ;
+    assign  wstrb     =  master_req_axi_wstrb    ;
+    assign  wlast     =  master_req_axi_wlast    ;
+    assign  wvalid    =  master_req_axi_wvalid   ;
+    assign  bready    =  master_req_axi_bready   ;
+
+    wire          master_resp_axi_arready ;
+    wire  [ 3: 0] master_resp_axi_rid     ;
+    wire  [31: 0] master_resp_axi_rdata   ;
+    wire  [ 1: 0] master_resp_axi_rresp   ;
+    wire          master_resp_axi_rlast   ;
+    wire          master_resp_axi_rvalid  ;
+    wire          master_resp_axi_awready ;
+    wire          master_resp_axi_wready  ;
+    wire  [ 3: 0] master_resp_axi_bid     ;
+    wire  [ 1: 0] master_resp_axi_bresp   ;
+    wire          master_resp_axi_bvalid  ;
+    assign  master_resp_axi_arready  = arready  ;
+    assign  master_resp_axi_rid      = rid      ;
+    assign  master_resp_axi_rdata    = rdata    ;
+    assign  master_resp_axi_rresp    = rresp    ;
+    assign  master_resp_axi_rlast    = rlast    ;
+    assign  master_resp_axi_rvalid   = rvalid   ;
+    assign  master_resp_axi_awready  = awready  ;
+    assign  master_resp_axi_wready   = wready   ;
+    assign  master_resp_axi_bid      = bid      ;
+    assign  master_resp_axi_bresp    = bresp    ;
+    assign  master_resp_axi_bvalid   = bvalid   ;
+
+    BusArbiter   #(
+        .NUM_INPUTS(3)
+    )
+    U_BusArbiter_dut (
+        .clk    (clk ),
+        .resetn (resetn ),
+        .u_valid(u_valid),
+        .d_valid(d_valid),
+        .i_valid(i_valid),
+
+        .i_bus_req_axi_araddr  (i_bus_req_axi_araddr  ),
+        .i_bus_req_axi_arid    (i_bus_req_axi_arid    ),
+        .i_bus_req_axi_arlen   (i_bus_req_axi_arlen   ),
+        .i_bus_req_axi_arsize  (i_bus_req_axi_arsize  ),
+        .i_bus_req_axi_arburst (i_bus_req_axi_arburst ),
+        .i_bus_req_axi_arlock  (i_bus_req_axi_arlock  ),
+        .i_bus_req_axi_arcache (i_bus_req_axi_arcache ),
+        .i_bus_req_axi_arprot  (i_bus_req_axi_arprot  ),
+        .i_bus_req_axi_arvalid (i_bus_req_axi_arvalid ),
+        .i_bus_req_axi_rready  (i_bus_req_axi_rready  ),
+        .i_bus_req_axi_awid    (i_bus_req_axi_awid    ),
+        .i_bus_req_axi_awaddr  (i_bus_req_axi_awaddr  ),
+        .i_bus_req_axi_awlen   (i_bus_req_axi_awlen   ),
+        .i_bus_req_axi_awsize  (i_bus_req_axi_awsize  ),
+        .i_bus_req_axi_awburst (i_bus_req_axi_awburst ),
+        .i_bus_req_axi_awlock  (i_bus_req_axi_awlock  ),
+        .i_bus_req_axi_awcache (i_bus_req_axi_awcache ),
+        .i_bus_req_axi_awprot  (i_bus_req_axi_awprot  ),
+        .i_bus_req_axi_awvalid (i_bus_req_axi_awvalid ),
+        .i_bus_req_axi_wid     (i_bus_req_axi_wid     ),
+        .i_bus_req_axi_wdata   (i_bus_req_axi_wdata   ),
+        .i_bus_req_axi_wstrb   (i_bus_req_axi_wstrb   ),
+        .i_bus_req_axi_wlast   (i_bus_req_axi_wlast   ),
+        .i_bus_req_axi_wvalid  (i_bus_req_axi_wvalid  ),
+        .i_bus_req_axi_bready  (i_bus_req_axi_bready  ),
+
+        .d_bus_req_axi_araddr  (d_bus_req_axi_araddr  ),
+        .d_bus_req_axi_arid    (d_bus_req_axi_arid    ),
+        .d_bus_req_axi_arlen   (d_bus_req_axi_arlen   ),
+        .d_bus_req_axi_arsize  (d_bus_req_axi_arsize  ),
+        .d_bus_req_axi_arburst (d_bus_req_axi_arburst ),
+        .d_bus_req_axi_arlock  (d_bus_req_axi_arlock  ),
+        .d_bus_req_axi_arcache (d_bus_req_axi_arcache ),
+        .d_bus_req_axi_arprot  (d_bus_req_axi_arprot  ),
+        .d_bus_req_axi_arvalid (d_bus_req_axi_arvalid ),
+        .d_bus_req_axi_rready  (d_bus_req_axi_rready  ),
+        .d_bus_req_axi_awid    (d_bus_req_axi_awid    ),
+        .d_bus_req_axi_awaddr  (d_bus_req_axi_awaddr  ),
+        .d_bus_req_axi_awlen   (d_bus_req_axi_awlen   ),
+        .d_bus_req_axi_awsize  (d_bus_req_axi_awsize  ),
+        .d_bus_req_axi_awburst (d_bus_req_axi_awburst ),
+        .d_bus_req_axi_awlock  (d_bus_req_axi_awlock  ),
+        .d_bus_req_axi_awcache (d_bus_req_axi_awcache ),
+        .d_bus_req_axi_awprot  (d_bus_req_axi_awprot  ),
+        .d_bus_req_axi_awvalid (d_bus_req_axi_awvalid ),
+        .d_bus_req_axi_wid     (d_bus_req_axi_wid     ),
+        .d_bus_req_axi_wdata   (d_bus_req_axi_wdata   ),
+        .d_bus_req_axi_wstrb   (d_bus_req_axi_wstrb   ),
+        .d_bus_req_axi_wlast   (d_bus_req_axi_wlast   ),
+        .d_bus_req_axi_wvalid  (d_bus_req_axi_wvalid  ),
+        .d_bus_req_axi_bready  (d_bus_req_axi_bready  ),
+
+        .u_bus_req_axi_araddr  (u_bus_req_axi_araddr  ),
+        .u_bus_req_axi_arid    (u_bus_req_axi_arid    ),
+        .u_bus_req_axi_arlen   (u_bus_req_axi_arlen   ),
+        .u_bus_req_axi_arsize  (u_bus_req_axi_arsize  ),
+        .u_bus_req_axi_arburst (u_bus_req_axi_arburst ),
+        .u_bus_req_axi_arlock  (u_bus_req_axi_arlock  ),
+        .u_bus_req_axi_arcache (u_bus_req_axi_arcache ),
+        .u_bus_req_axi_arprot  (u_bus_req_axi_arprot  ),
+        .u_bus_req_axi_arvalid (u_bus_req_axi_arvalid ),
+        .u_bus_req_axi_rready  (u_bus_req_axi_rready  ),
+        .u_bus_req_axi_awid    (u_bus_req_axi_awid    ),
+        .u_bus_req_axi_awaddr  (u_bus_req_axi_awaddr  ),
+        .u_bus_req_axi_awlen   (u_bus_req_axi_awlen   ),
+        .u_bus_req_axi_awsize  (u_bus_req_axi_awsize  ),
+        .u_bus_req_axi_awburst (u_bus_req_axi_awburst ),
+        .u_bus_req_axi_awlock  (u_bus_req_axi_awlock  ),
+        .u_bus_req_axi_awcache (u_bus_req_axi_awcache ),
+        .u_bus_req_axi_awprot  (u_bus_req_axi_awprot  ),
+        .u_bus_req_axi_awvalid (u_bus_req_axi_awvalid ),
+        .u_bus_req_axi_wid     (u_bus_req_axi_wid     ),
+        .u_bus_req_axi_wdata   (u_bus_req_axi_wdata   ),
+        .u_bus_req_axi_wstrb   (u_bus_req_axi_wstrb   ),
+        .u_bus_req_axi_wlast   (u_bus_req_axi_wlast   ),
+        .u_bus_req_axi_wvalid  (u_bus_req_axi_wvalid  ),
+        .u_bus_req_axi_bready  (u_bus_req_axi_bready  ),
+
+        .master_resp_axi_arready (master_resp_axi_arready),
+        .master_resp_axi_rid     (master_resp_axi_rid    ),
+        .master_resp_axi_rdata   (master_resp_axi_rdata  ),
+        .master_resp_axi_rresp   (master_resp_axi_rresp  ),
+        .master_resp_axi_rlast   (master_resp_axi_rlast  ),
+        .master_resp_axi_rvalid  (master_resp_axi_rvalid ),
+        .master_resp_axi_awready (master_resp_axi_awready),
+        .master_resp_axi_wready  (master_resp_axi_wready ),
+        .master_resp_axi_bid     (master_resp_axi_bid    ),
+        .master_resp_axi_bresp   (master_resp_axi_bresp  ),
+        .master_resp_axi_bvalid  (master_resp_axi_bvalid ),
+
+        .i_bus_resp_axi_arready  (i_bus_resp_axi_arready),
+        .i_bus_resp_axi_rid      (i_bus_resp_axi_rid    ),
+        .i_bus_resp_axi_rdata    (i_bus_resp_axi_rdata  ),
+        .i_bus_resp_axi_rresp    (i_bus_resp_axi_rresp  ),
+        .i_bus_resp_axi_rlast    (i_bus_resp_axi_rlast  ),
+        .i_bus_resp_axi_rvalid   (i_bus_resp_axi_rvalid ),
+        .i_bus_resp_axi_awready  (i_bus_resp_axi_awready),
+        .i_bus_resp_axi_wready   (i_bus_resp_axi_wready ),
+        .i_bus_resp_axi_bid      (i_bus_resp_axi_bid    ),
+        .i_bus_resp_axi_bresp    (i_bus_resp_axi_bresp  ),
+        .i_bus_resp_axi_bvalid   (i_bus_resp_axi_bvalid ),
+
+        .d_bus_resp_axi_arready  (d_bus_resp_axi_arready),
+        .d_bus_resp_axi_rid      (d_bus_resp_axi_rid    ),
+        .d_bus_resp_axi_rdata    (d_bus_resp_axi_rdata  ),
+        .d_bus_resp_axi_rresp    (d_bus_resp_axi_rresp  ),
+        .d_bus_resp_axi_rlast    (d_bus_resp_axi_rlast  ),
+        .d_bus_resp_axi_rvalid   (d_bus_resp_axi_rvalid ),
+        .d_bus_resp_axi_awready  (d_bus_resp_axi_awready),
+        .d_bus_resp_axi_wready   (d_bus_resp_axi_wready ),
+        .d_bus_resp_axi_bid      (d_bus_resp_axi_bid    ),
+        .d_bus_resp_axi_bresp    (d_bus_resp_axi_bresp  ),
+        .d_bus_resp_axi_bvalid   (d_bus_resp_axi_bvalid ),
+
+        .u_bus_resp_axi_arready  (u_bus_resp_axi_arready),
+        .u_bus_resp_axi_rid      (u_bus_resp_axi_rid    ),
+        .u_bus_resp_axi_rdata    (u_bus_resp_axi_rdata  ),
+        .u_bus_resp_axi_rresp    (u_bus_resp_axi_rresp  ),
+        .u_bus_resp_axi_rlast    (u_bus_resp_axi_rlast  ),
+        .u_bus_resp_axi_rvalid   (u_bus_resp_axi_rvalid ),
+        .u_bus_resp_axi_awready  (u_bus_resp_axi_awready),
+        .u_bus_resp_axi_wready   (u_bus_resp_axi_wready ),
+        .u_bus_resp_axi_bid      (u_bus_resp_axi_bid    ),
+        .u_bus_resp_axi_bresp    (u_bus_resp_axi_bresp  ),
+        .u_bus_resp_axi_bvalid   (u_bus_resp_axi_bvalid ),        
+
+        .o_bus_req_axi_araddr    (master_req_axi_araddr ),
+        .o_bus_req_axi_arid      (master_req_axi_arid   ),
+        .o_bus_req_axi_arlen     (master_req_axi_arlen  ),
+        .o_bus_req_axi_arsize    (master_req_axi_arsize ),
+        .o_bus_req_axi_arburst   (master_req_axi_arburst),
+        .o_bus_req_axi_arlock    (master_req_axi_arlock ),
+        .o_bus_req_axi_arcache   (master_req_axi_arcache),
+        .o_bus_req_axi_arprot    (master_req_axi_arprot ),
+        .o_bus_req_axi_arvalid   (master_req_axi_arvalid),
+        .o_bus_req_axi_rready    (master_req_axi_rready ),
+        .o_bus_req_axi_awid      (master_req_axi_awid   ),
+        .o_bus_req_axi_awaddr    (master_req_axi_awaddr ),
+        .o_bus_req_axi_awlen     (master_req_axi_awlen  ),
+        .o_bus_req_axi_awsize    (master_req_axi_awsize ),
+        .o_bus_req_axi_awburst   (master_req_axi_awburst),
+        .o_bus_req_axi_awlock    (master_req_axi_awlock ),
+        .o_bus_req_axi_awcache   (master_req_axi_awcache),
+        .o_bus_req_axi_awprot    (master_req_axi_awprot ),
+        .o_bus_req_axi_awvalid   (master_req_axi_awvalid),
+        .o_bus_req_axi_wid       (master_req_axi_wid    ),
+        .o_bus_req_axi_wdata     (master_req_axi_wdata  ),
+        .o_bus_req_axi_wstrb     (master_req_axi_wstrb  ),
+        .o_bus_req_axi_wlast     (master_req_axi_wlast  ),
+        .o_bus_req_axi_wvalid    (master_req_axi_wvalid ),
+        .o_bus_req_axi_bready    (master_req_axi_bready )
+        // .ireqs  ({i_bus_req,  d_bus_req,  u_bus_req } ),
+        // .oresp  (master_resp),
+        // .iresps ({i_bus_resp, d_bus_resp, u_bus_resp} ),
+        // .oreq   (master_req)
+    );
+`endif
+`ifdef use_crossbar_ip
+    axi_crossbar U_axi_crossbar (
         .aclk             ( clk     ),
         .aresetn          ( resetn        ),
         
-        .s_axi_arid       ( {inst_arid   ,data_arid    ,udata_arid    }),
-        .s_axi_araddr     ( {inst_araddr ,data_araddr  ,udata_araddr  }),
-        .s_axi_arlen      ( {inst_arlen  ,data_arlen   ,udata_arlen   }),
-        .s_axi_arsize     ( {inst_arsize ,data_arsize  ,udata_arsize  }),
-        .s_axi_arburst    ( {inst_arburst,data_arburst ,udata_arburst }),
-        .s_axi_arlock     ( {inst_arlock ,data_arlock  ,udata_arlock  }),
-        .s_axi_arcache    ( {inst_arcache,data_arcache ,udata_arcache }),
-        .s_axi_arprot     ( {inst_arprot ,data_arprot  ,udata_arprot  }),
-        .s_axi_arqos      ( 0                                          ),
-        .s_axi_arvalid    ( {inst_arvalid,data_arvalid ,udata_arvalid }),
-        .s_axi_arready    ( {inst_arready,data_arready ,udata_arready }),
-        .s_axi_rid        ( {inst_rid    ,data_rid     ,udata_rid     }),
-        .s_axi_rdata      ( {inst_rdata  ,data_rdata   ,udata_rdata   }),
-        .s_axi_rresp      ( {inst_rresp  ,data_rresp   ,udata_rresp   }),
-        .s_axi_rlast      ( {inst_rlast  ,data_rlast   ,udata_rlast   }),
-        .s_axi_rvalid     ( {inst_rvalid ,data_rvalid  ,udata_rvalid  }),
-        .s_axi_rready     ( {inst_rready ,data_rready  ,udata_rready  }),
-        .s_axi_awid       ( {inst_awid   ,data_awid    ,udata_awid    }),
-        .s_axi_awaddr     ( {inst_awaddr ,data_awaddr  ,udata_awaddr  }),
-        .s_axi_awlen      ( {inst_awlen  ,data_awlen   ,udata_awlen   }),
-        .s_axi_awsize     ( {inst_awsize ,data_awsize  ,udata_awsize  }),
-        .s_axi_awburst    ( {inst_awburst,data_awburst ,udata_awburst }),
-        .s_axi_awlock     ( {inst_awlock ,data_awlock  ,udata_awlock  }),
-        .s_axi_awcache    ( {inst_awcache,data_awcache ,udata_awcache }),
-        .s_axi_awprot     ( {inst_awprot ,data_awprot  ,udata_awprot  }),
-        .s_axi_awqos      ( 0                                          ),
-        .s_axi_awvalid    ( {inst_awvalid,data_awvalid ,udata_awvalid }),
-        .s_axi_awready    ( {inst_awready,data_awready ,udata_awready }),
-        .s_axi_wid        ( {inst_wid    ,data_wid     ,udata_wid     }),
-        .s_axi_wdata      ( {inst_wdata  ,data_wdata   ,udata_wdata   }),
-        .s_axi_wstrb      ( {inst_wstrb  ,data_wstrb   ,udata_wstrb   }),
-        .s_axi_wlast      ( {inst_wlast  ,data_wlast   ,udata_wlast   }),
-        .s_axi_wvalid     ( {inst_wvalid ,data_wvalid  ,udata_wvalid  }),
-        .s_axi_wready     ( {inst_wready ,data_wready  ,udata_wready  }),
-        .s_axi_bid        ( {inst_bid    ,data_bid     ,udata_bid     }),
-        .s_axi_bresp      ( {inst_bresp  ,data_bresp   ,udata_bresp   }),
-        .s_axi_bvalid     ( {inst_bvalid ,data_bvalid  ,udata_bvalid  }),
-        .s_axi_bready     ( {inst_bready ,data_bready  ,udata_bready  }),
+        .s_axi_arid       ( {inst_arid   ,data_arid    ,udata_arid   } ),
+        .s_axi_araddr     ( {inst_araddr ,data_araddr  ,udata_araddr } ),
+        .s_axi_arlen      ( {inst_arlen  ,data_arlen   ,udata_arlen  } ),
+        .s_axi_arsize     ( {inst_arsize ,data_arsize  ,udata_arsize } ),
+        .s_axi_arburst    ( {inst_arburst,data_arburst ,udata_arburst} ),
+        .s_axi_arlock     ( {inst_arlock ,data_arlock  ,udata_arlock } ),
+        .s_axi_arcache    ( {inst_arcache,data_arcache ,udata_arcache} ),
+        .s_axi_arprot     ( {inst_arprot ,data_arprot  ,udata_arprot } ),
+        .s_axi_arqos      ( 0                                         ),
+        .s_axi_arvalid    ( {inst_arvalid,data_arvalid ,udata_arvalid} ),
+        .s_axi_arready    ( {inst_arready,data_arready ,udata_arready} ),
+        .s_axi_rid        ( {inst_rid    ,data_rid     ,udata_rid    } ),
+        .s_axi_rdata      ( {inst_rdata  ,data_rdata   ,udata_rdata  } ),
+        .s_axi_rresp      ( {inst_rresp  ,data_rresp   ,udata_rresp  } ),
+        .s_axi_rlast      ( {inst_rlast  ,data_rlast   ,udata_rlast  } ),
+        .s_axi_rvalid     ( {inst_rvalid ,data_rvalid  ,udata_rvalid } ),
+        .s_axi_rready     ( {inst_rready ,data_rready  ,udata_rready } ),
+        .s_axi_awid       ( {inst_awid   ,data_awid    ,udata_awid   } ),
+        .s_axi_awaddr     ( {inst_awaddr ,data_awaddr  ,udata_awaddr } ),
+        .s_axi_awlen      ( {inst_awlen  ,data_awlen   ,udata_awlen  } ),
+        .s_axi_awsize     ( {inst_awsize ,data_awsize  ,udata_awsize } ),
+        .s_axi_awburst    ( {inst_awburst,data_awburst ,udata_awburst} ),
+        .s_axi_awlock     ( {inst_awlock ,data_awlock  ,udata_awlock } ),
+        .s_axi_awcache    ( {inst_awcache,data_awcache ,udata_awcache} ),
+        .s_axi_awprot     ( {inst_awprot ,data_awprot  ,udata_awprot } ),
+        .s_axi_awqos      ( 0                                         ),
+        .s_axi_awvalid    ( {inst_awvalid,data_awvalid ,udata_awvalid} ),
+        .s_axi_awready    ( {inst_awready,data_awready ,udata_awready} ),
+        .s_axi_wid        ( {inst_wid    ,data_wid     ,udata_wid    } ),
+        .s_axi_wdata      ( {inst_wdata  ,data_wdata   ,udata_wdata  } ),
+        .s_axi_wstrb      ( {inst_wstrb  ,data_wstrb   ,udata_wstrb  } ),
+        .s_axi_wlast      ( {inst_wlast  ,data_wlast   ,udata_wlast  } ),
+        .s_axi_wvalid     ( {inst_wvalid ,data_wvalid  ,udata_wvalid } ),
+        .s_axi_wready     ( {inst_wready ,data_wready  ,udata_wready } ),
+        .s_axi_bid        ( {inst_bid    ,data_bid     ,udata_bid    } ),
+        .s_axi_bresp      ( {inst_bresp  ,data_bresp   ,udata_bresp  } ),
+        .s_axi_bvalid     ( {inst_bvalid ,data_bvalid  ,udata_bvalid } ),
+        .s_axi_bready     ( {inst_bready ,data_bready  ,udata_bready } ),
         
-        .m_axi_arid       (arid    ),
-        .m_axi_araddr     (araddr  ),
-        .m_axi_arlen      (arlen   ),
-        .m_axi_arsize     (arsize  ),
-        .m_axi_arburst    (arburst ),
-        .m_axi_arlock     (arlock  ),
-        .m_axi_arcache    (arcache ),
-        .m_axi_arprot     (arprot  ),
-        .m_axi_arqos      (        ),
-        .m_axi_arvalid    (arvalid ),
-        .m_axi_arready    (arready ),
-        .m_axi_rid        (rid     ),
-        .m_axi_rdata      (rdata   ),
-        .m_axi_rresp      (rresp   ),
-        .m_axi_rlast      (rlast   ),
-        .m_axi_rvalid     (rvalid  ),
-        .m_axi_rready     (rready  ),
-        .m_axi_awid       (awid    ),
-        .m_axi_awaddr     (awaddr  ),
-        .m_axi_awlen      (awlen   ),
-        .m_axi_awsize     (awsize  ),
-        .m_axi_awburst    (awburst ),
-        .m_axi_awlock     (awlock  ),
-        .m_axi_awcache    (awcache ),
-        .m_axi_awprot     (awprot  ),
-        .m_axi_awqos      (        ),
-        .m_axi_awvalid    (awvalid ),
-        .m_axi_awready    (awready ),
-        .m_axi_wid        (wid     ),
-        .m_axi_wdata      (wdata   ),
-        .m_axi_wstrb      (wstrb   ),
-        .m_axi_wlast      (wlast   ),
-        .m_axi_wvalid     (wvalid  ),
-        .m_axi_wready     (wready  ),
-        .m_axi_bid        (bid     ),
-        .m_axi_bresp      (bresp   ),
-        .m_axi_bvalid     (bvalid  ),
-        .m_axi_bready     (bready  )
+        .m_axi_arid       (arid          ),
+        .m_axi_araddr     (araddr        ),
+        .m_axi_arlen      (arlen         ),
+        .m_axi_arsize     (arsize        ),
+        .m_axi_arburst    (arburst       ),
+        .m_axi_arlock     (arlock        ),
+        .m_axi_arcache    (arcache       ),
+        .m_axi_arprot     (arprot        ),
+        .m_axi_arqos      (              ),
+        .m_axi_arvalid    (arvalid       ),
+        .m_axi_arready    (arready       ),
+        .m_axi_rid        (rid           ),
+        .m_axi_rdata      (rdata         ),
+        .m_axi_rresp      (rresp         ),
+        .m_axi_rlast      (rlast         ),
+        .m_axi_rvalid     (rvalid        ),
+        .m_axi_rready     (rready        ),
+        .m_axi_awid       (awid          ),
+        .m_axi_awaddr     (awaddr        ),
+        .m_axi_awlen      (awlen         ),
+        .m_axi_awsize     (awsize        ),
+        .m_axi_awburst    (awburst       ),
+        .m_axi_awlock     (awlock        ),
+        .m_axi_awcache    (awcache       ),
+        .m_axi_awprot     (awprot        ),
+        .m_axi_awqos      (              ),
+        .m_axi_awvalid    (awvalid       ),
+        .m_axi_awready    (awready       ),
+        .m_axi_wid        (wid           ),
+        .m_axi_wdata      (wdata         ),
+        .m_axi_wstrb      (wstrb         ),
+        .m_axi_wlast      (wlast         ),
+        .m_axi_wvalid     (wvalid        ),
+        .m_axi_wready     (wready        ),
+        .m_axi_bid        (bid           ),
+        .m_axi_bresp      (bresp         ),
+        .m_axi_bvalid     (bvalid        ),
+        .m_axi_bready     (bready        )
     );
+`endif 
 
 
 endmodule
