@@ -3,11 +3,11 @@
     /*********************模块使能定义*********************/
     `define FPU_EX_Valid
     `define CacheInst_EN
-    // `define OPEN_VA             //verilator仿真�?�? 注释
-    // `define OPEN_VA_PERF        //verilator仿真�?�? 注释
-    `define use_crossbar_ip   //vivado仿真�?�? 解注�?
+    // `define OPEN_VA             //verilator仿真需要 注释
+    // `define OPEN_VA_PERF        //verilator仿真需要 注释
+    `define use_crossbar_ip   //vivado仿真需要 解注释
     // `define PMON_debug   
-//    `define ILA_debug
+    // `define ILA_debug
     /*********************通道宽度*********************/
     `define ALUOP_WD            29
     `define DS_TO_ES_NOALU_WD   318
@@ -24,7 +24,7 @@
     `define MS_TO_WS_BUS_WD     71
     `define WS_TO_RF_BUS_WD     38
 
-    /*********************CP0寄存器地�?定义*********************/
+    /*********************CP0寄存器地址定义*********************/
     `define Index_RegAddr    8'h00
     `define Random_RegAddr   8'h08
     `define Entrylo0_RegAddr 8'h10
@@ -60,7 +60,7 @@
     `define BRANCH_TYPE_BGEZAL  4'b1101
     `define BRANCH_TYPE_BLTZAL  4'b1110
     `define BRANCH_TYPE_ERROR   4'b1111
-    //ExcCode编码及其对应例外类型 Attention:尚未映射，有�?!
+    //ExcCode编码及其对应例外类型 Attention:尚未映射，有误!
     `define Int                 5'b00000 //中断
     `define ITLB_EX_Refill      5'b00010 
     `define ITLB_EX_Invalid     5'b00011 
@@ -69,17 +69,17 @@
     `define DTLB_EX_WR_Refill   5'b00110 
     `define DTLB_EX_WR_Invalid  5'b00111
     `define DTLB_EX_Modified    5'b01000
-    `define AdEL                5'b01001 //地址错例�?(读数�?/取指�?)
-    `define AdES                5'b01010 //地址错例�?(写数�?)
+    `define AdEL                5'b01001 //地址错例外(读数据/取指令)
+    `define AdES                5'b01010 //地址错例外(写数据)
     `define Sys                 5'b01011 //syscall系统调用例外
     `define Bp                  5'b01100 //break断点例外
-    `define RI                  5'b01101 //保留指令(未定义指�?)例外
+    `define RI                  5'b01101 //保留指令(未定义指令)例外
     `define Ov                  5'b01110 //算术溢出例外
     `define CpU                 5'b01111 //Coprocessor Unusable exception
     `define Trap                5'b10000 //自陷例外
     `define NO_EX               5'b11111 
 
-    /*********************定义复位与例外入�?*********************/
+    /*********************定义复位与例外入口*********************/
     `define RESET_PC            32'hbfc0_0000
     // `define REFILL_EX_PC        32'hbfc0_0200
     // `define GENERAL_EX_PC       32'hbfc0_0380

@@ -42,7 +42,6 @@ module soc_up_top(
     output [1 :0] led_rg0,
     output [1 :0] led_rg1,
     output [7 :0] num_csn,
-    output [6 :0] num_a_g,
     input  [7 :0] switch, 
     output [3 :0] btn_key_col,
     input  [3 :0] btn_key_row,
@@ -116,7 +115,26 @@ module soc_up_top(
     output        lcd_wr,
     output        lcd_rd,
     inout  [15:0] lcd_data,
-    output        lcd_bl_ctr
+    output        lcd_bl_ctr,
+
+    //-------vga-----
+    output         [3:0]    rgb_r     , 
+    output         [3:0]    rgb_g     , 
+    output         [3:0]    rgb_b     , 
+    output                  h_sync    , 
+    output                  v_sync     ,
+    //dot
+    output         [8:1]    dot_r,
+    output         [8:1]    dot_c,
+    //num
+    output         num_a,
+    output         num_b,
+    output         num_c,
+    output         num_d,
+    output         num_e,
+    output         num_f,
+    output         num_g,
+    output         num_dp
 );
 wire        aclk;
 wire        aresetn;
@@ -496,6 +514,43 @@ wire [`Lrresp      -1 :0] apb_s_rresp;
 wire                      apb_s_rlast;
 wire                      apb_s_rvalid;
 wire                      apb_s_rready;
+
+wire [8            -1 :0] vga_awid;
+wire [`Lawaddr     -1 :0] vga_awaddr;
+wire [8            -1 :0] vga_awlen;
+wire [`Lawsize     -1 :0] vga_awsize;
+wire [`Lawburst    -1 :0] vga_awburst;
+wire [`Lawlock     -1 :0] vga_awlock;
+wire [`Lawcache    -1 :0] vga_awcache;
+wire [`Lawprot     -1 :0] vga_awprot;
+wire                      vga_awvalid;
+wire                      vga_awready;
+wire [8            -1 :0] vga_wid;
+wire [`Lwdata      -1 :0] vga_wdata;
+wire [`Lwstrb      -1 :0] vga_wstrb;
+wire                      vga_wlast;
+wire                      vga_wvalid;
+wire                      vga_wready;
+wire [8            -1 :0] vga_bid;
+wire [`Lbresp      -1 :0] vga_bresp;
+wire                      vga_bvalid;
+wire                      vga_bready;
+wire [8            -1 :0] vga_arid;
+wire [`Laraddr     -1 :0] vga_araddr;
+wire [8            -1 :0] vga_arlen;
+wire [`Larsize     -1 :0] vga_arsize;
+wire [`Larburst    -1 :0] vga_arburst;
+wire [`Larlock     -1 :0] vga_arlock;
+wire [`Larcache    -1 :0] vga_arcache;
+wire [`Larprot     -1 :0] vga_arprot;
+wire                      vga_arvalid;
+wire                      vga_arready;
+wire [8            -1 :0] vga_rid;
+wire [`Lrdata      -1 :0] vga_rdata;
+wire [`Lrresp      -1 :0] vga_rresp;
+wire                      vga_rlast;
+wire                      vga_rvalid;
+wire                      vga_rready;
 
 wire          apb_ready_dma0;
 wire          apb_start_dma0;
@@ -914,7 +969,44 @@ axi_slave_mux AXI_SLAVE_MUX
 .s5_rvalid         (mac_s_rvalid       ),
 .s5_rready         (mac_s_rready       ),
 
-.axi_s_aclk        (aclk                )
+.s6_awid           (vga_awid         ),
+.s6_awaddr         (vga_awaddr       ),
+.s6_awlen          (vga_awlen        ),
+.s6_awsize         (vga_awsize       ),
+.s6_awburst        (vga_awburst      ),
+.s6_awlock         (vga_awlock       ),
+.s6_awcache        (vga_awcache      ),
+.s6_awprot         (vga_awprot       ),
+.s6_awvalid        (vga_awvalid      ),
+.s6_awready        (vga_awready      ),
+.s6_wid            (vga_wid          ),
+.s6_wdata          (vga_wdata        ),
+.s6_wstrb          (vga_wstrb        ),
+.s6_wlast          (vga_wlast        ),
+.s6_wvalid         (vga_wvalid       ),
+.s6_wready         (vga_wready       ),
+.s6_bid            (vga_bid          ),
+.s6_bresp          (vga_bresp        ),
+.s6_bvalid         (vga_bvalid       ),
+.s6_bready         (vga_bready       ),
+.s6_arid           (vga_arid         ),
+.s6_araddr         (vga_araddr       ),
+.s6_arlen          (vga_arlen        ),
+.s6_arsize         (vga_arsize       ),
+.s6_arburst        (vga_arburst      ),
+.s6_arlock         (vga_arlock       ),
+.s6_arcache        (vga_arcache      ),
+.s6_arprot         (vga_arprot       ),
+.s6_arvalid        (vga_arvalid      ),
+.s6_arready        (vga_arready      ),
+.s6_rid            (vga_rid          ),
+.s6_rdata          (vga_rdata        ),
+.s6_rresp          (vga_rresp        ),
+.s6_rlast          (vga_rlast        ),
+.s6_rvalid         (vga_rvalid       ),
+.s6_rready         (vga_rready       ),
+
+.axi_s_aclk        (aclk             )
 );
 
 //BootROM
@@ -1077,7 +1169,6 @@ confreg CONFREG(
 .led_rg0           (led_rg0     ),
 .led_rg1           (led_rg1     ),
 .num_csn           (num_csn     ),
-.num_a_g           (num_a_g     ),
 .switch            (switch      ),
 .btn_key_col       (btn_key_col ),
 .btn_key_row       (btn_key_row ),
@@ -1090,7 +1181,19 @@ confreg CONFREG(
 .lcd_wr            (lcd_wr      ),
 .lcd_rd            (lcd_rd      ),
 .lcd_data          (lcd_data    ),
-.lcd_bl_ctr        (lcd_bl_ctr  )
+.lcd_bl_ctr        (lcd_bl_ctr  ),
+
+//dot
+.dot_r             (dot_r       ),
+.dot_c             (dot_c       ),
+.num_a             (num_a       ),
+.num_b             (num_b       ),
+.num_c             (num_c       ),
+.num_d             (num_d       ),
+.num_e             (num_e       ),
+.num_f             (num_f       ),
+.num_g             (num_g       ),
+.num_dp            (num_dp      )
 );
 
 //MAC top
@@ -1207,6 +1310,7 @@ wire        ddr_aresetn;
 reg         interconnect_aresetn;
 
 wire cpu_clk;
+
 clk_pll_33  clk_pll_33
  (
   // Clock out ports
@@ -1629,5 +1733,53 @@ axi2apb_misc APB_DEV
 
 .nand_int           (nand_int         )
 );
+
+//vga
+vga_top vga_top(
+.clk                (clk              ),       
+.rst_n              (aresetn            ),       
+// .s_awid            (conf_s_awid        ),
+// .s_awaddr          (conf_s_awaddr      ),
+// .s_awlen           (conf_s_awlen       ),
+// .s_awsize          (conf_s_awsize      ),
+// .s_awburst         (conf_s_awburst     ),
+// .s_awlock          (conf_s_awlock      ),
+// .s_awcache         (conf_s_awcache     ),
+// .s_awprot          (conf_s_awprot      ),
+// .s_awvalid         (conf_s_awvalid     ),
+// .s_awready         (conf_s_awready     ),
+// .s_wready          (conf_s_wready      ),
+// .s_wid             (conf_s_wid         ),
+// .s_wdata           (conf_s_wdata       ),
+// .s_wstrb           (conf_s_wstrb       ),
+// .s_wlast           (conf_s_wlast       ),
+// .s_wvalid          (conf_s_wvalid      ),
+// .s_bid             (conf_s_bid         ),
+// .s_bresp           (conf_s_bresp       ),
+// .s_bvalid          (conf_s_bvalid      ),
+// .s_bready          (conf_s_bready      ),
+// .s_arid            (conf_s_arid        ),
+// .s_araddr          (conf_s_araddr      ),
+// .s_arlen           (conf_s_arlen       ),
+// .s_arsize          (conf_s_arsize      ),
+// .s_arburst         (conf_s_arburst     ),
+// .s_arlock          (conf_s_arlock      ),
+// .s_arcache         (conf_s_arcache     ),
+// .s_arprot          (conf_s_arprot      ),
+// .s_arvalid         (conf_s_arvalid     ),
+// .s_arready         (conf_s_arready     ),
+// .s_rready          (conf_s_rready      ),
+// .s_rid             (conf_s_rid         ),
+// .s_rdata           (conf_s_rdata       ),
+// .s_rresp           (conf_s_rresp       ),
+// .s_rlast           (conf_s_rlast       ),
+// .s_rvalid          (conf_s_rvalid      ),
+.rgb_r             (rgb_r  ),
+.rgb_g             (rgb_g  ),
+.rgb_b             (rgb_b  ),
+.h_sync                (h_sync        ),
+.v_sync                (v_sync        )
+);
+
 endmodule
 

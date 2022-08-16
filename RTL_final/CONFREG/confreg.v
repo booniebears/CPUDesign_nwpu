@@ -40,7 +40,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `define BTN_KEY_ADDR   16'hf024   //32'hbfd0_f024
 `define BTN_STEP_ADDR  16'hf028   //32'hbfd0_f028
 `define TIMER_ADDR     16'he000   //32'hbfd0_e000
-`define LCD_CTRL_ADDR  16'hd000   //32'hbfd0_d000
+`define LCD_ADDR       16'hd000   //32'hbfd0_d000
 
 module confreg(
     aclk,
@@ -100,7 +100,6 @@ module confreg(
     led_rg0,
     led_rg1,
     num_csn,
-    num_a_g,
     switch,
     btn_key_col,
     btn_key_row,
@@ -112,7 +111,17 @@ module confreg(
     lcd_wr,
     lcd_rd,
     lcd_data,
-    lcd_bl_ctr
+    lcd_bl_ctr,
+    dot_r,
+    dot_c,
+    num_a,
+    num_b,
+    num_c,
+    num_d,
+    num_e,
+    num_f,
+    num_g,
+    num_dp
 );
     input           aclk;
     input           aresetn;
@@ -170,8 +179,7 @@ module confreg(
     output     [15:0] led;
     output     [1 :0] led_rg0;
     output     [1 :0] led_rg1;
-    output reg [7 :0] num_csn;
-    output reg [6 :0] num_a_g;
+    output     [7 :0] num_csn;
     input      [7 :0] switch;
     output     [3 :0] btn_key_col;
     input      [3 :0] btn_key_row;
@@ -185,6 +193,20 @@ module confreg(
     output            lcd_rd;
     output     [15:0] lcd_data;
     output            lcd_bl_ctr;
+
+    //dot
+    output [8:1]   dot_r;
+    output [8:1]   dot_c;
+
+    //num
+    output         num_a;
+    output         num_b;
+    output         num_c;
+    output         num_d;
+    output         num_e;
+    output         num_f;
+    output         num_g;
+    output         num_dp;
 
 //
 reg  [31:0] led_data;
@@ -224,6 +246,9 @@ reg [1 :0] buf_burst;
 reg        buf_lock;
 reg [3 :0] buf_cache;
 reg [2 :0] buf_prot;
+
+//clk
+wire        clk_1_8M, clk_div1M, clk_div4M, clk_div8M;
 
 always@(posedge aclk)
     if(~aresetn) begin
@@ -303,7 +328,7 @@ wire [31:0] rdata_d = buf_addr[15:2] == 14'd0 ? cr00 :
                       buf_addr[15:0] == `BTN_KEY_ADDR   ? btn_key_data   :
                       buf_addr[15:0] == `BTN_STEP_ADDR  ? btn_step_data  :
                       buf_addr[15:0] == `TIMER_ADDR     ? timer          : 
-                      buf_addr[15:0] == `LCD_CTRL_ADDR  ? lcd_confreg_o  :
+                      buf_addr[15:0] == `LCD_ADDR       ? lcd_confreg_o  :
                       32'd0;
 
 always@(posedge aclk)
@@ -658,7 +683,7 @@ begin
     if ( !aresetn )
     begin
         scan_data <= 32'd0;  
-        num_csn   <= 8'b1111_1111;
+        //num_csn   <= 8'b1111_1111;
     end
     else
     begin
@@ -673,58 +698,58 @@ begin
             3'b111 : scan_data <= num_data[3 : 0];
         endcase
 
-        case(count[19:17])
-            3'b000 : num_csn <= 8'b0111_1111;
-            3'b001 : num_csn <= 8'b1011_1111;
-            3'b010 : num_csn <= 8'b1101_1111;
-            3'b011 : num_csn <= 8'b1110_1111;
-            3'b100 : num_csn <= 8'b1111_0111;
-            3'b101 : num_csn <= 8'b1111_1011;
-            3'b110 : num_csn <= 8'b1111_1101;
-            3'b111 : num_csn <= 8'b1111_1110;
-        endcase
+        // case(count[19:17])
+        //     3'b000 : num_csn <= 8'b0111_1111;
+        //     3'b001 : num_csn <= 8'b1011_1111;
+        //     3'b010 : num_csn <= 8'b1101_1111;
+        //     3'b011 : num_csn <= 8'b1110_1111;
+        //     3'b100 : num_csn <= 8'b1111_0111;
+        //     3'b101 : num_csn <= 8'b1111_1011;
+        //     3'b110 : num_csn <= 8'b1111_1101;
+        //     3'b111 : num_csn <= 8'b1111_1110;
+        // endcase
     end
 end
 
-always @(posedge aclk)
-begin
-    if ( !aresetn )
-    begin
-        num_a_g <= 7'b0000000;
-    end
-    else
-    begin
-        case ( scan_data )
-            4'd0 : num_a_g <= 7'b1111110;   //0
-            4'd1 : num_a_g <= 7'b0110000;   //1
-            4'd2 : num_a_g <= 7'b1101101;   //2
-            4'd3 : num_a_g <= 7'b1111001;   //3
-            4'd4 : num_a_g <= 7'b0110011;   //4
-            4'd5 : num_a_g <= 7'b1011011;   //5
-            4'd6 : num_a_g <= 7'b1011111;   //6
-            4'd7 : num_a_g <= 7'b1110000;   //7
-            4'd8 : num_a_g <= 7'b1111111;   //8
-            4'd9 : num_a_g <= 7'b1111011;   //9
-            4'd10: num_a_g <= 7'b1110111;   //a
-            4'd11: num_a_g <= 7'b0011111;   //b
-            4'd12: num_a_g <= 7'b1001110;   //c
-            4'd13: num_a_g <= 7'b0111101;   //d
-            4'd14: num_a_g <= 7'b1001111;   //e
-            4'd15: num_a_g <= 7'b1000111;   //f
-        endcase
-    end
-end
+// always @(posedge aclk)
+// begin
+//     if ( !aresetn )
+//     begin
+//         num_a_g <= 7'b0000000;
+//     end
+//     else
+//     begin
+//         case ( scan_data )
+//             4'd0 : num_a_g <= 7'b1111110;   //0
+//             4'd1 : num_a_g <= 7'b0110000;   //1
+//             4'd2 : num_a_g <= 7'b1101101;   //2
+//             4'd3 : num_a_g <= 7'b1111001;   //3
+//             4'd4 : num_a_g <= 7'b0110011;   //4
+//             4'd5 : num_a_g <= 7'b1011011;   //5
+//             4'd6 : num_a_g <= 7'b1011111;   //6
+//             4'd7 : num_a_g <= 7'b1110000;   //7
+//             4'd8 : num_a_g <= 7'b1111111;   //8
+//             4'd9 : num_a_g <= 7'b1111011;   //9
+//             4'd10: num_a_g <= 7'b1110111;   //a
+//             4'd11: num_a_g <= 7'b0011111;   //b
+//             4'd12: num_a_g <= 7'b1001110;   //c
+//             4'd13: num_a_g <= 7'b0111101;   //d
+//             4'd14: num_a_g <= 7'b1001111;   //e
+//             4'd15: num_a_g <= 7'b1000111;   //f
+//         endcase
+//     end
+// end
 //----------------------------{digital number}end------------------------//
 
 //----------------------------{tft lcd ctrl}begin------------------------//
-wire write_tft_lcd_ctrl = w_enter & (buf_addr[15:0]==`LCD_CTRL_ADDR);
+wire write_lcd_ctrl = w_enter & (buf_addr[15:0]==`LCD_ADDR);
 always @(posedge aclk)
 begin
     if(!aresetn)
     begin
         tft_lcd_ctrl <= 32'b0;
     end
-    else if(write_tft_lcd_ctrl)
+    else if(write_lcd_ctrl)
     begin
         tft_lcd_ctrl <= s_wdata;
     end
@@ -745,4 +770,39 @@ lcd mylcd(
     .lcd_hw_data(lcd_data),
     .lcd_hw_bl_ctr(lcd_bl_ctr)
 );
+
+CLOCK_DIV clk_div(
+                      .clk(aclk),
+                      .rstn(aresetn),
+                      
+                      .clk_1_8M(clk_1_8M),
+                      .clk_div1M(clk_div1M),
+                      .clk_div4M(clk_div4M),
+                      .clk_div8M(clk_div8M)
+                      );
+
+DOT_TEST  test_dot(
+                       .clk(clk_div4M),
+                       .rstn(aresetn),
+                       
+                       .dot_r(dot_r),
+                       .dot_c(dot_c)
+                       );
+
+NUM_TEST  test_num (
+                   .clk(aclk),
+                   .clk_div8M(clk_1_8M),
+                   .rstn(aresetn),    
+                   .sw(switch),
+                   .num_csn(num_csn),
+                   .num_a(num_a),
+                   .num_b(num_b),
+                   .num_c(num_c),
+                   .num_d(num_d),
+                   .num_e(num_e),
+                   .num_f(num_f),
+                   .num_g(num_g),
+                   .num_dp(num_dp)
+                   );
+
 endmodule
