@@ -1,19 +1,21 @@
 module DCache #(
     parameter  DATA_WIDTH      = 32, 
+    parameter  ADDR_WIDTH      = 32, 
     parameter  CACHELINE_WIDTH = 128, 
-    parameter  ASSOC_NUM       = 1, //×éÏàÁ¬Êı
-    parameter  WORDS_PER_LINE  = 4, //Ò»ĞĞ4×Ö
-    parameter  WAY_SIZE        = 4*1024*8, //Ò»Â·Cache ÈİÁ¿´óĞ¡
-    parameter  BLOCK_NUMS      = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //Ò»Â·Cache¿éÊı=256
+    parameter  ASSOC_NUM       = 2, //ç»„ç›¸è¿æ•°
+    parameter  WORDS_PER_LINE  = 4, //ä¸€è¡Œ4å­—
+    parameter  WAY_SIZE        = 4*1024*8, //ä¸€è·¯Cache å®¹é‡å¤§å°
+    parameter  BLOCK_NUMS      = WAY_SIZE/(WORDS_PER_LINE*DATA_WIDTH), //ä¸€è·¯Cacheå—æ•°=256
     localparam BYTES_PER_WORD  = 4,
     localparam INDEX_WIDTH     = $clog2(BLOCK_NUMS), //8
     localparam OFFSET_WIDTH    = $clog2(WORDS_PER_LINE*BYTES_PER_WORD),//4
     localparam TAG_WIDTH       = 32-INDEX_WIDTH-OFFSET_WIDTH, //20
     localparam WSTRB_WIDTH     = 4,
-    localparam DIRTY_WIDTH     = 1
+    localparam DIRTY_WIDTH     = 1,
+    localparam FIFO_WIDTH      = DATA_WIDTH + ADDR_WIDTH + WSTRB_WIDTH //68
 )
 (
-    //ÓëCPUÁ÷Ë®ÏßµÄ½»»¥½Ó¿Ú
+    //ä¸CPUæµæ°´çº¿çš„äº¤äº’æ¥å£
     input                        clk,
     input                        reset,
     input                        data_valid,
@@ -22,11 +24,12 @@ module DCache #(
     input [TAG_WIDTH-1:0]        data_tag,
     input [OFFSET_WIDTH-1:0]     data_offset,
     input [DATA_WIDTH-1:0]       data_wdata,
-    input [WSTRB_WIDTH-1:0]      data_wstrb, //×Ö½ÚĞ´Ê¹ÄÜwstrb
+    input [WSTRB_WIDTH-1:0]      data_wstrb, //å­—èŠ‚å†™ä½¿èƒ½wstrb
     output [DATA_WIDTH-1:0]      data_rdata,
+    input  [2:0]                 load_size,
     output                       busy,
 
-    //ÓëAXI×ÜÏß½Ó¿ÚµÄ½»»¥½Ó¿Ú
+    //ä¸AXIæ€»çº¿æ¥å£çš„äº¤äº’æ¥å£
     output                       dcache_rd_req,
     output [DATA_WIDTH-1:0]      dcache_rd_addr,
     input                        dcache_rd_rdy,
@@ -40,6 +43,7 @@ module DCache #(
 
     output                       udcache_rd_req,
     output [31:0]                udcache_rd_addr,
+    output [ 2:0]                udcache_load_size,
     input                        udcache_rd_rdy,
     input                        udcache_ret_valid,
     input                        udcache_wr_valid,
@@ -58,26 +62,33 @@ parameter  LOOKUP         = 3'd0,
            WRITEBACK      = 3'd2,
            MISSCLEAN      = 3'd3,
            REFILL         = 3'd4,
-           REFILLDONE     = 3'd5,
-           WAITSTORE      = 3'd6;
+           REFILLDONE     = 3'd5;
 
-//define Uncache FSM 
+//define Uncache RD FSM 
 parameter  UNCACHE_LOOKUP = 3'd0,
            UNCACHE_LOAD   = 3'd1,
            UNCACHE_STORE  = 3'd2,
            UNCACHE_RETURN = 3'd3,
            UNCACHE_DONE   = 3'd4;
 
+//define FIFO FSM(FOR Uncache WR)
+parameter  FIFO_IDLE      = 2'd0,
+           FIFO_WAIT      = 2'd1,
+           FIFO_RETURN    = 2'd2,
+           FIFO_TEMP      = 2'd3;
+
 //define Cache Write FSM
 parameter  WRITE_IDLE     = 1'd0,
            WRITE_START    = 1'd1;
 
-reg [2:0] dcache_state;
-reg [2:0] dcache_nextstate;
-reg [2:0] uncache_state;
-reg [2:0] uncache_nextstate;
-reg       write_state;
-reg       write_nextstate;
+reg [2:0]  dcache_state;
+reg [2:0]  dcache_nextstate;
+reg [2:0]  uncache_state;
+reg [2:0]  uncache_nextstate;
+reg        write_state;
+reg        write_nextstate;
+reg [1:0]  FIFO_state;
+reg [1:0]  FIFO_nextstate;
 
 /****************define req_buffer***************/
 wire                   reqbuffer_en;
@@ -89,13 +100,14 @@ reg [TAG_WIDTH-1:0]    reqbuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] reqbuffer_data_offset;
 reg [DATA_WIDTH-1:0]   reqbuffer_data_wdata;
 reg [WSTRB_WIDTH-1:0]  reqbuffer_data_wstrb;
+reg [2:0]              reqbuffer_load_size;
 reg                    reqbuffer_data_isUncache;
 /****************define req_buffer***************/
 
 /****************define write_buffer***************/
 wire                   writebuffer_en;
 reg [INDEX_WIDTH-1:0]  writebuffer_data_index;
-reg [ASSOC_NUM-1:0]    writebuffer_data_hit; //TODO:ÓÃÓÚÆ¬Ñ¡Ò»Â·
+reg [ASSOC_NUM-1:0]    writebuffer_data_hit; //TODO:ç”¨äºç‰‡é€‰ä¸€è·¯
 reg [TAG_WIDTH-1:0]    writebuffer_data_tag;
 reg [OFFSET_WIDTH-1:0] writebuffer_data_offset;
 reg [DATA_WIDTH-1:0]   writebuffer_data_wdata;
@@ -103,88 +115,112 @@ reg [DATA_WIDTH-1:0]   writebuffer_data_wdata;
 
 wire [ASSOC_NUM-1:0]     hit;
 wire                     cache_hit;
-reg  [ASSOC_NUM-1:0]     delayed_hit; //hitÑÓÊ±
-reg                      delayed_cache_hit; //cache_hitÑÓÊ±
+reg  [ASSOC_NUM-1:0]     delayed_hit; //hitå»¶æ—¶
+reg                      delayed_cache_hit; //cache_hitå»¶æ—¶
 wire                     delayed_hit_wr;
 wire                     data_read_en;
 
-reg                      tagv_we[ASSOC_NUM-1:0] ;   
-reg [WORDS_PER_LINE-1:0] data_we[ASSOC_NUM-1:0]; //¾«È·µ½×Ö
-reg                      dirty_we[ASSOC_NUM-1:0]; 
+reg  [ASSOC_NUM-1:0]     dirty_we; 
+reg  [ASSOC_NUM-1:0]     tagv_we ;   
+reg [WORDS_PER_LINE-1:0] data_we[ASSOC_NUM-1:0]; //ç²¾ç¡®åˆ°å­—
 
 wire [INDEX_WIDTH-1:0]   dirty_index;
 wire [INDEX_WIDTH-1:0]   tagv_index;
 wire [INDEX_WIDTH-1:0]   write_index;
 wire [INDEX_WIDTH-1:0]   read_index;
   
-wire [TAG_WIDTH:0]       tagv_wdata; //{tag,1'b1} valid bitÔÚ×îµÍÎ»
-wire                     dirty_wbit; //Ğ´ÈëlutramµÄÔàÎ»
+wire [TAG_WIDTH:0]       tagv_wdata; //{tag,1'b1} valid bitåœ¨æœ€ä½ä½
+wire                     dirty_wbit; //å†™å…¥lutramçš„è„ä½
   
-wire [ASSOC_NUM-1:0]     dirty_rbit; //¶Á³ölutramµÄÔàÎ»
-wire [TAG_WIDTH-1:0]     tag_rdata[ASSOC_NUM-1:0]; //Î»¿íTAG_WIDTH,¹²ASSOC_NUMÂ·
-wire                     valid_rdata[ASSOC_NUM-1:0]; //Î»¿í1,¹²ASSOC_NUMÂ·
-wire [DATA_WIDTH-1:0]    dcache_wdata[WORDS_PER_LINE-1:0]; //Ğ´ICacheµÄÖ¸ÁîÊı¾İ
-wire [DATA_WIDTH-1:0]    dcache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //Ğ´ICacheµÄÖ¸ÁîÊı¾İ
+wire [ASSOC_NUM-1:0]     dirty_rbit; //è¯»å‡ºlutramçš„è„ä½
+wire [TAG_WIDTH-1:0]     tag_rdata[ASSOC_NUM-1:0]; //ä½å®½TAG_WIDTH,å…±ASSOC_NUMè·¯
+wire                     valid_rdata[ASSOC_NUM-1:0]; //ä½å®½1,å…±ASSOC_NUMè·¯
+wire [DATA_WIDTH-1:0]    dcache_wdata[WORDS_PER_LINE-1:0]; //å†™ICacheçš„æŒ‡ä»¤æ•°æ®
+wire [DATA_WIDTH-1:0]    dcache_rdata[ASSOC_NUM-1:0][WORDS_PER_LINE-1:0]; //å†™ICacheçš„æŒ‡ä»¤æ•°æ®
 wire [DATA_WIDTH-1:0]    dcache_rdata_sel[ASSOC_NUM-1:0];
 wire [DATA_WIDTH-1:0]    dcache_write_data;
 reg  [DATA_WIDTH-1:0]    uncache_rdata;
-reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdataÒ»ÅÄÑÓÊ±
+reg  [TAG_WIDTH-1:0]     delayed_tag_rdata[ASSOC_NUM-1:0]; //tag_rdataä¸€æ‹å»¶æ—¶
+
+wire [$clog2(ASSOC_NUM)-1:0] sel_way;   
+wire [$clog2(ASSOC_NUM)-1:0] plru [BLOCK_NUMS-1:0];
+reg                          plru_en;
 
 wire                     uncache_busy;
 wire                     dcache_busy;
 wire                     write_busy;
 
-//ÓëCPUÁ÷Ë®ÏßµÄ½»»¥½Ó¿Ú
+/****************define FIFO signals***************/
+wire [FIFO_WIDTH-1:0]    FIFO_din;
+wire                     FIFO_empty;
+wire                     FIFO_full;
+wire                     FIFO_data_valid;
+wire                     FIFO_wr_ack;
+wire                     FIFO_rd_rst_busy;
+wire                     FIFO_wr_rst_busy;
+wire                     FIFO_rd_en;
+wire                     FIFO_wr_en;
+wire [ADDR_WIDTH-1:0]    FIFO_wr_addr;
+wire [DATA_WIDTH-1:0]    FIFO_wr_data;
+wire [WSTRB_WIDTH-1:0]   FIFO_wr_strb;
+reg                      FIFO_en;
+/****************define FIFO signals***************/
+
+//ä¸CPUæµæ°´çº¿çš„äº¤äº’æ¥å£
 generate
     genvar n;
     for (n = 0; n < ASSOC_NUM; n = n + 1) begin
         assign dcache_rdata_sel[n] = dcache_rdata[n][reqbuffer_data_offset[OFFSET_WIDTH-1:2]];
     end
 endgenerate
-//TODO:Ö®ºóÌí¼Ó¶àÂ·×éÏàÁ¬
-assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[0];
+//TODO:ä¹‹åæ”¹æˆå››è·¯ç»„ç›¸è¿
+assign sel_way      = delayed_hit[0] ? 1'b0 : 1'b1;
+assign data_rdata   = (uncache_state == UNCACHE_DONE) ? uncache_rdata : dcache_rdata_sel[sel_way];
 assign uncache_busy = (uncache_state == UNCACHE_DONE | uncache_state == UNCACHE_LOOKUP) ? 1'b0 : 1'b1;
 assign dcache_busy  = reqbuffer_data_valid & ~reqbuffer_data_isUncache & 
                       (~delayed_cache_hit | (delayed_cache_hit & reqbuffer_data_op));
-                    //sw²¢ÇÒhit,Òª×èÈûÔÚMEM
-assign busy         = uncache_busy | dcache_busy;
+                    //swå¹¶ä¸”hit,è¦é˜»å¡åœ¨MEM
+assign write_busy   = FIFO_full; //TODO:å­˜ç–‘??
+assign busy         = uncache_busy | dcache_busy | write_busy;
 
-//TODO:Ö®ºóÌí¼Ó¶àÂ·×éÏàÁ¬
+//TODO:ä¹‹åæ”¹æˆå››è·¯ç»„ç›¸è¿
 assign dcache_write_data[7:0]   = reqbuffer_data_wstrb[0] ? reqbuffer_data_wdata[7:0] :
-                                                            dcache_rdata_sel[0][7:0];
+                                                            dcache_rdata_sel[sel_way][7:0];
 assign dcache_write_data[15:8]  = reqbuffer_data_wstrb[1] ? reqbuffer_data_wdata[15:8] :
-                                                            dcache_rdata_sel[0][15:8];
+                                                            dcache_rdata_sel[sel_way][15:8];
 assign dcache_write_data[23:16] = reqbuffer_data_wstrb[2] ? reqbuffer_data_wdata[23:16] :
-                                                            dcache_rdata_sel[0][23:16];
+                                                            dcache_rdata_sel[sel_way][23:16];
 assign dcache_write_data[31:24] = reqbuffer_data_wstrb[3] ? reqbuffer_data_wdata[31:24] :
-                                                            dcache_rdata_sel[0][31:24]; 
+                                                            dcache_rdata_sel[sel_way][31:24]; 
 
-//ÓëAXIµÄ½»»¥½Ó¿Ú
+//ä¸AXIçš„äº¤äº’æ¥å£
 //dcache AXI
 assign dcache_rd_req   = (dcache_state == MISSCLEAN);
 assign dcache_rd_addr  = {reqbuffer_data_tag,reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}};
 assign dcache_wr_req   = (dcache_state == MISSDIRTY);
-//TODO:¿¼ÂÇ¶àÂ·×éÏàÁ¬Çé¿ö
-assign dcache_wr_addr  = {delayed_tag_rdata[0],reqbuffer_data_index,{OFFSET_WIDTH{1'b0}}}; 
-generate //TODO:¿¼ÂÇ¶àÂ·×éÏàÁ¬Çé¿ö
+//TODO:è€ƒè™‘å¤šè·¯ç»„ç›¸è¿æƒ…å†µ
+assign dcache_wr_addr  = {delayed_tag_rdata[plru[reqbuffer_data_index]],reqbuffer_data_index,
+                         {OFFSET_WIDTH{1'b0}}}; 
+generate //TODO:è€ƒè™‘å¤šè·¯ç»„ç›¸è¿æƒ…å†µ
     genvar u;
     for (u = 0; u < WORDS_PER_LINE; u = u + 1) begin
-        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[0][u];
+        assign dcache_wr_data[32*(u+1)-1:32*(u)] = dcache_rdata[plru[reqbuffer_data_index]][u];
     end
 endgenerate
 
-//uncache AXI
-assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD);
+assign udcache_rd_req  = (uncache_state == UNCACHE_LOAD) & (FIFO_state == FIFO_IDLE) & FIFO_empty; 
 assign udcache_rd_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_strb = reqbuffer_data_wstrb;
-assign udcache_wr_req  = (uncache_state == UNCACHE_STORE);
-assign udcache_wr_addr = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset};
-assign udcache_wr_data = reqbuffer_data_wdata;
+assign udcache_wr_strb = FIFO_wr_strb;
+// assign udcache_wr_req  = (FIFO_empty | FIFO_rd_rst_busy) ? 1'b0 : 1'b1; //TODO:å­˜ç–‘??
+assign udcache_wr_req  = (FIFO_state == FIFO_TEMP);
+assign udcache_wr_addr = FIFO_wr_addr;
+assign udcache_wr_data = FIFO_wr_data;
+assign udcache_load_size = reqbuffer_load_size;
 
 generate
     genvar t;
     for (t = 0; t < ASSOC_NUM; t = t + 1) begin
-        always @(posedge clk) begin //ÓÃÓÚ·¢ËÍAXI writeµØÖ·
+        always @(posedge clk) begin //ç”¨äºå‘é€AXI writeåœ°å€
             if(reset)
                 delayed_tag_rdata[t] <= 0;
             else if(delayed_hit_wr)
@@ -193,7 +229,7 @@ generate
     end
 endgenerate
 
-//hitÅĞ¶¨Âß¼­
+//hitåˆ¤å®šé€»è¾‘
 generate
     genvar k;
     for (k = 0; k < ASSOC_NUM; k = k + 1) begin
@@ -204,7 +240,7 @@ generate
 endgenerate
 assign cache_hit  = |hit;
 assign delayed_hit_wr = (dcache_state == REFILLDONE) ? 1'b1 : data_valid;
-always @(posedge clk) begin //TODO:delayed_hitÖ®ºóÓÃÓÚÆ¬Ñ¡CacheµÄÒ»Â·
+always @(posedge clk) begin
     if(reset) begin
         delayed_cache_hit <= 1'b0;
         delayed_hit       <= 0;
@@ -214,7 +250,6 @@ always @(posedge clk) begin //TODO:delayed_hitÖ®ºóÓÃÓÚÆ¬Ñ¡CacheµÄÒ»Â·
         delayed_hit       <= hit;
     end
 end
-
 
 always @(posedge clk) begin
     if(reset)
@@ -252,6 +287,7 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_offset    <= 0;
         reqbuffer_data_wdata     <= 0;
         reqbuffer_data_wstrb     <= 0;
+        reqbuffer_load_size      <= 0;
         reqbuffer_data_isUncache <= 0;
     end
     else if(reqbuffer_en) begin
@@ -261,44 +297,52 @@ always @(posedge clk) begin //reqbuffer
         reqbuffer_data_tag       <= data_tag   ;
         reqbuffer_data_offset    <= data_offset;
         reqbuffer_data_wdata     <= data_wdata ;
-        reqbuffer_data_wstrb     <= data_wstrb ; //×Ö½ÚĞ´Ê¹ÄÜwstrb
+        reqbuffer_data_wstrb     <= data_wstrb ; //å­—èŠ‚å†™ä½¿èƒ½wstrb
+        reqbuffer_load_size      <= load_size  ; 
         reqbuffer_data_isUncache <= isUncache  ;
     end
 end
 
 //dirty lutram
 always @(*) begin
-    if(dcache_state == REFILL & dcache_ret_valid)
-        dirty_we[0] = 1'b1; //TODO:Ö®ºóÊ¹ÓÃ¶àÂ·×éÏàÁ¬ĞèÒªµ÷Õû,Ê¹ÓÃLRUËã·¨
+    dirty_we = 0;
+    if(dcache_state == REFILL & dcache_ret_valid) begin
+        dirty_we[plru[reqbuffer_data_index]]   = 1'b1;
+    end
     else if(write_state == WRITE_START)
-        dirty_we[0] = 1'b1;
+        dirty_we    = delayed_hit;
     else
-        dirty_we[0] = 1'b0;
+        dirty_we    = 0;
 end
 assign dirty_index = (write_state == WRITE_START) ? writebuffer_data_index : reqbuffer_data_index;
 assign dirty_wbit  = (dcache_state == REFILL) ? 1'b0 : 1'b1;
 
 //tagv lutram
 always @(*) begin
+    tagv_we = 0;
     if(dcache_state == REFILL & dcache_ret_valid)
-        tagv_we[0] = 1'b1; //TODO:Ö®ºóÊ¹ÓÃ¶àÂ·×éÏàÁ¬ĞèÒªµ÷Õû,Ê¹ÓÃLRUËã·¨
+        tagv_we[plru[reqbuffer_data_index]] = 1'b1; 
     else
-        tagv_we[0] = 1'b0;
+        tagv_we = 0;
 end
+
 assign tagv_index = (dcache_state == REFILL || dcache_state == REFILLDONE) 
                     ? reqbuffer_data_index : data_index;
 assign tagv_wdata = {reqbuffer_data_tag,1'b1};
 
 //data ram
-always @(*) begin
-    data_we[0] = 0; //´¥·¢¸Ãalways¿éÂß¼­ºó,ÏÈÇå¿ÕÎª0
+always @(*) begin //TODO:ä¹‹åä¿®æ”¹ä¸ºå››è·¯ç»„ç›¸è¿
+    data_we[0] = {WORDS_PER_LINE{1'b0}}; //è§¦å‘è¯¥alwayså—é€»è¾‘å,å…ˆæ¸…ç©ºä¸º0
+    data_we[1] = {WORDS_PER_LINE{1'b0}}; //è§¦å‘è¯¥alwayså—é€»è¾‘å,å…ˆæ¸…ç©ºä¸º0
     if(dcache_state == REFILL & dcache_ret_valid)
-        data_we[0] = {WORDS_PER_LINE{1'b1}};
+        data_we[plru[reqbuffer_data_index]] = {WORDS_PER_LINE{1'b1}};
     else if(write_state == WRITE_START) begin
-        data_we[0][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
+        data_we[sel_way][writebuffer_data_offset[OFFSET_WIDTH-1:2]] = 1'b1;
     end
-    else
+    else begin
         data_we[0] = {WORDS_PER_LINE{1'b0}};
+        data_we[1] = {WORDS_PER_LINE{1'b0}};
+    end
 end
 assign write_index = (dcache_state == REFILL) ? reqbuffer_data_index : writebuffer_data_index;
 generate
@@ -324,7 +368,7 @@ generate
             .clka(clk),
             .rsta(reset),
 
-            //¶Ë¿ÚĞÅºÅ
+            //ç«¯å£ä¿¡å·
             .ena(1'b1),
             .wea(dirty_we[i]),
             .addra(dirty_index),
@@ -339,7 +383,7 @@ generate
             .clka(clk),
             .rsta(reset),
 
-            //¶Ë¿ÚĞÅºÅ
+            //ç«¯å£ä¿¡å·
             .ena(1'b1),
             .wea(tagv_we[i]),
             .addra(tagv_index),
@@ -354,24 +398,50 @@ generate
                 .clk(clk),
                 .rst(reset),
 
-                //Ğ´¶Ë¿Ú
+                //å†™ç«¯å£
                 .ena(1'b1),
                 .wea(data_we[i][j]),
                 .addra(write_index),
                 .dina(dcache_wdata[j]),
 
-                //¶Á¶Ë¿Ú
+                //è¯»ç«¯å£
                 .enb(data_read_en),
                 .addrb(read_index),
                 .doutb(dcache_rdata[i][j])
             );
     end
-    end
+end
 endgenerate
 
 always @(posedge clk) begin
     if(reset)
-        write_state <= LOOKUP;
+        plru_en <= 1'b0;
+    else if(~data_valid & ~busy)  
+        plru_en <= 1'b0;
+    else if(data_valid)
+        plru_en <= 1'b1;
+end
+
+generate
+    genvar a;
+    for (a = 0; a < BLOCK_NUMS; a = a + 1) begin
+        PLRU #(
+            .ASSOC_NUM(ASSOC_NUM)
+        ) U_PLRU(
+            .clk         (clk        ),
+            .reset       (reset      ),
+            .delayed_hit (delayed_hit),
+            .update      (plru_en & (a == reqbuffer_data_index)),
+            .plru        (plru[a]    ) 
+        );
+    end
+endgenerate
+
+
+
+always @(posedge clk) begin
+    if(reset)
+        write_state <= WRITE_IDLE;
     else
         write_state <= write_nextstate;
 end
@@ -393,39 +463,27 @@ end
 always @(*) begin //uncache
     case (uncache_state)
         UNCACHE_LOOKUP: 
-            if(data_valid & isUncache) begin
-                if(data_op)
-                    uncache_nextstate = UNCACHE_STORE;
-                else
-                    uncache_nextstate = UNCACHE_LOAD;
+            if(data_valid & isUncache & ~data_op) begin 
+                uncache_nextstate = UNCACHE_LOAD;
             end
             else
                 uncache_nextstate = UNCACHE_LOOKUP;
         
         UNCACHE_LOAD:
-            if(udcache_rd_rdy) 
+            if(udcache_rd_rdy & (FIFO_state == FIFO_IDLE) & FIFO_empty) 
                 uncache_nextstate = UNCACHE_RETURN;
             else
                 uncache_nextstate = UNCACHE_LOAD;
-            
-        UNCACHE_STORE:
-            if(udcache_wr_rdy)
-                uncache_nextstate = UNCACHE_RETURN;
-            else
-                uncache_nextstate = UNCACHE_STORE;
 
         UNCACHE_RETURN:
-            if(udcache_ret_valid | udcache_wr_valid)
+            if(udcache_ret_valid)
                 uncache_nextstate = UNCACHE_DONE;
             else
                 uncache_nextstate = UNCACHE_RETURN;
 
         UNCACHE_DONE:
-            if(data_valid & isUncache) begin
-                if(data_op)
-                    uncache_nextstate = UNCACHE_STORE;
-                else
-                    uncache_nextstate = UNCACHE_LOAD;
+            if(data_valid & isUncache & ~data_op) begin
+                uncache_nextstate = UNCACHE_LOAD;
             end
             else
                 uncache_nextstate = UNCACHE_LOOKUP;
@@ -441,7 +499,7 @@ always @(posedge clk) begin
         dcache_state <= dcache_nextstate;
 end
 
-always @(*) begin //Cache ²»´¦ÀíUncacheºÍstoreÀàÖ¸Áî
+always @(*) begin //Cache ä¸å¤„ç†Uncacheå’Œstoreç±»æŒ‡ä»¤
     case (dcache_state)
         LOOKUP: 
             if(reqbuffer_data_isUncache) begin
@@ -449,16 +507,13 @@ always @(*) begin //Cache ²»´¦ÀíUncacheºÍstoreÀàÖ¸Áî
             end
             else begin
                 if(reqbuffer_data_valid & ~delayed_cache_hit) begin
-                    if(dirty_rbit[0]) //TODO:¿¼ÂÇ¶àÂ·Çé¿ö
+                    if(dirty_rbit[plru[reqbuffer_data_index]]) //TODO:è€ƒè™‘å¤šè·¯æƒ…å†µ
                         dcache_nextstate = MISSDIRTY;
                     else
                         dcache_nextstate = MISSCLEAN;
                 end
                 else begin
-                    // if(reqbuffer_data_op)
-                    //     dcache_nextstate = WAITSTORE;
-                    // else
-                        dcache_nextstate = LOOKUP;
+                    dcache_nextstate = LOOKUP;
                 end
             end
 
@@ -488,15 +543,78 @@ always @(*) begin //Cache ²»´¦ÀíUncacheºÍstoreÀàÖ¸Áî
         
         REFILLDONE:
             dcache_nextstate = LOOKUP;
-        //     if(reqbuffer_data_op)
-        //         dcache_nextstate = WAITSTORE;
-        //     else
-        //         dcache_nextstate = LOOKUP;
-        
-        // WAITSTORE:
-        //     dcache_nextstate = LOOKUP;
 
         default: dcache_nextstate = LOOKUP;
     endcase
 end
+
+always @(posedge clk) begin
+    if(reset)
+        FIFO_state <= FIFO_IDLE;
+    else
+        FIFO_state <= FIFO_nextstate;
+end
+
+always @(*) begin
+    case (FIFO_state)
+        FIFO_IDLE: 
+            if(~FIFO_empty)
+                FIFO_nextstate = FIFO_WAIT;
+            else
+                FIFO_nextstate = FIFO_IDLE;
+        
+        FIFO_WAIT:
+            if(udcache_wr_rdy)
+                FIFO_nextstate = FIFO_TEMP;
+            else
+                FIFO_nextstate = FIFO_WAIT;
+        
+        FIFO_TEMP:
+            FIFO_nextstate = FIFO_RETURN;
+
+        FIFO_RETURN:
+            if(udcache_wr_valid)
+                FIFO_nextstate = FIFO_IDLE;
+            else
+                FIFO_nextstate = FIFO_RETURN;
+
+        default: FIFO_nextstate = FIFO_IDLE;
+    endcase
+end
+
+
+always @(posedge clk) begin
+    if(reset)
+        FIFO_en <= 1'b0;
+    else if(data_valid)
+        FIFO_en <= 1'b1;
+    else if(~data_valid & ~FIFO_full)
+        FIFO_en <= 1'b0;
+end
+
+assign FIFO_din   = {reqbuffer_data_tag,reqbuffer_data_index,reqbuffer_data_offset,
+                     reqbuffer_data_wdata,reqbuffer_data_wstrb}; //addr + wdata + wstrb
+// assign FIFO_rd_en = ~FIFO_rd_rst_busy & ~FIFO_empty & udcache_wr_rdy;
+assign FIFO_rd_en = (FIFO_state == FIFO_TEMP) & udcache_wr_rdy;
+assign FIFO_wr_en = ~FIFO_wr_rst_busy & ~FIFO_full
+                    & (FIFO_en & reqbuffer_data_isUncache & reqbuffer_data_op);
+
+FIFO #(
+    .LATENCY    (0),
+    .FIFO_WIDTH (FIFO_WIDTH) //addr 32bit + data 32bit + wstrb 4bit
+)
+U_FIFO (
+    .clk              (clk              ),
+    .rst              (reset            ),
+    .rd_en            (FIFO_rd_en       ),
+    .wr_en            (FIFO_wr_en       ),
+    .rd_rst_busy      (FIFO_rd_rst_busy ),
+    .wr_rst_busy      (FIFO_wr_rst_busy ),
+    .din              (FIFO_din         ),
+    .empty            (FIFO_empty       ),
+    .full             (FIFO_full        ),
+    .data_valid       (FIFO_data_valid  ),
+    .wr_ack           (FIFO_wr_ack      ),
+    .dout             ({FIFO_wr_addr,FIFO_wr_data,FIFO_wr_strb})
+);
 endmodule //DCache

@@ -1,29 +1,24 @@
 `include "global_defines.vh"
 
 module exe_stage(
-    input         clk ,
-    input         reset,
-    //allowin
-    input         m1s_allowin,
-    output        es_allowin,
-    //from ds
-    input         ds_to_es_valid,
+    input                          clk ,
+    input                          reset,
+    //allowin                 
+    input                          m1s_allowin,
+    output                         es_allowin,
+    //from ds                 
+    input                          ds_to_es_valid,
     input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
     //to ms
-    output        es_to_m1s_valid,
+    output                         es_to_m1s_valid,
     output [`ES_TO_M1_BUS_WD -1:0] es_to_m1s_bus,
-    output [ 4:0] EXE_dest, // EXE½×¶ÎĞ´RFµØÖ· Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î
-    output [31:0] EXE_result, //EXE½×¶Î es_alu_result      
-    output        es_load_op, //EXE½×¶Î ÅĞ¶¨ÊÇ·ñÎªloadÖ¸Áî
-    input         flush, //flush=1Ê±±íÃ÷ĞèÒª´¦ÀíÒì³£
-    output        es_ex, // TODO Ã»ÓĞ±ØÒªËÍµ½myCPU_topÀïÃæ
-    //input         ms_ex, //ÅĞ¶¨MEM½×¶ÎÊÇ·ñÓĞ±»±ê¼ÇÎªÀıÍâµÄÖ¸Áî
-    input         m1s_ex,
-    output        es_inst_mfc0, //EXE½×¶ÎÖ¸ÁîÎªmfc0 Ç°µİµ½ID½×¶Î
-    input         m1s_inst_eret
-    //input         ms_inst_eret, //MEM½×¶ÎÖ¸ÁîÎªeret Ç°µİµ½EXE ¿ØÖÆSRAM¶ÁĞ´
-    //input         ws_inst_eret, //WB½×¶ÎÖ¸ÁîÎªeret Ç°µİµ½EXE ¿ØÖÆSRAM¶ÁĞ´;Ç°µİµ½IF½×¶ÎĞŞ¸Änextpc
-    //Attention:CPUºÍDCacheµÄ½»»¥ĞÅºÅÈçÏÂ;
+    output [ 4:0]                  EXE_dest, // EXEé˜¶æ®µå†™RFåœ°å€ é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ
+    output [31:0]                  EXE_result, //EXEé˜¶æ®µ es_alu_result      
+    output                         es_load_op, //EXEé˜¶æ®µ åˆ¤å®šæ˜¯å¦ä¸ºloadæŒ‡ä»¤
+    input                          flush, //flush=1æ—¶è¡¨æ˜éœ€è¦å¤„ç†å¼‚å¸¸
+    input                          m1s_ex,
+    output                         es_inst_mfc0, //EXEé˜¶æ®µæŒ‡ä»¤ä¸ºmfc0 å‰é€’åˆ°IDé˜¶æ®µ
+    input                          m1s_inst_eret
 );
 
 reg         es_valid      ;
@@ -42,29 +37,28 @@ wire [15:0] es_imm        ;
 wire [31:0] es_rs_value   ;
 wire [31:0] es_rt_value   ;
 wire [31:0] es_pc         ;
-wire [11:0] es_mem_inst; //lab7Ìí¼Ó Çø±ğ²»Í¬µÄ´æÈ¡ÊıÖ¸Áî
-wire [3:0] sram_wen; //sramĞ´ĞÅºÅ,¿ÉÒÔÇø·Ö²»Í¬µÄstoreÖ¸Áî,×îºó¸³Öµ¸ø data_sram_wen
-wire [31:0] sram_wdata; //Ğ´sramµÄÊı¾İ,×îºó¸³Öµ¸ødata_sram_wdata
+wire [11:0] es_mem_inst; //lab7æ·»åŠ  åŒºåˆ«ä¸åŒçš„å­˜å–æ•°æŒ‡ä»¤
+wire [3:0]  sram_wen; //sramå†™ä¿¡å·,å¯ä»¥åŒºåˆ†ä¸åŒçš„storeæŒ‡ä»¤,æœ€åèµ‹å€¼ç»™ data_sram_wen
+wire [31:0] sram_wdata; //å†™sramçš„æ•°æ®,æœ€åèµ‹å€¼ç»™data_sram_wdata
 
-wire [2:0] es_sel; 
-wire [4:0] es_mfc0_rd;
-wire es_inst_mtc0; 
-// wire es_inst_mfc0; //¸ÃĞÅºÅÔÚÄ£¿é¶Ë¿Ú¶¨Òå
-wire es_inst_eret;
-wire es_bd;
-wire temp_ex; //ÁÙÊ±ÓÃÀ´³Ğ½ÓÀ´×ÔIDµÄds_exĞÅºÅ
-wire [4:0] temp_ExcCode; //ÁÙÊ±ÓÃÀ´³Ğ½ÓÀ´×ÔIDµÄds_ExcCodeĞÅºÅ
-// wire es_ex;
-wire [4:0] es_Exctype;
-wire Overflow_ex; //ÓĞÕûĞÍÒç³öÖÃÎª1
-wire [ 2:0] Overflow_inst; //¿ÉÄÜÉæ¼°ÕûĞÍÒç³öÀıÍâµÄÈıÌõÖ¸Áî:add,addi,sub
-wire ADES_ex; //µØÖ·´íÀıÍâ(Ğ´Êı¾İ)
-wire ADEL_ex; //µØÖ·´íÀıÍâ(¶ÁÊı¾İ)
+wire [ 2:0] es_sel; 
+wire [ 4:0] es_mfc0_rd;
+wire        es_inst_mtc0; 
+wire        es_inst_eret;
+wire        es_bd;
+wire        temp_ex; //ä¸´æ—¶ç”¨æ¥æ‰¿æ¥æ¥è‡ªIDçš„ds_exä¿¡å·
+wire [ 4:0] temp_ExcCode; //ä¸´æ—¶ç”¨æ¥æ‰¿æ¥æ¥è‡ªIDçš„ds_ExcCodeä¿¡å·
+wire        es_ex;
+wire [ 4:0] es_Exctype;
+wire        Overflow_ex; //æœ‰æ•´å‹æº¢å‡ºç½®ä¸º1
+wire [ 2:0] Overflow_inst; //å¯èƒ½æ¶‰åŠæ•´å‹æº¢å‡ºä¾‹å¤–çš„ä¸‰æ¡æŒ‡ä»¤:add,addi,sub
+wire        ADES_ex; //åœ°å€é”™ä¾‹å¤–(å†™æ•°æ®)
+wire        ADEL_ex; //åœ°å€é”™ä¾‹å¤–(è¯»æ•°æ®)
 
-wire es_inst_tlbp ;
-wire es_inst_tlbr ;
-wire es_inst_tlbwi;
-wire es_inst_tlbwr;
+wire        es_inst_tlbp ;
+wire        es_inst_tlbr ;
+wire        es_inst_tlbwi;
+wire        es_inst_tlbwr;
 
 assign {
         es_inst_tlbp   ,  //181:181
@@ -87,8 +81,8 @@ assign {
         es_src1_is_pc  ,  //122:122
         es_src2_is_imm ,  //121:120
         es_src2_is_8   ,  //119:119
-        es_gr_we       ,  //118:118 --Ğ´RFÊ¹ÄÜ
-        es_mem_we      ,  //117:117 --Ğ´DMÊ¹ÄÜ
+        es_gr_we       ,  //118:118 --å†™RFä½¿èƒ½
+        es_mem_we      ,  //117:117 --å†™DMä½¿èƒ½
         es_dest        ,  //116:112 
         es_imm         ,  //111:96
         es_rs_value    ,  //95 :64
@@ -98,11 +92,11 @@ assign {
 
 wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
-wire [31:0] temp_alu_result ; //ÁÙÊ±½ÓÊÕalu¼ÆËãµÃµ½µÄ½á¹û
-wire [31:0] es_alu_result ; //³ıÁË¿¼ÂÇaluÔËËã½á¹û,»¹¿¼ÂÇmtc0Ö¸ÁîĞ¯´øµÄrtÊı¾İ;
+wire [31:0] temp_alu_result ; //ä¸´æ—¶æ¥æ”¶aluè®¡ç®—å¾—åˆ°çš„ç»“æœ
+wire [31:0] es_alu_result ; //é™¤äº†è€ƒè™‘aluè¿ç®—ç»“æœ,è¿˜è€ƒè™‘mtc0æŒ‡ä»¤æºå¸¦çš„rtæ•°æ®;
 wire        es_res_from_mem;
 
-//MUL DIV¿ØÖÆĞÅºÅ
+//MUL DIVæ§åˆ¶ä¿¡å·
 wire        m_axis_dout_tvalid;
 wire        m_axis_dout_tvalidu;
 wire        isMul;
@@ -117,7 +111,7 @@ assign      inst_is_sb  = es_mem_inst[8];
 assign      inst_is_sh  = es_mem_inst[9];
 assign      inst_is_swl = es_mem_inst[10];
 assign      inst_is_swr = es_mem_inst[11];
-//lab8Ìí¼Ó ĞèÒª´¦ÀíµØÖ·´íÀıÍâ,Òª¿¼ÂÇµØÖ·µÄÓĞĞ§ĞÔ
+//lab8æ·»åŠ  éœ€è¦å¤„ç†åœ°å€é”™ä¾‹å¤–,è¦è€ƒè™‘åœ°å€çš„æœ‰æ•ˆæ€§
 wire        inst_is_sw;
 wire        inst_is_lh;
 wire        inst_is_lhu;
@@ -137,9 +131,9 @@ assign es_to_m1s_bus = {
                        es_inst_tlbr   ,  //136:136
                        es_inst_tlbwi  ,  //135:135
                        es_inst_tlbwr  ,  //134:134
-                      //TODO:es_alu_resultÄ¿Ç°Ôİ´údata_sram_addr
+                      //TODO:es_alu_resultç›®å‰æš‚ä»£data_sram_addr
                        es_load_op     ,  //133:133
-                       //es_alu_result  ,  //164:133 --¶ÁĞ´sramµÄµØÖ·
+                       //es_alu_result  ,  //164:133 --è¯»å†™sramçš„åœ°å€
                        es_mfc0_rd     ,  //132:128
                        es_ex          ,  //127:127
                        es_Exctype     ,  //126:122 
@@ -150,14 +144,14 @@ assign es_to_m1s_bus = {
                        es_inst_mfc0   ,  //115:115 
                        es_rt_value    ,  //114:83
                        es_mem_inst    ,  //82:71 
-                       es_res_from_mem,  //70:70 --ÊÇ·ñÎªloadÖ¸Áî(Ê¹ÓÃDMÖĞÊı)
-                       es_gr_we       ,  //69:69 --Ğ´RFÊ¹ÄÜ
-                       es_dest        ,  //68:64 --Ğ´RFµÄµØÖ·
-                       es_alu_result  ,  //63:32 --16Î»Á¢¼´Êı
-                       es_pc             //31:0 --EXE½×¶Î PCÖµ
+                       es_res_from_mem,  //70:70 --æ˜¯å¦ä¸ºloadæŒ‡ä»¤(ä½¿ç”¨DMä¸­æ•°)
+                       es_gr_we       ,  //69:69 --å†™RFä½¿èƒ½
+                       es_dest        ,  //68:64 --å†™RFçš„åœ°å€
+                       es_alu_result  ,  //63:32 --16ä½ç«‹å³æ•°
+                       es_pc             //31:0 --EXEé˜¶æ®µ PCå€¼
                       };
 
-//m_axis_dout_tvalid³ı·¨Íê³ÉĞÅºÅ es_alu_op[12]ÎªdivÖ¸Áî es_alu_op[13]ÎªdivuÖ¸Áî
+//m_axis_dout_tvalidé™¤æ³•å®Œæˆä¿¡å· es_alu_op[12]ä¸ºdivæŒ‡ä»¤ es_alu_op[13]ä¸ºdivuæŒ‡ä»¤
 // assign es_ready_go    =  
 //                          ((~es_alu_op[12] & ~es_alu_op[13])
 //                          |(es_alu_op[12] & m_axis_dout_tvalid)
@@ -180,7 +174,7 @@ end
 always @(posedge clk ) begin
     if (reset)
         ds_to_es_bus_r <= 0;
-    else if (flush ) //Çå³ıÁ÷Ë®Ïß
+    else if (flush ) //æ¸…é™¤æµæ°´çº¿
         ds_to_es_bus_r <= 0;
     else if (ds_to_es_valid && es_allowin) begin
         ds_to_es_bus_r <= ds_to_es_bus;
@@ -191,12 +185,12 @@ assign es_alu_src1 = es_src1_is_sa  ? {27'b0, es_imm[10:6]} :
                      es_src1_is_pc  ? es_pc[31:0] :
                                       es_rs_value;
 
-//lab6ĞŞ¸Ä ¶ÔÓÚes_src2_is_imm,·ÇÁ¢¼´Êı:2'b00 Á¢¼´ÊıÁãÀ©Õ¹:2'b01 Á¢¼´ÊıÓĞ·ûºÅÀ©Õ¹:2'b10 
-assign es_alu_src2 = es_src2_is_imm == 2'b01 ? {16'b0 , es_imm[15:0]}:
-                     es_src2_is_imm == 2'b10 ? {{16{es_imm[15]}}, es_imm[15:0]}:
-                     es_src2_is_8            ? 32'd8 : es_rt_value;
+//lab6ä¿®æ”¹ å¯¹äºes_src2_is_imm,éç«‹å³æ•°:2'b00 ç«‹å³æ•°é›¶æ‰©å±•:2'b01 ç«‹å³æ•°æœ‰ç¬¦å·æ‰©å±•:2'b10 
+assign es_alu_src2 = es_src2_is_imm==2'b01 ? {16'b0 , es_imm[15:0]}:
+                     es_src2_is_imm==2'b10 ? {{16{es_imm[15]}}, es_imm[15:0]}:
+                     es_src2_is_8          ? 32'd8 : es_rt_value;
 
-//lab7 ´¦ÀíËÍÈëDM´æ´¢Æ÷µÄÊı¾İ storeÖ¸Áî¹²ÎåÀà
+//lab7 å¤„ç†é€å…¥DMå­˜å‚¨å™¨çš„æ•°æ® storeæŒ‡ä»¤å…±äº”ç±»
 assign sram_wdata = inst_is_sb  ? {4{es_rt_value[7:0]}}:
                     inst_is_sh  ? {2{es_rt_value[15:0]}}:
                     inst_is_swl ? (es_alu_result[1:0] == 2'b00 ? {24'd0, es_rt_value[31:24]} :
@@ -243,11 +237,11 @@ alu u_alu(
     .m1s_ex              (m1s_ex              )
 );
 
-//lab8Ìí¼Ó µ±¸ÃÖ¸ÁîÎªmtc0 °Ñes_alu_result±£´æÎªes_rt_value;·ñÔò¼´ÎªaluÔËËãµÃµ½µÄÖµ
+//lab8æ·»åŠ  å½“è¯¥æŒ‡ä»¤ä¸ºmtc0 æŠŠes_alu_resultä¿å­˜ä¸ºes_rt_value;å¦åˆ™å³ä¸ºaluè¿ç®—å¾—åˆ°çš„å€¼
 assign es_alu_result = es_inst_mtc0 ? es_rt_value : temp_alu_result; 
 
-//lab8Ìí¼Ó ´¦ÀíÕûĞÍÒç³öÀıÍâ ´¦ÀíµØÖ·´íÀıÍâ(Ğ´Êı¾İ)ºÍµØÖ·´íÀıÍâ(¶ÁÊı¾İ)
-//TODO:es_alu_resultÄ¿Ç°Ôİ´údata_sram_addr
+//lab8æ·»åŠ  å¤„ç†æ•´å‹æº¢å‡ºä¾‹å¤– å¤„ç†åœ°å€é”™ä¾‹å¤–(å†™æ•°æ®)å’Œåœ°å€é”™ä¾‹å¤–(è¯»æ•°æ®)
+//TODO:es_alu_resultç›®å‰æš‚ä»£data_sram_addr
 assign ADES_ex = inst_is_sh && es_alu_result[0] ? 1'b1 :
                  inst_is_sw && es_alu_result[1:0] ? 1'b1 : 1'b0;
                  
@@ -255,11 +249,12 @@ assign ADEL_ex = (inst_is_lh | inst_is_lhu) && es_alu_result[0] ? 1'b1 :
                  inst_is_lw && es_alu_result[1:0] ? 1'b1 : 1'b0;
 
 assign es_ex      = temp_ex | Overflow_ex | ADES_ex | ADEL_ex; 
-assign es_Exctype = Overflow_ex ? `Ov   : 
-                    ADES_ex     ? `AdES : 
-                    ADEL_ex     ? `AdEL : temp_ExcCode;
+assign es_Exctype = temp_ex     ? temp_ExcCode:
+                    Overflow_ex ?       `Ov   : 
+                    ADES_ex     ?       `AdES : 
+                    ADEL_ex     ?       `AdEL : `NO_EX;
 
-assign EXE_dest   = es_dest & {5{es_valid}}; //Ğ´RFµØÖ·Í¨¹ıÅÔÂ·ËÍµ½ID½×¶Î ×¢Òâ¿¼ÂÇes_validÓĞĞ§ĞÔ
+assign EXE_dest   = es_dest & {5{es_valid}}; //å†™RFåœ°å€é€šè¿‡æ—è·¯é€åˆ°IDé˜¶æ®µ æ³¨æ„è€ƒè™‘es_validæœ‰æ•ˆæ€§
 assign EXE_result = es_alu_result;
 
 endmodule

@@ -1,22 +1,22 @@
 `ifndef MYCPU_H
     `define MYCPU_H
     `define BR_BUS_WD       34 
-    //FS_TO_DS_BUS_WDÔ­À´ÊÇ64,lab8ĞŞ¸ÄÎª71(¼ÓÈëfs_bd,fs_ex,fs_ExcCode)
+    //FS_TO_DS_BUS_WDåŸæ¥æ˜¯64,lab8ä¿®æ”¹ä¸º71(åŠ å…¥fs_bd,fs_ex,fs_ExcCode)
     `define PS_TO_FS_BUS_WD 40
     `define FS_TO_DS_BUS_WD 71
-    //DS_TO_ES_BUS_WDÔ­À´ÊÇ136,lab6ĞŞ¸ÄÎª137(src2_is_imm±äÎª2Î»¿í),ĞŞ¸ÄÎª145(¼ÓÈëmf_mtºÍmult_div)
-    //lab7ÔÙ´ÎĞŞ¸ÄÎª157(Ìí¼Ómem_controlÇø±ğ²»Í¬µÄ´æÈ¡ÊıÖ¸Áî),lab8ĞŞ¸ÄÎª174(¼ÓÈëmfc0,mtc0,eretÖ¸Áî
-    //ºÍmfc0_rd,sel¶Î;¼ÓÈëds_bd,ds_ex,ds_ExcCode,Overflow_inst)
+    //DS_TO_ES_BUS_WDåŸæ¥æ˜¯136,lab6ä¿®æ”¹ä¸º137(src2_is_immå˜ä¸º2ä½å®½),ä¿®æ”¹ä¸º145(åŠ å…¥mf_mtå’Œmult_div)
+    //lab7å†æ¬¡ä¿®æ”¹ä¸º157(æ·»åŠ mem_controlåŒºåˆ«ä¸åŒçš„å­˜å–æ•°æŒ‡ä»¤),lab8ä¿®æ”¹ä¸º174(åŠ å…¥mfc0,mtc0,eretæŒ‡ä»¤
+    //å’Œmfc0_rd,selæ®µ;åŠ å…¥ds_bd,ds_ex,ds_ExcCode,Overflow_inst)
     `define DS_TO_ES_BUS_WD 203
-    //Ô­Îª70,lab7ĞŞ¸ÄÎª115,lab8ĞŞ¸ÄÎª133(¼ÓÈëmfc0,mtc0,eretÖ¸ÁîºÍmfc0_rd,sel¶Î;¼ÓÈëes_bd,es_ex,es_ExcCode;)
-    //lab9ĞŞ¸ÄÎª165(¼ÓÈëdata_sram_addr)
+    //åŸä¸º70,lab7ä¿®æ”¹ä¸º115,lab8ä¿®æ”¹ä¸º133(åŠ å…¥mfc0,mtc0,eretæŒ‡ä»¤å’Œmfc0_rd,selæ®µ;åŠ å…¥es_bd,es_ex,es_ExcCode;)
+    //lab9ä¿®æ”¹ä¸º165(åŠ å…¥data_sram_addr)
     `define ES_TO_M1_BUS_WD 175
-    `define M1_TO_MS_BUS_WD 161
-    //Ô­Îª70,lab8ĞŞ¸ÄÎª88(¼ÓÈëmfc0,mtc0,eretÖ¸ÁîºÍmfc0_rd,sel¶Î;¼ÓÈëms_bd,ms_ex,ms_ExcCode)
-    //lab9ĞŞ¸ÄÎª120(¼ÓÈëdata_sram_addr)
+    `define M1_TO_MS_BUS_WD 149
+    //åŸä¸º70,lab8ä¿®æ”¹ä¸º88(åŠ å…¥mfc0,mtc0,eretæŒ‡ä»¤å’Œmfc0_rd,selæ®µ;åŠ å…¥ms_bd,ms_ex,ms_ExcCode)
+    //lab9ä¿®æ”¹ä¸º120(åŠ å…¥data_sram_addr)
     `define MS_TO_WS_BUS_WD 83
     `define WS_TO_RF_BUS_WD 38
-    //CP0¼Ä´æÆ÷¶ÔÓ¦µÄµØÖ·(8Î»)
+    //CP0å¯„å­˜å™¨å¯¹åº”çš„åœ°å€(8ä½)
     `define Index_RegAddr    8'h00
     `define Random_RegAddr   8'h08
     `define Entrylo0_RegAddr 8'h10
@@ -35,23 +35,23 @@
     `define EBase_RegAddr    8'h79
     `define Config_RegAddr   8'h80
     `define Config1_RegAddr  8'h81
-    //ExcCode±àÂë¼°Æä¶ÔÓ¦ÀıÍâÀàĞÍ Attention:ÉĞÎ´Ó³Éä£¬ÓĞÎó!
-    `define Int                 5'b00000 //ÖĞ¶Ï
-    `define ITLB_EX_Refill      5'b00010 //TLBÀıÍâ(È¡Ö¸»ò¶ÁÊı¾İ)
-    `define ITLB_EX_Invalid     5'b00011 //TLBÀıÍâ(È¡Ö¸»ò¶ÁÊı¾İ)
-    `define DTLB_EX_RD_Refill   5'b00100 //TLBÀıÍâ(È¡Ö¸»ò¶ÁÊı¾İ)
-    `define DTLB_EX_RD_Invalid  5'b00101 //TLBÀıÍâ(È¡Ö¸»ò¶ÁÊı¾İ)
-    `define DTLB_EX_WR_Refill   5'b00110 //TLBÀıÍâ(Ğ´Êı¾İ)
+    //ExcCodeç¼–ç åŠå…¶å¯¹åº”ä¾‹å¤–ç±»å‹ Attention:å°šæœªæ˜ å°„ï¼Œæœ‰è¯¯!
+    `define Int                 5'b00000 //ä¸­æ–­
+    `define ITLB_EX_Refill      5'b00010 //TLBä¾‹å¤–(å–æŒ‡æˆ–è¯»æ•°æ®)
+    `define ITLB_EX_Invalid     5'b00011 //TLBä¾‹å¤–(å–æŒ‡æˆ–è¯»æ•°æ®)
+    `define DTLB_EX_RD_Refill   5'b00100 //TLBä¾‹å¤–(å–æŒ‡æˆ–è¯»æ•°æ®)
+    `define DTLB_EX_RD_Invalid  5'b00101 //TLBä¾‹å¤–(å–æŒ‡æˆ–è¯»æ•°æ®)
+    `define DTLB_EX_WR_Refill   5'b00110 //TLBä¾‹å¤–(å†™æ•°æ®)
     `define DTLB_EX_WR_Invalid  5'b00111
     `define DTLB_EX_Modified    5'b01000
-    `define AdEL                5'b01001 //µØÖ·´íÀıÍâ(¶ÁÊı¾İ/È¡Ö¸Áî)
-    `define AdES                5'b01010 //µØÖ·´íÀıÍâ(Ğ´Êı¾İ)
-    `define Sys                 5'b01011 //syscallÏµÍ³µ÷ÓÃÀıÍâ
-    `define Bp                  5'b01100 //break¶ÏµãÀıÍâ
-    `define RI                  5'b01101 //±£ÁôÖ¸Áî(Î´¶¨ÒåÖ¸Áî)ÀıÍâ
-    `define Ov                  5'b01110 //ËãÊõÒç³öÀıÍâ
-    `define NO_EX               5'b11111 //Ê±ÖÓÖĞ¶ÏÀıÍâ
-    //¶¨Òå¸´Î»ÓëÀıÍâÈë¿Ú
+    `define AdEL                5'b01001 //åœ°å€é”™ä¾‹å¤–(è¯»æ•°æ®/å–æŒ‡ä»¤)
+    `define AdES                5'b01010 //åœ°å€é”™ä¾‹å¤–(å†™æ•°æ®)
+    `define Sys                 5'b01011 //syscallç³»ç»Ÿè°ƒç”¨ä¾‹å¤–
+    `define Bp                  5'b01100 //breakæ–­ç‚¹ä¾‹å¤–
+    `define RI                  5'b01101 //ä¿ç•™æŒ‡ä»¤(æœªå®šä¹‰æŒ‡ä»¤)ä¾‹å¤–
+    `define Ov                  5'b01110 //ç®—æœ¯æº¢å‡ºä¾‹å¤–
+    `define NO_EX               5'b11111 //æ—¶é’Ÿä¸­æ–­ä¾‹å¤–
+    //å®šä¹‰å¤ä½ä¸ä¾‹å¤–å…¥å£
     `define RESET_PC            32'hbfc0_0000
     `define REFILL_EX_PC        32'hbfc0_0200
     `define GENERAL_EX_PC       32'hbfc0_0380
