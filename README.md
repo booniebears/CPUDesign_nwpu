@@ -1,8 +1,8 @@
-Hello And Welcome.
-This CPU design is based on mips instruction set.
+# 西北工业大学一队第六届龙芯杯(2022)团体赛参赛作品
+@Author: booniebears
 
-@Author: csy
-
+最终取得预赛全国第三名，决赛三等奖的成绩。
+   
 ## 项目结构：
 
     study_record @ 08711e4:
@@ -27,11 +27,4 @@ This CPU design is based on mips instruction set.
     
     周报.md:
         本人会每周坚持写周报，请各位查阅。
----
-希望各位能够多多commit,一天的学习我觉得是需要总结的。大家把自己的发现的一些比较难懂的地方,或者重要的地方写成readme.md文档,
-上传到study_record中对应的部分，有问题一起解决。我本人每周会写周报，总结大家一周成果，同时分享一些我的感想，以及未来规划。
-我希望到时候这个repository能多多看到各位的贡献。
-
-注：指令测试链接在此：
-https://github.com/oscourse-tsinghua/cpu-testcase
 
